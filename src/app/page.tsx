@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 
 export default function Login() {
     useEffect(() => {
@@ -43,8 +44,13 @@ export default function Login() {
     };
 
     return (
-        <button onClick={loginFacebook}>
-            Login with Facebook
-        </button>
+        <>
+            <button onClick={loginFacebook}>
+                Login with Facebook
+            </button>
+            <Link href="/map">
+                Go to Map
+            </Link>
+        </>
     );
 }
