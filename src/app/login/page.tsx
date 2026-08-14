@@ -1,17 +1,20 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState, type SubmitEvent } from "react";
 import Link from "next/link";
-import styles from "./login.module.css";
+import { FacebookLogoIcon, GoogleLogoIcon } from "@phosphor-icons/react";
+import AuthShell from "@/components/auth/AuthShell";
+import { useSocialAuth } from "@/components/auth/useSocialAuth";
+import controls from "@/styles/controls.module.css";
+import form from "@/components/auth/AuthForm.module.css";
 
-export default function Login() {
+export default function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
-    const googleClientRef = useRef<any>(null);
-    const googleCallbackRef = useRef<any>(null);
+    const { loginFacebook, loginGoogle } = useSocialAuth();
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = (e: SubmitEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError("");
 
@@ -21,143 +24,68 @@ export default function Login() {
         }
 
         console.log("Login with email:", { email, password });
-
-    };
-    useEffect(() => {
-
-        const initFacebook = () => {
-            if (!window.FB) {
-                setTimeout(initFacebook, 500);
-                return;
-            }
-
-            window.FB.init({
-                appId: "2840631646312811",
-                cookie: true,
-                xfbml: true,
-                version: "v23.0",
-            });
-
-            console.log("Facebook SDK Initialized");
-        };
-
-        initFacebook();
-
-        const initGoogle = () => {
-            if (!window.google) {
-                setTimeout(initGoogle, 500);
-                return;
-            }
-
-            googleClientRef.current = window.google.accounts.oauth2.initTokenClient({
-                client_id: "654051365578-akou0ga1q1dh34o8a0oiqhvpu47b4fsj.apps.googleusercontent.com",
-                scope: "profile email",
-                callback: (response: any) => {
-                    googleCallbackRef.current?.(response);
-                },
-                error_callback: (error: any) => {
-                    console.log("Login Failed");
-                    console.log(error);
-                },
-            });
-
-            console.log("Google SDK Initialized");
-        };
-
-        initGoogle();
-    }, []);
-
-    const loginFacebook = () => {
-        window.FB.login(
-            function (response: any) {
-                console.log(response);
-
-                if (response.authResponse) {
-                    console.log("Login Success");
-                    console.log(response.authResponse.accessToken);
-                    console.log(response.authResponse.userID);
-                } else {
-                    console.log("Login Failed");
-                }
-            },
-            {
-                scope: "public_profile",
-            }
-        );
-    };
-
-    const loginGoogle = () => {
-        googleCallbackRef.current = (response: any) => {
-            console.log(response);
-
-            if (response.access_token) {
-                console.log("Login Success");
-                console.log(response.access_token);
-            } else {
-                console.log("Login Failed");
-            }
-        };
-
-        googleClientRef.current?.requestAccessToken();
     };
 
     return (
-        <div className={styles.page}>
-            <div className={styles.panel}>
-                <div className={styles.panelInner}>
-                    <h2 className={styles.title}>Đăng nhập</h2>
-                    <p className={styles.subtitle}>
-                        Tiếp tục để khám phá phòng ở dạng toàn cảnh 360°
-                    </p>
-
-                    <form className={styles.form} onSubmit={handleSubmit}>
-                        <div className={styles.field}>
-                            <label className={styles.label} htmlFor="email">Email</label>
-                            <input
-                                id="email"
-                                type="email"
-                                className={styles.input}
-                                placeholder="you@example.com"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                            />
-                        </div>
-
-                        <div className={styles.field}>
-                            <label className={styles.label} htmlFor="password">Mật khẩu</label>
-                            <input
-                                id="password"
-                                type="password"
-                                className={styles.input}
-                                placeholder="••••••••"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                            />
-                        </div>
-
-                        {error && <p className={styles.error}>{error}</p>}
-
-                        <button type="submit" className={styles.submitButton}>
-                            Đăng nhập
-                        </button>
-                    </form>
-
-                    <div className={styles.divider}>
-                        <span>hoặc</span>
-                    </div>
-
-                    <button className={styles.authButton} onClick={loginFacebook}>
-                        Đăng nhập với Facebook
-                    </button>
-                    <button className={styles.authButton} onClick={loginGoogle}>
-                        Đăng nhập với Google
-                    </button>
-
-                    <Link className={styles.mapLink} href="/map" style={{ marginTop: "1.5rem" }}>
-                        Tiếp tục không cần đăng nhập →
-                    </Link>
+        <AuthShell
+            title="Đăng nhập"
+            subtitle="Tiếp tục để khám phá phòng ở dạng toàn cảnh 360°"
+            footer={
+                <span>
+                    Chưa có tài khoản? <Link href="/signup">Đăng ký</Link>
+                </span>
+            }
+        >
+            <form className={form.form} onSubmit={handleSubmit}>
+                <div className={controls.field}>
+                    <label className={controls.label} htmlFor="email">
+                        Email
+                    </label>
+                    <input
+                        id="email"
+                        type="email"
+                        className={controls.input}
+                        placeholder="you@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                    />
                 </div>
+
+                <div className={controls.field}>
+                    <label className={controls.label} htmlFor="password">
+                        Mật khẩu
+                    </label>
+                    <input
+                        id="password"
+                        type="password"
+                        className={controls.input}
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                    />
+                </div>
+
+                {error && <p className={controls.error}>{error}</p>}
+
+                <button type="submit" className={controls.button}>
+                    Đăng nhập
+                </button>
+            </form>
+
+            <div className={form.divider}>
+                <span>hoặc</span>
             </div>
-        </div>
+
+            <div className={form.socialRow}>
+                <button type="button" className={form.socialButton} onClick={loginFacebook}>
+                    <FacebookLogoIcon size={18} weight="fill" />
+                    Đăng nhập với Facebook
+                </button>
+                <button type="button" className={form.socialButton} onClick={loginGoogle}>
+                    <GoogleLogoIcon size={18} weight="bold" />
+                    Đăng nhập với Google
+                </button>
+            </div>
+        </AuthShell>
     );
 }

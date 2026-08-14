@@ -1,0 +1,107 @@
+.header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    height: 56px;
+    background: var(--color-panel);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.inner {
+    max-width: 1160px;
+    height: 100%;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--color-text);
+    flex: none;
+}
+
+.mark {
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+}
+
+.logoAccent {
+    color: var(--color-accent);
+}
+
+.nav {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex: 1;
+}
+
+.navLink {
+    font-size: 13px;
+    color: var(--color-text-muted);
+    transition: color 0.15s ease;
+}
+
+.navLink:hover {
+    color: var(--color-text);
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: none;
+}
+
+.ghostButton,
+.solidButton {
+    height: 32px;
+    padding: 0 14px;
+    border-radius: var(--radius-sm);
+    font-size: 12.5px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.ghostButton {
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+}
+
+.ghostButton:hover {
+    border-color: var(--color-text-faint);
+    background: var(--color-panel-raised);
+}
+
+.solidButton {
+    background: var(--color-accent);
+    color: var(--color-accent-ink);
+}
+
+.solidButton:hover {
+    background: var(--color-accent-strong);
+}
+
+@media (max-width: 480px) {
+    .nav {
+        display: none;
+    }
+}

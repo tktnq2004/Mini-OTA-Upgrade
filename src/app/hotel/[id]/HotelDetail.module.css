@@ -1,0 +1,245 @@
+.page {
+    min-height: 100vh;
+}
+
+.layout {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 16px 20px 40px;
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+}
+
+.infoPanel {
+    flex: 0 0 30%;
+    max-width: 30%;
+    position: sticky;
+    top: 64px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.backLink {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--color-text-muted);
+    align-self: flex-start;
+}
+
+.backLink:hover {
+    color: var(--color-accent);
+}
+
+.thumb {
+    width: 100%;
+    aspect-ratio: 2 / 1;
+    object-fit: cover;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+}
+
+.thumbFallback {
+    width: 100%;
+    aspect-ratio: 2 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-faint);
+    background: var(--color-inset);
+}
+
+.identity {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.name {
+    font-weight: 700;
+    font-size: 15px;
+    line-height: 1.3;
+    color: var(--color-text);
+}
+
+.address {
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--color-text-muted);
+}
+
+.address svg {
+    flex: none;
+    margin-top: 2px;
+}
+
+.filterCard {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    padding: 11px;
+    background: var(--color-panel);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.filterHeading {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.dateRow {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+.priceLabelRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.priceValue {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--color-accent);
+    white-space: nowrap;
+}
+
+.priceSlider {
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    border-radius: var(--radius-pill);
+    background: var(--color-border);
+    outline: none;
+    cursor: pointer;
+    margin: 8px 0 2px;
+}
+
+.priceSlider::-webkit-slider-thumb {
+    appearance: none;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    border: 2px solid var(--color-panel);
+    box-shadow: 0 0 0 1px var(--color-accent);
+    cursor: pointer;
+}
+
+.priceSlider::-moz-range-thumb {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    border: 2px solid var(--color-panel);
+    box-shadow: 0 0 0 1px var(--color-accent);
+    cursor: pointer;
+}
+
+.priceSlider::-moz-range-track {
+    height: 4px;
+    border-radius: var(--radius-pill);
+    background: var(--color-border);
+}
+
+.resetButton {
+    align-self: flex-start;
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    color: var(--color-accent);
+    cursor: pointer;
+}
+
+.resetButton:hover {
+    text-decoration: underline;
+}
+
+.roomsPanel {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.roomsHeader h2 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.roomsHeader p {
+    margin-top: 3px;
+    font-size: 12.5px;
+    color: var(--color-text-muted);
+}
+
+.roomsGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+}
+
+.emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--color-text-muted);
+    background: var(--color-panel);
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.emptyState .resetButton {
+    align-self: center;
+}
+
+@media (max-width: 960px) {
+    .layout {
+        flex-direction: column;
+    }
+
+    .infoPanel {
+        position: static;
+        flex: none;
+        max-width: 100%;
+        width: 100%;
+    }
+
+    .roomsPanel {
+        width: 100%;
+    }
+}
+
+@media (max-width: 640px) {
+    .roomsGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .dateRow {
+        grid-template-columns: 1fr;
+    }
+}

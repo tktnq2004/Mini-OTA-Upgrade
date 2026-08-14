@@ -1,0 +1,56 @@
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 14px 0;
+}
+
+.divider::before,
+.divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--color-border);
+}
+
+.divider span {
+    font-size: 11.5px;
+    color: var(--color-text-muted);
+}
+
+.socialRow {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.socialButton {
+    composes: buttonGhost from "../../styles/controls.module.css";
+    width: 100%;
+}
+
+.checkboxRow {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+}
+
+.checkboxRow strong {
+    color: var(--color-accent);
+    font-weight: 600;
+}
+
+.checkboxRow input {
+    margin-top: 3px;
+    accent-color: var(--color-accent);
+}
