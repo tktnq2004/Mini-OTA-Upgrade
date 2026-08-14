@@ -33,8 +33,12 @@ export default function RootLayout({
         {children}
 
         <Script
+
           src="https://connect.facebook.net/en_US/sdk.js"
           strategy="afterInteractive"
+        />
+        <Script src="https://accounts.google.com/gsi/client" 
+          strategy="afterInteractive" async defer 
         />
       </body>
     </html>
