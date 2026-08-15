@@ -2,8 +2,8 @@
 
 import { useEffect, useRef } from "react";
 
-const FB_APP_ID = "2840631646312811";
-const GOOGLE_CLIENT_ID = "654051365578-akou0ga1q1dh34o8a0oiqhvpu47b4fsj.apps.googleusercontent.com";
+const FB_APP_ID = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID;
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
 interface FacebookLoginResponse {
     status?: string;
@@ -24,8 +24,6 @@ interface GoogleTokenClient {
     requestAccessToken: () => void;
 }
 
-// Dùng chung cho Login/Signup — khởi tạo FB SDK + Google Identity Services
-// một lần, expose 2 hàm bấm nút để trigger popup đăng nhập của từng bên.
 export function useSocialAuth() {
     const googleClientRef = useRef<GoogleTokenClient | null>(null);
     const googleCallbackRef = useRef<((response: GoogleTokenResponse) => void) | null>(null);
@@ -35,6 +33,10 @@ export function useSocialAuth() {
 
         const initFacebook = () => {
             if (cancelled) return;
+            if (!FB_APP_ID) {
+                console.warn("NEXT_PUBLIC_FACEBOOK_APP_ID chưa được cấu hình trong .env.local");
+                return;
+            }
             if (!window.FB) {
                 setTimeout(initFacebook, 500);
                 return;
@@ -49,6 +51,10 @@ export function useSocialAuth() {
 
         const initGoogle = () => {
             if (cancelled) return;
+            if (!GOOGLE_CLIENT_ID) {
+                console.warn("NEXT_PUBLIC_GOOGLE_CLIENT_ID chưa được cấu hình trong .env.local");
+                return;
+            }
             if (!window.google) {
                 setTimeout(initGoogle, 500);
                 return;

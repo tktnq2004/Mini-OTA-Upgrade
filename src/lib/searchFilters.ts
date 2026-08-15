@@ -2,7 +2,7 @@
 // đi qua query string để các trang có thể đọc/ghi cùng một định dạng.
 
 export interface SearchFilters {
-  provinceId: number | null;
+  provinceId: string | null;
   wardId: string | null;
   checkin: string; // yyyy-mm-dd
   checkout: string; // yyyy-mm-dd
@@ -64,7 +64,7 @@ export function parseFilters(searchParams: ParamsLike): SearchFilters {
   const guests = searchParams.get("guests");
 
   return {
-    provinceId: province ? Number(province) : base.provinceId,
+    provinceId: province || base.provinceId,
     wardId: ward || base.wardId,
     checkin: checkin || base.checkin,
     checkout: checkout || base.checkout,

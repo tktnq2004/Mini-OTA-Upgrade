@@ -28,7 +28,7 @@ export default function SearchWidget({
 }: SearchWidgetProps) {
     const { t } = useLanguage();
     const base = initialFilters ?? defaultFilters();
-    const [provinceId, setProvinceId] = useState<number | null>(base.provinceId);
+    const [provinceId, setProvinceId] = useState<string | null>(base.provinceId);
     const [wardId, setWardId] = useState<string | null>(base.wardId);
     const [checkin, setCheckin] = useState(base.checkin);
     const [checkout, setCheckout] = useState(base.checkout);
@@ -62,8 +62,7 @@ export default function SearchWidget({
     const minCheckout = addDaysIso(checkin || minCheckin, 1);
 
     const handleProvinceChange = (value: string) => {
-        const next = value ? Number(value) : null;
-        setProvinceId(next);
+        setProvinceId(value || null);
         setWardId(null);
     };
 

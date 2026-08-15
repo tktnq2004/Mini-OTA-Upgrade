@@ -9,7 +9,7 @@ import SearchWidget from "@/components/SearchWidget";
 import ImageWithFallback from "@/components/ImageWithFallback";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { hotels } from "@/data/hotels.data";
-import { provinces, normalizeCityId } from "@/data/locations.data";
+import { provinces, resolveHotelProvinceId } from "@/data/locations.data";
 import { filtersToSearchParams, type SearchFilters } from "@/lib/searchFilters";
 import styles from "./page.module.css";
 
@@ -18,9 +18,10 @@ export default function Home() {
     const { t } = useLanguage();
 
     const destinations = useMemo(() => {
-        const counts = new Map<number, number>();
+        const counts = new Map<string, number>();
         for (const hotel of hotels) {
-            const provinceId = normalizeCityId(hotel.cityId);
+            const provinceId = resolveHotelProvinceId(hotel.cityId);
+            if (!provinceId) continue;
             counts.set(provinceId, (counts.get(provinceId) ?? 0) + 1);
         }
         return provinces
