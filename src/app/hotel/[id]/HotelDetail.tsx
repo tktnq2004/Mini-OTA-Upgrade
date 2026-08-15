@@ -31,6 +31,7 @@ import SiteHeader from "@/components/SiteHeader";
 import ImageWithFallback from "@/components/ImageWithFallback";
 import Stepper from "@/components/Stepper";
 import Pagination from "@/components/Pagination";
+import { useLanguage } from "@/components/i18n/LanguageProvider";
 import RoomCard from "./RoomCard";
 import controls from "@/styles/controls.module.css";
 import styles from "./HotelDetail.module.css";
@@ -43,6 +44,7 @@ interface HotelDetailProps {
 }
 
 export default function HotelDetail({ hotel }: HotelDetailProps) {
+    const { t, language } = useLanguage();
     const searchParams = useSearchParams();
     // Chỉ đọc query string một lần lúc vào trang để khởi tạo bộ lọc — sau đó
     // bộ lọc trên trang khách sạn do người dùng tự điều khiển tại đây.
@@ -113,7 +115,7 @@ export default function HotelDetail({ hotel }: HotelDetailProps) {
             <div className={styles.layout}>
                 <aside className={styles.infoPanel}>
                     <Link href={backHref} className={styles.backLink}>
-                        <ArrowLeftIcon size={14} weight="bold" /> Quay lại bản đồ
+                        <ArrowLeftIcon size={14} weight="bold" /> {t("hotel.backToMap")}
                     </Link>
 
                     <ImageWithFallback
@@ -135,13 +137,13 @@ export default function HotelDetail({ hotel }: HotelDetailProps) {
                     <div className={styles.filterCard}>
                         <h2 className={styles.filterHeading}>
                             <SlidersHorizontalIcon size={16} weight="bold" />
-                            Tìm phòng phù hợp
+                            {t("hotel.filterHeading")}
                         </h2>
 
                         <div className={styles.dateRow}>
                             <div className={controls.field}>
                                 <label className={controls.label} htmlFor="hd-checkin">
-                                    <CalendarBlankIcon size={13} weight="bold" /> Nhận phòng
+                                    <CalendarBlankIcon size={13} weight="bold" /> {t("search.checkinLabel")}
                                 </label>
                                 <input
                                     id="hd-checkin"
@@ -154,7 +156,7 @@ export default function HotelDetail({ hotel }: HotelDetailProps) {
                             </div>
                             <div className={controls.field}>
                                 <label className={controls.label} htmlFor="hd-checkout">
-                                    <CalendarBlankIcon size={13} weight="bold" /> Trả phòng
+                                    <CalendarBlankIcon size={13} weight="bold" /> {t("search.checkoutLabel")}
                                 </label>
                                 <input
                                     id="hd-checkout"
@@ -169,7 +171,7 @@ export default function HotelDetail({ hotel }: HotelDetailProps) {
 
                         <div className={controls.field}>
                             <label className={controls.label} htmlFor="hd-roomtype">
-                                Loại phòng
+                                {t("hotel.roomTypeLabel")}
                             </label>
                             <select
                                 id="hd-roomtype"
@@ -177,7 +179,7 @@ export default function HotelDetail({ hotel }: HotelDetailProps) {
                                 value={roomType}
                                 onChange={(e) => setRoomType(e.target.value as "all" | RoomType)}
                             >
-                                <option value="all">Tất cả loại phòng</option>
+                                <option value="all">{t("hotel.roomTypeAllOption")}</option>
                                 {ROOM_TYPES.map((type) => (
                                     <option key={type} value={type}>
                                         {ROOM_TYPE_LABELS[type]}
@@ -188,9 +190,9 @@ export default function HotelDetail({ hotel }: HotelDetailProps) {
 
                         <div className={controls.field}>
                             <div className={styles.priceLabelRow}>
-                                <span className={controls.label}>Giá tối đa / đêm</span>
+                                <span className={controls.label}>{t("hotel.maxPriceLabel")}</span>
                                 <span className={styles.priceValue}>
-                                    {maxPrice >= PRICE_CEILING ? "Không giới hạn" : formatVnd(maxPrice)}
+                                    {maxPrice >= PRICE_CEILING ? t("hotel.unlimitedPrice") : formatVnd(maxPrice)}
                                 </span>
                             </div>
                             <input
@@ -205,25 +207,25 @@ export default function HotelDetail({ hotel }: HotelDetailProps) {
                                         }%, var(--color-border) ${(maxPrice / PRICE_CEILING) * 100}%)`,
                                 }}
                                 onChange={(e) => setMaxPrice(Number(e.target.value))}
-                                aria-label="Giá tối đa mỗi đêm"
+                                aria-label={t("hotel.maxPriceAriaLabel")}
                             />
                         </div>
 
                         <div className={controls.field}>
-                            <label className={controls.label}>Số khách</label>
+                            <label className={controls.label}>{t("search.guestsLabel")}</label>
                             <Stepper
                                 value={guests}
                                 min={1}
                                 max={10}
                                 onChange={setGuests}
-                                formatValue={(v) => `${v} khách`}
-                                ariaLabel="Số khách"
+                                formatValue={(v) => t("search.guestsValue", { count: v })}
+                                ariaLabel={t("search.guestsLabel")}
                             />
                         </div>
 
                         {hasActiveFilters && (
                             <button type="button" className={styles.resetButton} onClick={resetFilters}>
-                                Đặt lại bộ lọc
+                                {t("hotel.resetFilters")}
                             </button>
                         )}
                     </div>
@@ -231,10 +233,11 @@ export default function HotelDetail({ hotel }: HotelDetailProps) {
 
                 <section className={styles.roomsPanel}>
                     <div className={styles.roomsHeader}>
-                        <h2>{filteredRooms.length} phòng phù hợp</h2>
+                        <h2>{t("hotel.roomsFound", { count: filteredRooms.length })}</h2>
                         <p>
-                            {formatDateVn(checkin)} – {formatDateVn(checkout)} · {nights} đêm ·{" "}
-                            {guests} khách
+                            {formatDateVn(checkin, language)} – {formatDateVn(checkout, language)} ·{" "}
+                            {t("hotel.nightsSuffix", { count: nights })} ·{" "}
+                            {t("search.guestsValue", { count: guests })}
                         </p>
                     </div>
 
@@ -247,9 +250,9 @@ export default function HotelDetail({ hotel }: HotelDetailProps) {
                     ) : (
                         <div className={styles.emptyState}>
                             <SmileyMehIcon size={24} weight="light" />
-                            <p>Không có phòng nào khớp với bộ lọc hiện tại.</p>
+                            <p>{t("hotel.emptyState")}</p>
                             <button type="button" className={styles.resetButton} onClick={resetFilters}>
-                                Đặt lại bộ lọc
+                                {t("hotel.resetFilters")}
                             </button>
                         </div>
                     )}

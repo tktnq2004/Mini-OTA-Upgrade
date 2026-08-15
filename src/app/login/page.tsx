@@ -5,10 +5,12 @@ import Link from "next/link";
 import { FacebookLogoIcon, GoogleLogoIcon } from "@phosphor-icons/react";
 import AuthShell from "@/components/auth/AuthShell";
 import { useSocialAuth } from "@/components/auth/useSocialAuth";
+import { useLanguage } from "@/components/i18n/LanguageProvider";
 import controls from "@/styles/controls.module.css";
 import form from "@/components/auth/AuthForm.module.css";
 
 export default function LoginPage() {
+    const { t } = useLanguage();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
@@ -19,7 +21,7 @@ export default function LoginPage() {
         setError("");
 
         if (!email || !password) {
-            setError("Vui lòng nhập đầy đủ email và mật khẩu");
+            setError(t("auth.loginErrorRequired"));
             return;
         }
 
@@ -28,11 +30,11 @@ export default function LoginPage() {
 
     return (
         <AuthShell
-            title="Đăng nhập"
-            subtitle="Tiếp tục để khám phá phòng ở dạng toàn cảnh 360°"
+            title={t("auth.loginTitle")}
+            subtitle={t("auth.loginSubtitle")}
             footer={
                 <span>
-                    Chưa có tài khoản? <Link href="/signup">Đăng ký</Link>
+                    {t("auth.noAccountYet")} <Link href="/signup">{t("nav.signup")}</Link>
                 </span>
             }
         >
@@ -53,7 +55,7 @@ export default function LoginPage() {
 
                 <div className={controls.field}>
                     <label className={controls.label} htmlFor="password">
-                        Mật khẩu
+                        {t("auth.passwordLabel")}
                     </label>
                     <input
                         id="password"
@@ -68,22 +70,22 @@ export default function LoginPage() {
                 {error && <p className={controls.error}>{error}</p>}
 
                 <button type="submit" className={controls.button}>
-                    Đăng nhập
+                    {t("nav.login")}
                 </button>
             </form>
 
             <div className={form.divider}>
-                <span>hoặc</span>
+                <span>{t("auth.or")}</span>
             </div>
 
             <div className={form.socialRow}>
                 <button type="button" className={form.socialButton} onClick={loginFacebook}>
                     <FacebookLogoIcon size={18} weight="fill" />
-                    Đăng nhập với Facebook
+                    {t("auth.loginWithFacebook")}
                 </button>
                 <button type="button" className={form.socialButton} onClick={loginGoogle}>
                     <GoogleLogoIcon size={18} weight="bold" />
-                    Đăng nhập với Google
+                    {t("auth.loginWithGoogle")}
                 </button>
             </div>
         </AuthShell>

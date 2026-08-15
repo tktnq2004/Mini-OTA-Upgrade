@@ -4,6 +4,8 @@ import Script from "next/script";
 
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./globals.css";
+import { ThemeProvider, themeInitScript } from "@/components/theme/ThemeProvider";
+import { LanguageProvider } from "@/components/i18n/LanguageProvider";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -22,17 +24,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi" className={inter.variable}>
+    <html lang="vi" className={inter.variable} suppressHydrationWarning>
+      <head>
+        {/* Set data-theme trước khi React hydrate để tránh nháy sáng rồi mới chuyển tối */}
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body>
-        {children}
+        <ThemeProvider>
+          <LanguageProvider>{children}</LanguageProvider>
+        </ThemeProvider>
 
         <Script
 
           src="https://connect.facebook.net/en_US/sdk.js"
           strategy="afterInteractive"
         />
-        <Script src="https://accounts.google.com/gsi/client" 
-          strategy="afterInteractive" async defer 
+        <Script src="https://accounts.google.com/gsi/client"
+          strategy="afterInteractive" async defer
         />
       </body>
     </html>

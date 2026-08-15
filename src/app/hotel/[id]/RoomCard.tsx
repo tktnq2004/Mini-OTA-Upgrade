@@ -3,6 +3,7 @@
 import { BedIcon, UsersIcon, ArrowsOutIcon, CheckIcon } from "@phosphor-icons/react";
 import { ROOM_TYPE_LABELS, formatVnd, type Room } from "@/data/rooms.data";
 import ImageWithFallback from "@/components/ImageWithFallback";
+import { useLanguage } from "@/components/i18n/LanguageProvider";
 import styles from "./RoomCard.module.css";
 
 const VISIBLE_AMENITIES = 4;
@@ -13,6 +14,7 @@ interface RoomCardProps {
 }
 
 export default function RoomCard({ room, nights }: RoomCardProps) {
+    const { t } = useLanguage();
     const visibleAmenities = room.amenities.slice(0, VISIBLE_AMENITIES);
     const extraCount = room.amenities.length - visibleAmenities.length;
     const total = room.price * nights;
@@ -35,7 +37,7 @@ export default function RoomCard({ room, nights }: RoomCardProps) {
 
                 <div className={styles.metaRow}>
                     <span className={styles.metaItem}>
-                        <UsersIcon size={14} /> Tối đa {room.capacity} khách
+                        <UsersIcon size={14} /> {t("room.maxGuests", { count: room.capacity })}
                     </span>
                     <span className={styles.metaItem}>
                         <ArrowsOutIcon size={14} /> {room.sizeSqm} m²
@@ -49,21 +51,25 @@ export default function RoomCard({ room, nights }: RoomCardProps) {
                             {a}
                         </li>
                     ))}
-                    {extraCount > 0 && <li className={styles.amenityMore}>+{extraCount} tiện ích</li>}
+                    {extraCount > 0 && (
+                        <li className={styles.amenityMore}>
+                            {t("room.moreAmenities", { count: extraCount })}
+                        </li>
+                    )}
                 </ul>
 
                 <div className={styles.footer}>
                     <div className={styles.price}>
                         <strong>{formatVnd(room.price)}</strong>
-                        <span> /đêm</span>
+                        <span> {t("room.perNight")}</span>
                         {nights > 1 && (
                             <span className={styles.priceTotal}>
-                                {formatVnd(total)} cho {nights} đêm
+                                {t("room.totalForNights", { total: formatVnd(total), count: nights })}
                             </span>
                         )}
                     </div>
                     <button type="button" className={styles.selectButton}>
-                        Chọn phòng
+                        {t("room.selectButton")}
                     </button>
                 </div>
             </div>

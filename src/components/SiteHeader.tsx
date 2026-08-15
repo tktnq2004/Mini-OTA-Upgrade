@@ -1,8 +1,15 @@
+"use client";
+
 import Link from "next/link";
-import { CompassIcon } from "@phosphor-icons/react/ssr";
+import { CompassIcon, SunIcon, MoonIcon } from "@phosphor-icons/react";
+import { useTheme } from "@/components/theme/ThemeProvider";
+import { useLanguage } from "@/components/i18n/LanguageProvider";
 import styles from "./SiteHeader.module.css";
 
 export default function SiteHeader() {
+    const { theme, toggleTheme } = useTheme();
+    const { language, toggleLanguage, t } = useLanguage();
+
     return (
         <header className={styles.header}>
             <div className={styles.inner}>
@@ -15,16 +22,38 @@ export default function SiteHeader() {
 
                 <nav className={styles.nav}>
                     <Link href="/map" className={styles.navLink}>
-                        Bản đồ
+                        {t("nav.map")}
                     </Link>
                 </nav>
 
                 <div className={styles.actions}>
+                    <button
+                        type="button"
+                        className={styles.iconButton}
+                        onClick={toggleLanguage}
+                        aria-label={t("nav.languageToggle")}
+                    >
+                        {language === "vi" ? "EN" : "VI"}
+                    </button>
+
+                    <button
+                        type="button"
+                        className={styles.iconButton}
+                        onClick={toggleTheme}
+                        aria-label={theme === "light" ? t("nav.themeToDark") : t("nav.themeToLight")}
+                    >
+                        {theme === "light" ? (
+                            <MoonIcon size={15} weight="bold" />
+                        ) : (
+                            <SunIcon size={15} weight="bold" />
+                        )}
+                    </button>
+
                     <Link href="/login" className={styles.ghostButton}>
-                        Đăng nhập
+                        {t("nav.login")}
                     </Link>
                     <Link href="/signup" className={styles.solidButton}>
-                        Đăng ký
+                        {t("nav.signup")}
                     </Link>
                 </div>
             </div>

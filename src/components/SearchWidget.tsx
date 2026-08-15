@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { MapPinIcon, CalendarBlankIcon, UsersIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { provinces, getWardsByProvince } from "@/data/locations.data";
+import { useLanguage } from "@/components/i18n/LanguageProvider";
 import {
     addDaysIso,
     defaultFilters,
@@ -23,8 +24,9 @@ export default function SearchWidget({
     variant = "hero",
     initialFilters,
     onSubmit,
-    submitLabel = "Đặt phòng ngay",
+    submitLabel,
 }: SearchWidgetProps) {
+    const { t } = useLanguage();
     const base = initialFilters ?? defaultFilters();
     const [provinceId, setProvinceId] = useState<number | null>(base.provinceId);
     const [wardId, setWardId] = useState<string | null>(base.wardId);
@@ -84,7 +86,7 @@ export default function SearchWidget({
         >
             <div className={styles.field}>
                 <label className={styles.label} htmlFor="sw-province">
-                    <MapPinIcon size={14} weight="bold" /> Tỉnh / Thành phố
+                    <MapPinIcon size={14} weight="bold" /> {t("search.provinceLabel")}
                 </label>
                 <select
                     id="sw-province"
@@ -92,7 +94,7 @@ export default function SearchWidget({
                     value={provinceId ?? ""}
                     onChange={(e) => handleProvinceChange(e.target.value)}
                 >
-                    <option value="">Tất cả điểm đến</option>
+                    <option value="">{t("search.provinceAllOption")}</option>
                     {provinces.map((p) => (
                         <option key={p.id} value={p.id}>
                             {p.name}
@@ -103,7 +105,7 @@ export default function SearchWidget({
 
             <div className={styles.field}>
                 <label className={styles.label} htmlFor="sw-ward">
-                    <MapPinIcon size={14} weight="bold" /> Xã / Phường
+                    <MapPinIcon size={14} weight="bold" /> {t("search.wardLabel")}
                 </label>
                 <select
                     id="sw-ward"
@@ -112,7 +114,9 @@ export default function SearchWidget({
                     onChange={(e) => setWardId(e.target.value || null)}
                     disabled={!provinceId}
                 >
-                    <option value="">{provinceId ? "Tất cả khu vực" : "Chọn tỉnh trước"}</option>
+                    <option value="">
+                        {provinceId ? t("search.wardAllOption") : t("search.wardDisabledOption")}
+                    </option>
                     {wardOptions.map((w) => (
                         <option key={w.id} value={w.id}>
                             {w.name}
@@ -123,7 +127,7 @@ export default function SearchWidget({
 
             <div className={styles.field}>
                 <label className={styles.label} htmlFor="sw-checkin">
-                    <CalendarBlankIcon size={14} weight="bold" /> Nhận phòng
+                    <CalendarBlankIcon size={14} weight="bold" /> {t("search.checkinLabel")}
                 </label>
                 <input
                     id="sw-checkin"
@@ -137,7 +141,7 @@ export default function SearchWidget({
 
             <div className={styles.field}>
                 <label className={styles.label} htmlFor="sw-checkout">
-                    <CalendarBlankIcon size={14} weight="bold" /> Trả phòng
+                    <CalendarBlankIcon size={14} weight="bold" /> {t("search.checkoutLabel")}
                 </label>
                 <input
                     id="sw-checkout"
@@ -151,21 +155,21 @@ export default function SearchWidget({
 
             <div className={styles.field}>
                 <label className={styles.label} htmlFor="sw-guests">
-                    <UsersIcon size={14} weight="bold" /> Số khách
+                    <UsersIcon size={14} weight="bold" /> {t("search.guestsLabel")}
                 </label>
                 <Stepper
                     value={guests}
                     min={1}
                     max={12}
                     onChange={setGuests}
-                    formatValue={(v) => `${v} khách`}
-                    ariaLabel="Số khách"
+                    formatValue={(v) => t("search.guestsValue", { count: v })}
+                    ariaLabel={t("search.guestsLabel")}
                 />
             </div>
 
             <button type="submit" className={styles.submit}>
                 <MagnifyingGlassIcon size={16} weight="bold" />
-                {submitLabel}
+                {submitLabel ?? t("search.submitBook")}
             </button>
         </form>
     );

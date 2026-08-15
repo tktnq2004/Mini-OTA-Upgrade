@@ -5,10 +5,12 @@ import Link from "next/link";
 import { FacebookLogoIcon, GoogleLogoIcon } from "@phosphor-icons/react";
 import AuthShell from "@/components/auth/AuthShell";
 import { useSocialAuth } from "@/components/auth/useSocialAuth";
+import { useLanguage } from "@/components/i18n/LanguageProvider";
 import controls from "@/styles/controls.module.css";
 import form from "@/components/auth/AuthForm.module.css";
 
 export default function SignupPage() {
+    const { t } = useLanguage();
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
     const [phone, setPhone] = useState("");
@@ -23,22 +25,22 @@ export default function SignupPage() {
         setError("");
 
         if (!fullName || !email || !password || !confirmPassword) {
-            setError("Vui lòng điền đầy đủ thông tin bắt buộc");
+            setError(t("auth.signupErrorRequired"));
             return;
         }
 
         if (password.length < 6) {
-            setError("Mật khẩu cần tối thiểu 6 ký tự");
+            setError(t("auth.signupErrorMinLength"));
             return;
         }
 
         if (password !== confirmPassword) {
-            setError("Mật khẩu xác nhận không khớp");
+            setError(t("auth.signupErrorMismatch"));
             return;
         }
 
         if (!agreed) {
-            setError("Bạn cần đồng ý với điều khoản dịch vụ để tiếp tục");
+            setError(t("auth.signupErrorTerms"));
             return;
         }
 
@@ -47,24 +49,24 @@ export default function SignupPage() {
 
     return (
         <AuthShell
-            title="Tạo tài khoản"
-            subtitle="Đăng ký để lưu chuyến đi, nhận ưu đãi và đặt phòng nhanh hơn"
+            title={t("auth.signupTitle")}
+            subtitle={t("auth.signupSubtitle")}
             footer={
                 <span>
-                    Đã có tài khoản? <Link href="/login">Đăng nhập</Link>
+                    {t("auth.haveAccountAlready")} <Link href="/login">{t("nav.login")}</Link>
                 </span>
             }
         >
             <form className={form.form} onSubmit={handleSubmit}>
                 <div className={controls.field}>
                     <label className={controls.label} htmlFor="fullName">
-                        Họ và tên
+                        {t("auth.fullNameLabel")}
                     </label>
                     <input
                         id="fullName"
                         type="text"
                         className={controls.input}
-                        placeholder="Nguyễn Văn A"
+                        placeholder={t("auth.fullNamePlaceholder")}
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                     />
@@ -86,7 +88,7 @@ export default function SignupPage() {
 
                 <div className={controls.field}>
                     <label className={controls.label} htmlFor="phone">
-                        Số điện thoại <span>(tuỳ chọn)</span>
+                        {t("auth.phoneLabel")} <span>{t("auth.optional")}</span>
                     </label>
                     <input
                         id="phone"
@@ -100,13 +102,13 @@ export default function SignupPage() {
 
                 <div className={controls.field}>
                     <label className={controls.label} htmlFor="signupPassword">
-                        Mật khẩu
+                        {t("auth.passwordLabel")}
                     </label>
                     <input
                         id="signupPassword"
                         type="password"
                         className={controls.input}
-                        placeholder="Tối thiểu 6 ký tự"
+                        placeholder={t("auth.minLengthPlaceholder")}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                     />
@@ -114,7 +116,7 @@ export default function SignupPage() {
 
                 <div className={controls.field}>
                     <label className={controls.label} htmlFor="confirmPassword">
-                        Xác nhận mật khẩu
+                        {t("auth.confirmPasswordLabel")}
                     </label>
                     <input
                         id="confirmPassword"
@@ -134,30 +136,31 @@ export default function SignupPage() {
                         onChange={(e) => setAgreed(e.target.checked)}
                     />
                     <span>
-                        Tôi đồng ý với <strong>Điều khoản dịch vụ</strong> và{" "}
-                        <strong>Chính sách bảo mật</strong> của WenGo
+                        {t("auth.agreeTermsPrefix")} <strong>{t("auth.termsOfService")}</strong>{" "}
+                        {t("auth.and")} <strong>{t("auth.privacyPolicy")}</strong>{" "}
+                        {t("auth.ofWenGo")}
                     </span>
                 </label>
 
                 {error && <p className={controls.error}>{error}</p>}
 
                 <button type="submit" className={controls.button}>
-                    Đăng ký
+                    {t("nav.signup")}
                 </button>
             </form>
 
             <div className={form.divider}>
-                <span>hoặc</span>
+                <span>{t("auth.or")}</span>
             </div>
 
             <div className={form.socialRow}>
                 <button type="button" className={form.socialButton} onClick={loginFacebook}>
                     <FacebookLogoIcon size={18} weight="fill" />
-                    Đăng ký với Facebook
+                    {t("auth.signupWithFacebook")}
                 </button>
                 <button type="button" className={form.socialButton} onClick={loginGoogle}>
                     <GoogleLogoIcon size={18} weight="bold" />
-                    Đăng ký với Google
+                    {t("auth.signupWithGoogle")}
                 </button>
             </div>
         </AuthShell>

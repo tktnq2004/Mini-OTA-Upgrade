@@ -7,6 +7,7 @@ import { BuildingsIcon } from "@phosphor-icons/react";
 import SiteHeader from "@/components/SiteHeader";
 import SearchWidget from "@/components/SearchWidget";
 import ImageWithFallback from "@/components/ImageWithFallback";
+import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { hotels } from "@/data/hotels.data";
 import { provinces, normalizeCityId } from "@/data/locations.data";
 import { filtersToSearchParams, type SearchFilters } from "@/lib/searchFilters";
@@ -14,6 +15,7 @@ import styles from "./page.module.css";
 
 export default function Home() {
     const router = useRouter();
+    const { t } = useLanguage();
 
     const destinations = useMemo(() => {
         const counts = new Map<number, number>();
@@ -38,24 +40,23 @@ export default function Home() {
 
             <section className={styles.hero}>
                 <div className={styles.heroInner}>
-                    <h1 className={styles.headline}>
-                        Tìm nơi lưu trú hoàn hảo cho chuyến đi tiếp theo
-                    </h1>
-                    <p className={styles.subtext}>
-                        So sánh hàng nghìn khách sạn khắp Việt Nam, chọn đúng khu vực và giữ phòng
-                        chỉ trong vài phút.
-                    </p>
+                    <h1 className={styles.headline}>{t("home.headline")}</h1>
+                    <p className={styles.subtext}>{t("home.subtext")}</p>
 
                     <div className={styles.searchDock}>
-                        <SearchWidget variant="hero" onSubmit={handleSearch} submitLabel="Đặt phòng ngay" />
+                        <SearchWidget
+                            variant="hero"
+                            onSubmit={handleSearch}
+                            submitLabel={t("search.submitBook")}
+                        />
                     </div>
                 </div>
             </section>
 
             <section className={styles.destinations}>
                 <div className={styles.sectionHeading}>
-                    <h2>Điểm đến được đặt nhiều nhất</h2>
-                    <p>Chọn một điểm đến để xem khách sạn nổi bật trên bản đồ</p>
+                    <h2>{t("home.destinationsTitle")}</h2>
+                    <p>{t("home.destinationsSubtitle")}</p>
                 </div>
 
                 <div className={styles.destGrid}>
@@ -76,7 +77,7 @@ export default function Home() {
                             <div className={styles.destInfo}>
                                 <span className={styles.destName}>{destination.name}</span>
                                 <span className={styles.destCount}>
-                                    {destination.hotelCount} khách sạn
+                                    {t("home.hotelsCount", { count: destination.hotelCount })}
                                 </span>
                             </div>
                         </Link>
@@ -85,7 +86,9 @@ export default function Home() {
             </section>
 
             <footer className={styles.footer}>
-                <span>© {new Date().getFullYear()} WenGo. Mọi hành trình đều đáng nhớ.</span>
+                <span>
+                    © {new Date().getFullYear()} WenGo. {t("home.footerTagline")}
+                </span>
             </footer>
         </div>
     );

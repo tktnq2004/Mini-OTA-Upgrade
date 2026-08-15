@@ -1,5 +1,6 @@
 "use client";
 
+import { useLanguage } from "@/components/i18n/LanguageProvider";
 import styles from "./Stepper.module.css";
 
 interface StepperProps {
@@ -21,6 +22,7 @@ export default function Stepper({
   formatValue,
   ariaLabel,
 }: StepperProps) {
+  const { t } = useLanguage();
   const decrease = () => onChange(Math.max(min, value - step));
   const increase = () => onChange(Math.min(max, value + step));
 
@@ -31,7 +33,7 @@ export default function Stepper({
         className={styles.btn}
         onClick={decrease}
         disabled={value <= min}
-        aria-label="Giảm"
+        aria-label={t("stepper.decrease")}
       >
         −
       </button>
@@ -41,7 +43,7 @@ export default function Stepper({
         className={styles.btn}
         onClick={increase}
         disabled={value >= max}
-        aria-label="Tăng"
+        aria-label={t("stepper.increase")}
       >
         +
       </button>

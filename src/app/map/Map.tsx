@@ -11,6 +11,7 @@ import { getProvinceById, normalizeCityId } from "@/data/locations.data";
 import { filtersToSearchParams, parseFilters, type SearchFilters } from "@/lib/searchFilters";
 import SiteHeader from "@/components/SiteHeader";
 import SearchWidget from "@/components/SearchWidget";
+import { useLanguage } from "@/components/i18n/LanguageProvider";
 import HotelPopupCard from "./HotelPopupCard";
 import styles from "./Map.module.css";
 
@@ -41,6 +42,7 @@ function disposeMarkerEntries(entries: MarkerEntry[]) {
 export default function MapView() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { t, language } = useLanguage();
     const [filters, setFilters] = useState<SearchFilters>(() => parseFilters(searchParams));
 
     // Nếu URL đổi từ bên ngoài (link "Bản đồ" trên header, nút back/forward,
@@ -118,10 +120,14 @@ export default function MapView() {
         disposeMarkerEntries(markersRef.current);
         markersRef.current = [];
 
+        const bookLabel = t("map.viewRoomsAndBook");
+
         filteredHotels.forEach((hotel: Hotel) => {
             const popupNode = document.createElement("div");
             const root = createRoot(popupNode);
-            root.render(<HotelPopupCard hotel={hotel} onBook={() => handleBookHotel(hotel.id)} />);
+            root.render(
+                <HotelPopupCard hotel={hotel} onBook={() => handleBookHotel(hotel.id)} bookLabel={bookLabel} />
+            );
 
             const popup = new maplibregl.Popup({ offset: 25, maxWidth: "260px" }).setDOMContent(
                 popupNode
@@ -135,7 +141,7 @@ export default function MapView() {
             markersRef.current.push({ marker, popup, root });
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [filteredHotels]);
+    }, [filteredHotels, language]);
 
     // Bay bản đồ tới tỉnh/thành được chọn khi bộ lọc địa điểm đổi
     useEffect(() => {
@@ -162,17 +168,19 @@ export default function MapView() {
                         variant="bar"
                         initialFilters={filters}
                         onSubmit={handleFilterSubmit}
-                        submitLabel="Tìm kiếm"
+                        submitLabel={t("search.submitFind")}
                     />
 
                     <div className={styles.resultChip}>
                         <span>
-                            <strong>{filteredHotels.length}</strong> khách sạn
-                            {selectedProvince ? ` tại ${selectedProvince.name}` : " trên toàn quốc"}
+                            <strong>{filteredHotels.length}</strong> {t("map.hotelsSuffix")}
+                            {selectedProvince
+                                ? t("map.at", { place: selectedProvince.name })
+                                : t("map.nationwide")}
                         </span>
                         {selectedProvince && (
                             <button type="button" className={styles.clearChip} onClick={clearProvince}>
-                                Xem tất cả
+                                {t("map.clearFilter")}
                             </button>
                         )}
                     </div>

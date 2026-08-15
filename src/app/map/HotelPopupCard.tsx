@@ -8,9 +8,13 @@ import styles from "./HotelPopupCard.module.css";
 interface HotelPopupCardProps {
     hotel: Hotel;
     onBook: () => void;
+    bookLabel: string;
 }
 
-export default function HotelPopupCard({ hotel, onBook }: HotelPopupCardProps) {
+// Component này được render vào một React root tách biệt (bên trong popup
+// MapLibre) chứ không nằm trong cây React chính, nên không đọc được
+// LanguageProvider qua Context — chữ dịch phải truyền vào qua props từ Map.tsx.
+export default function HotelPopupCard({ hotel, onBook, bookLabel }: HotelPopupCardProps) {
     return (
         <div className={styles.card}>
             <ImageWithFallback
@@ -27,7 +31,7 @@ export default function HotelPopupCard({ hotel, onBook }: HotelPopupCardProps) {
                     <span>{hotel.address}</span>
                 </p>
                 <button type="button" className={styles.bookButton} onClick={onBook}>
-                    Xem phòng &amp; đặt ngay
+                    {bookLabel}
                 </button>
             </div>
         </div>

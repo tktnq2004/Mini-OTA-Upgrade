@@ -27,6 +27,8 @@
     gap: 8px;
 }
 
+/* Nổi trên nền bản đồ (luôn sáng, không đổi theo theme trang) nên cố định
+   màu chữ/nền thay vì dùng token — tránh chữ trắng chìm vào nền trắng ở dark mode */
 .resultChip {
     align-self: flex-start;
     display: inline-flex;
@@ -34,16 +36,16 @@
     gap: 10px;
     background: rgba(255, 255, 255, 0.94);
     backdrop-filter: blur(8px);
-    border: 1px solid var(--color-border);
+    border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: var(--radius-pill);
     padding: 6px 12px;
     font-size: 12px;
-    color: var(--color-text-muted);
+    color: #4b5563;
     box-shadow: var(--shadow-pop);
 }
 
 .resultChip strong {
-    color: var(--color-text);
+    color: #16181d;
 }
 
 .clearChip {

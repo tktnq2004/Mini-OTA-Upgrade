@@ -72,10 +72,11 @@ export function parseFilters(searchParams: ParamsLike): SearchFilters {
   };
 }
 
-export function formatDateVn(iso: string): string {
+export function formatDateVn(iso: string, locale: "vi" | "en" = "vi"): string {
   if (!iso) return "";
   const d = new Date(`${iso}T00:00:00`);
-  return d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+  const intlLocale = locale === "en" ? "en-US" : "vi-VN";
+  return d.toLocaleDateString(intlLocale, { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 export function nightsBetween(checkin: string, checkout: string): number {

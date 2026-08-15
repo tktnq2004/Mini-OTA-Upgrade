@@ -33,6 +33,36 @@
   --font-sans: var(--font-inter), "Inter", -apple-system, sans-serif;
 }
 
+/* Dark mode — cùng bố cục/spacing, chỉ đảo bộ token màu. Bật bằng
+   data-theme="dark" trên <html> (xem ThemeProvider). */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-bg: #0f1115;
+  --color-bg-alt: #16181d;
+  --color-panel: #16181d;
+  --color-panel-raised: #1c1f26;
+  --color-inset: #1a1d23;
+  --color-border: #272b33;
+  --color-border-soft: #21242b;
+
+  --color-text: #f2f3f5;
+  --color-text-muted: #9aa1ab;
+  --color-text-faint: #6b7280;
+
+  --color-accent: #3b82f6;
+  --color-accent-strong: #60a5fa;
+  --color-accent-soft: rgba(59, 130, 246, 0.16);
+  --color-accent-ink: #ffffff;
+
+  --color-error: #f87171;
+  --color-error-soft: rgba(248, 113, 113, 0.12);
+  --color-success: #4ade80;
+
+  --shadow-panel: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-pop: 0 4px 16px rgba(0, 0, 0, 0.55);
+}
+
 *,
 *::before,
 *::after {

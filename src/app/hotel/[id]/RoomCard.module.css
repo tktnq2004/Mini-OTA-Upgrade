@@ -37,13 +37,14 @@
 }
 
 .typeBadge {
+    /* Đè lên ảnh (màu bất kỳ) nên cố định màu, không theo token theme sáng/tối */
     position: absolute;
     top: 8px;
     left: 8px;
-    background: rgba(255, 255, 255, 0.92);
+    background: rgba(17, 22, 28, 0.78);
     backdrop-filter: blur(6px);
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    color: var(--color-text);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #ffffff;
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.02em;

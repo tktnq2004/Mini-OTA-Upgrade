@@ -1,6 +1,7 @@
 "use client";
 
 import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
+import { useLanguage } from "@/components/i18n/LanguageProvider";
 import styles from "./Pagination.module.css";
 
 interface PaginationProps {
@@ -28,18 +29,19 @@ function getPageList(current: number, total: number): (number | "...")[] {
 }
 
 export default function Pagination({ page, totalPages, onChange }: PaginationProps) {
+    const { t } = useLanguage();
     if (totalPages <= 1) return null;
 
     const pageList = getPageList(page, totalPages);
 
     return (
-        <nav className={styles.pagination} aria-label="Phân trang">
+        <nav className={styles.pagination} aria-label={t("pagination.nav")}>
             <button
                 type="button"
                 className={styles.arrow}
                 onClick={() => onChange(page - 1)}
                 disabled={page <= 1}
-                aria-label="Trang trước"
+                aria-label={t("pagination.prev")}
             >
                 <CaretLeftIcon size={16} weight="bold" />
             </button>
@@ -67,7 +69,7 @@ export default function Pagination({ page, totalPages, onChange }: PaginationPro
                 className={styles.arrow}
                 onClick={() => onChange(page + 1)}
                 disabled={page >= totalPages}
-                aria-label="Trang sau"
+                aria-label={t("pagination.next")}
             >
                 <CaretRightIcon size={16} weight="bold" />
             </button>
