@@ -45,6 +45,8 @@ export function defaultFilters(): SearchFilters {
   };
 }
 
+// Dùng khi ĐẶT PHÒNG một khách sạn cụ thể ("book now") — lúc này ngày nhận/trả
+// và số khách mới thật sự cần thiết, nên mang đầy đủ cả 5 trường.
 export function filtersToSearchParams(filters: SearchFilters): URLSearchParams {
   const params = new URLSearchParams();
   if (filters.provinceId) params.set("province", String(filters.provinceId));
@@ -52,6 +54,18 @@ export function filtersToSearchParams(filters: SearchFilters): URLSearchParams {
   if (filters.checkin) params.set("checkin", filters.checkin);
   if (filters.checkout) params.set("checkout", filters.checkout);
   if (filters.guests) params.set("guests", String(filters.guests));
+  return params;
+}
+
+// Dùng cho việc TÌM/LỌC khách sạn theo khu vực (Home -> Map, đổi tỉnh/xã trên
+// Map) — chỉ tỉnh/xã mới quyết định kết quả tìm kiếm; ngày nhận/trả và số
+// khách không phải tham số tìm kiếm, nên không đưa vào URL ở bước này. Chúng
+// chỉ thật sự cần khi người dùng bấm đặt một khách sạn cụ thể (xem
+// filtersToSearchParams ở trên).
+export function locationSearchParams(filters: Pick<SearchFilters, "provinceId" | "wardId">): URLSearchParams {
+  const params = new URLSearchParams();
+  if (filters.provinceId) params.set("province", String(filters.provinceId));
+  if (filters.wardId) params.set("ward", filters.wardId);
   return params;
 }
 

@@ -10,7 +10,7 @@ import ImageWithFallback from "@/components/ImageWithFallback";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { hotels } from "@/data/hotels.data";
 import { provinces, resolveHotelProvinceId } from "@/data/locations.data";
-import { filtersToSearchParams, type SearchFilters } from "@/lib/searchFilters";
+import { locationSearchParams, type SearchFilters } from "@/lib/searchFilters";
 import styles from "./page.module.css";
 
 export default function Home() {
@@ -31,7 +31,9 @@ export default function Home() {
     }, []);
 
     const handleSearch = (filters: SearchFilters) => {
-        const params = filtersToSearchParams(filters);
+        // Chỉ tỉnh/xã mới là tham số tìm kiếm — ngày nhận/trả và số khách
+        // không mang sang Map, chỉ cần khi đặt một khách sạn cụ thể.
+        const params = locationSearchParams(filters);
         router.push(`/map?${params.toString()}`);
     };
 

@@ -1,9 +1,3 @@
-// Dữ liệu địa giới hành chính THẬT (tỉnh/thành -> xã/phường, sau sáp nhập
-// 2025 — 34 tỉnh/thành, 3.321 xã/phường) — lấy từ
-// https://github.com/thanglequoc/vietnamese-provinces-database (MIT license,
-// xem vn-provinces-wards.LICENSE.txt). Bộ dữ liệu gốc không có toạ độ nên
-// PROVINCE_CENTERS bên dưới là toạ độ ước lượng (đô thị trung tâm của mỗi
-// tỉnh), đủ dùng để bay bản đồ chứ không phải toạ độ khảo sát.
 import rawUnits from "./vn-provinces-wards.json";
 
 export interface Province {
@@ -45,7 +39,6 @@ function stripPrefix(fullName: string, prefixes: string[]): string {
   return fullName;
 }
 
-// Toạ độ trung tâm (đô thị tỉnh lỵ) của 34 tỉnh/thành sau sáp nhập 2025.
 const PROVINCE_CENTERS: Record<string, [number, number]> = {
   "01": [21.03, 105.85], // Hà Nội
   "04": [22.665, 106.258], // Cao Bằng

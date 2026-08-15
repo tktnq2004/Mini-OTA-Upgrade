@@ -1,5 +1,4 @@
-// Tiện ích toạ độ dùng cho lọc bản đồ (bán kính quanh vị trí GPS, kiểm tra
-// điểm có nằm trong khung nhìn bản đồ hay không).
+
 
 function toRad(deg: number): number {
   return (deg * Math.PI) / 180;

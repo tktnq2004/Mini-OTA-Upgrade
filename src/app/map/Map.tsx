@@ -14,7 +14,12 @@ import {
 import "maplibre-gl/dist/maplibre-gl.css";
 import { hotels, type Hotel } from "@/data/hotels.data";
 import { getProvinceById, resolveHotelProvinceId } from "@/data/locations.data";
-import { filtersToSearchParams, parseFilters, type SearchFilters } from "@/lib/searchFilters";
+import {
+    filtersToSearchParams,
+    locationSearchParams,
+    parseFilters,
+    type SearchFilters,
+} from "@/lib/searchFilters";
 import { haversineDistanceKm, isInsideBounds, type BoundsBox } from "@/lib/geo";
 import SiteHeader from "@/components/SiteHeader";
 import SearchWidget from "@/components/SearchWidget";
@@ -25,6 +30,7 @@ import styles from "./Map.module.css";
 const VIETNAM_CENTER: [number, number] = [106.7009, 10.7769];
 const VIETNAM_ZOOM = 12.5;
 const PROVINCE_ZOOM = 12;
+const WARD_ZOOM = 14;
 const NEARBY_ZOOM = 13;
 const NEARBY_RADIUS_KM = 10;
 
@@ -83,7 +89,12 @@ export default function MapView() {
     const [syncedParamsKey, setSyncedParamsKey] = useState(paramsKey);
     if (paramsKey !== syncedParamsKey) {
         setSyncedParamsKey(paramsKey);
-        setFilters(parseFilters(searchParams));
+        // URL của /map chỉ mang tỉnh/xã (xem locationSearchParams) — ngày
+        // nhận/trả và số khách không nằm trong URL nữa nên KHÔNG ghi đè lại
+        // từ đây, chỉ đồng bộ 2 trường địa điểm, giữ nguyên phần còn lại
+        // người dùng đang chỉnh trên form.
+        const parsed = parseFilters(searchParams);
+        setFilters((current) => ({ ...current, provinceId: parsed.provinceId, wardId: parsed.wardId }));
         setViewMode({ type: "province" });
     }
 
@@ -125,7 +136,10 @@ export default function MapView() {
     const handleFilterSubmit = (next: SearchFilters) => {
         setFilters(next);
         setViewMode({ type: "province" });
-        const params = filtersToSearchParams(next);
+        // Chỉ tỉnh/xã lên URL — ngày nhận/trả, số khách vẫn được giữ trong
+        // filters (React state) để dùng lúc bấm "đặt phòng", không phải là
+        // tham số tìm kiếm nên không ghi vào query string.
+        const params = locationSearchParams(next);
         router.replace(`/map?${params.toString()}`, { scroll: false });
     };
 
@@ -258,18 +272,23 @@ export default function MapView() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [filteredHotels, language]);
 
-    // Bay bản đồ tới tỉnh/thành khi bộ lọc địa điểm đổi (chế độ "province")
+    // Bay bản đồ tới tỉnh/thành khi bộ lọc địa điểm đổi (chế độ "province").
+    // Phụ thuộc cả wardId — trước đây effect chỉ theo dõi provinceId nên đổi
+    // xã (giữ nguyên tỉnh) không kích hoạt lại flyTo. Dữ liệu xã chưa có
+    // toạ độ riêng nên vẫn bay tới tâm tỉnh, nhưng zoom sâu hơn khi đã chọn
+    // xã cụ thể để người dùng thấy rõ có phản hồi.
     useEffect(() => {
         const map = mapRef.current;
         if (!map || viewMode.type !== "province") return;
 
         if (selectedProvince) {
-            map.flyTo({ center: [selectedProvince.lng, selectedProvince.lat], zoom: PROVINCE_ZOOM, duration: 1000 });
+            const zoom = filters.wardId ? WARD_ZOOM : PROVINCE_ZOOM;
+            map.flyTo({ center: [selectedProvince.lng, selectedProvince.lat], zoom, duration: 1000 });
         } else {
             map.flyTo({ center: VIETNAM_CENTER, zoom: VIETNAM_ZOOM, duration: 1000 });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [filters.provinceId]);
+    }, [filters.provinceId, filters.wardId]);
 
     const resultLabel = (() => {
         if (viewMode.type === "bounds") return t("map.inThisArea");
