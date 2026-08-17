@@ -29,7 +29,7 @@ export default function RootLayout({
         {/* Set data-theme trước khi React hydrate để tránh nháy sáng rồi mới chuyển tối */}
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <ThemeProvider>
           <LanguageProvider>{children}</LanguageProvider>
         </ThemeProvider>
