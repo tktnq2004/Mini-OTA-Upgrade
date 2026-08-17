@@ -1,7 +1,7 @@
 "use client";
 
 import { MapPinIcon, BuildingsIcon } from "@phosphor-icons/react";
-import ImageWithFallback from "@/components/ImageWithFallback";
+import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
 import type { Hotel } from "@/data/hotels.data";
 import styles from "./HotelPopupCard.module.css";
 

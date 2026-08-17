@@ -4,12 +4,12 @@ import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { BuildingsIcon } from "@phosphor-icons/react";
-import SiteHeader from "@/components/SiteHeader";
-import SearchWidget from "@/components/SearchWidget";
-import ImageWithFallback from "@/components/ImageWithFallback";
+import SiteHeader from "@/components/SiteHeader/SiteHeader";
+import SearchWidget from "@/components/SearchWidget/SearchWidget";
+import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { hotels } from "@/data/hotels.data";
-import { provinces, resolveHotelProvinceId } from "@/data/locations.data";
+import { provinces } from "@/data/locations.data";
 import { locationSearchParams, type SearchFilters } from "@/lib/searchFilters";
 import styles from "./page.module.css";
 
@@ -20,9 +20,7 @@ export default function Home() {
     const destinations = useMemo(() => {
         const counts = new Map<string, number>();
         for (const hotel of hotels) {
-            const provinceId = resolveHotelProvinceId(hotel.cityId);
-            if (!provinceId) continue;
-            counts.set(provinceId, (counts.get(provinceId) ?? 0) + 1);
+            counts.set(hotel.provinceId, (counts.get(hotel.provinceId) ?? 0) + 1);
         }
         return provinces
             .map((province) => ({ ...province, hotelCount: counts.get(province.id) ?? 0 }))

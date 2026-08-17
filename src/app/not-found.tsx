@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { CompassIcon } from "@phosphor-icons/react";
-import SiteHeader from "@/components/SiteHeader";
+import SiteHeader from "@/components/SiteHeader/SiteHeader";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import controls from "@/styles/controls.module.css";
 import styles from "./not-found.module.css";

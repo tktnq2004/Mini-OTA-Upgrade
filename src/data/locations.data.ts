@@ -111,27 +111,3 @@ export function getWardById(id: string | undefined | null): Ward | undefined {
   return wards.find((w) => w.id === id);
 }
 
-// hotels.data.ts vẫn dùng cityId số tự đặt theo tỉnh CŨ (trước sáp nhập
-// 2025, seed cũ) — bảng này dịch sang mã tỉnh THẬT sau sáp nhập, để không
-// phải sửa tay từng dòng trong 100 hotel mock. Nguồn sáp nhập: Nghị quyết
-// sắp xếp đơn vị hành chính 2025.
-const MOCK_CITY_ID_TO_PROVINCE_CODE: Record<number, string> = {
-  29: "01", // Hà Nội
-  50: "79", // Hồ Chí Minh
-  43: "48", // Đà Nẵng
-  92: "48", // Hội An -> Đà Nẵng (Quảng Nam sáp nhập vào Đà Nẵng)
-  75: "46", // Huế (không sáp nhập, giữ nguyên là thành phố Huế)
-  65: "92", // Cần Thơ
-  68: "91", // Phú Quốc -> An Giang (Kiên Giang sáp nhập vào An Giang)
-  49: "68", // Đà Lạt -> Lâm Đồng
-  79: "56", // Nha Trang -> Khánh Hoà
-  72: "79", // Bà Rịa - Vũng Tàu -> Hồ Chí Minh (sáp nhập vào TP.HCM)
-  85: "56", // Ninh Thuận -> Khánh Hoà (sáp nhập vào Khánh Hoà)
-  28: "25", // Hoà Bình -> Phú Thọ (sáp nhập vào Phú Thọ)
-  24: "15", // Sa Pa -> Lào Cai
-  94: "15", // Sa Pa (mã trùng ở seed cũ) -> Lào Cai
-};
-
-export function resolveHotelProvinceId(cityId: number): string | undefined {
-  return MOCK_CITY_ID_TO_PROVINCE_CODE[cityId];
-}

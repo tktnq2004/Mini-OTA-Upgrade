@@ -22,25 +22,25 @@
 }
 
 .field {
-    composes: field from "../styles/controls.module.css";
+    composes: field from "../../styles/controls.module.css";
     flex: 1 1 130px;
     min-width: 120px;
 }
 
 .label {
-    composes: label from "../styles/controls.module.css";
+    composes: label from "../../styles/controls.module.css";
 }
 
 .selectControl {
-    composes: select from "../styles/controls.module.css";
+    composes: select from "../../styles/controls.module.css";
 }
 
 .dateControl {
-    composes: input from "../styles/controls.module.css";
+    composes: input from "../../styles/controls.module.css";
 }
 
 .submit {
-    composes: button from "../styles/controls.module.css";
+    composes: button from "../../styles/controls.module.css";
     flex: 1 1 140px;
     align-self: stretch;
     height: auto;

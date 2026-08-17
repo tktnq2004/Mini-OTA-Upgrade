@@ -10,7 +10,7 @@ import {
     todayIso,
     type SearchFilters,
 } from "@/lib/searchFilters";
-import Stepper from "./Stepper";
+import Stepper from "@/components/Stepper/Stepper";
 import styles from "./SearchWidget.module.css";
 
 interface SearchWidgetProps {

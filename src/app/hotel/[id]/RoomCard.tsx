@@ -2,7 +2,7 @@
 
 import { BedIcon, UsersIcon, ArrowsOutIcon, CheckIcon } from "@phosphor-icons/react";
 import { ROOM_TYPE_LABELS, formatVnd, type Room } from "@/data/rooms.data";
-import ImageWithFallback from "@/components/ImageWithFallback";
+import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import styles from "./RoomCard.module.css";
 

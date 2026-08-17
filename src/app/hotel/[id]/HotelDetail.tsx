@@ -27,10 +27,10 @@ import {
     parseFilters,
     todayIso,
 } from "@/lib/searchFilters";
-import SiteHeader from "@/components/SiteHeader";
-import ImageWithFallback from "@/components/ImageWithFallback";
-import Stepper from "@/components/Stepper";
-import Pagination from "@/components/Pagination";
+import SiteHeader from "@/components/SiteHeader/SiteHeader";
+import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
+import Stepper from "@/components/Stepper/Stepper";
+import Pagination from "@/components/Pagination/Pagination";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import RoomCard from "./RoomCard";
 import controls from "@/styles/controls.module.css";
