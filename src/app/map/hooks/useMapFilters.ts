@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, type ReadonlyURLSearchParams } from "next/navigation";
 import { hotels } from "@/data/hotels.data";
 import { getProvinceById } from "@/data/locations.data";
@@ -45,7 +45,9 @@ export function useMapFilters(searchParams: ReadonlyURLSearchParams) {
     }
 
     const filtersRef = useRef(filters);
-    filtersRef.current = filters;
+    useEffect(() => {
+        filtersRef.current = filters;
+    }, [filters]);
 
     const selectedProvince = getProvinceById(filters.provinceId);
 

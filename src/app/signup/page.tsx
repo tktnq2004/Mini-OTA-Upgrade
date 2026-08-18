@@ -45,6 +45,9 @@ export default function SignupPage() {
         }
 
         console.log("Sign up with:", { fullName, email, phone, password });
+        // TODO(backend): sau khi tạo tài khoản thành công thật sự, gọi
+        // mergeCartOnLogin(cart.items) từ "@/components/cart/cartStorage" để gộp
+        // giỏ phòng đang lưu tạm (localStorage) vào tài khoản vừa tạo.
     };
 
     return (

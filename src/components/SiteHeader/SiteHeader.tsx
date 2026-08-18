@@ -1,14 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { CompassIcon, SunIcon, MoonIcon } from "@phosphor-icons/react";
+import { CompassIcon, SunIcon, MoonIcon, ShoppingBagIcon } from "@phosphor-icons/react";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { useCart } from "@/components/cart/CartProvider";
 import styles from "./SiteHeader.module.css";
 
 export default function SiteHeader() {
     const { theme, toggleTheme } = useTheme();
     const { language, toggleLanguage, t } = useLanguage();
+    const { totalCount } = useCart();
 
     return (
         <header className={styles.header}>
@@ -27,6 +29,15 @@ export default function SiteHeader() {
                 </nav>
 
                 <div className={styles.actions}>
+                    <Link
+                        href="/cart"
+                        className={styles.cartButton}
+                        aria-label={t("nav.cartAria", { count: totalCount })}
+                    >
+                        <ShoppingBagIcon size={16} weight="bold" />
+                        {totalCount > 0 && <span className={styles.cartBadge}>{totalCount}</span>}
+                    </Link>
+
                     <button
                         type="button"
                         className={styles.iconButton}

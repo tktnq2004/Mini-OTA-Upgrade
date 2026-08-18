@@ -4,6 +4,7 @@ import { BedIcon, UsersIcon, ArrowsOutIcon, CheckIcon } from "@phosphor-icons/re
 import { ROOM_TYPE_LABELS, formatVnd, type Room } from "@/data/rooms.data";
 import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { useCart } from "@/components/cart/CartProvider";
 import styles from "./RoomCard.module.css";
 
 const VISIBLE_AMENITIES = 4;
@@ -11,13 +12,26 @@ const VISIBLE_AMENITIES = 4;
 interface RoomCardProps {
     room: Room;
     nights: number;
+    checkin: string;
+    checkout: string;
+    guests: number;
 }
 
-export default function RoomCard({ room, nights }: RoomCardProps) {
+export default function RoomCard({ room, nights, checkin, checkout, guests }: RoomCardProps) {
     const { t } = useLanguage();
+    const { isInCart, addItem, removeItem } = useCart();
+    const selected = isInCart(room.hotelId, room.id);
     const visibleAmenities = room.amenities.slice(0, VISIBLE_AMENITIES);
     const extraCount = room.amenities.length - visibleAmenities.length;
     const total = room.price * nights;
+
+    const toggleCart = () => {
+        if (selected) {
+            removeItem(room.hotelId, room.id);
+        } else {
+            addItem(room.hotelId, room.id, { checkin, checkout, guests });
+        }
+    };
 
     return (
         <article className={styles.card}>
@@ -68,8 +82,13 @@ export default function RoomCard({ room, nights }: RoomCardProps) {
                             </span>
                         )}
                     </div>
-                    <button type="button" className={styles.selectButton}>
-                        {t("room.selectButton")}
+                    <button
+                        type="button"
+                        className={selected ? styles.selectButtonActive : styles.selectButton}
+                        onClick={toggleCart}
+                    >
+                        {selected && <CheckIcon size={13} weight="bold" />}
+                        {selected ? t("room.selected") : t("room.selectButton")}
                     </button>
                 </div>
             </div>

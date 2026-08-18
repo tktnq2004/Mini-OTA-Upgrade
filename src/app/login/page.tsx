@@ -26,6 +26,9 @@ export default function LoginPage() {
         }
 
         console.log("Login with email:", { email, password });
+        // TODO(backend): sau khi xác thực thành công thật sự, gọi
+        // mergeCartOnLogin(cart.items) từ "@/components/cart/cartStorage" để gộp
+        // giỏ phòng đang lưu tạm (localStorage) vào tài khoản vừa đăng nhập.
     };
 
     return (

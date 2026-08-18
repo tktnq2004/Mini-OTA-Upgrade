@@ -5,6 +5,7 @@
     "nav.themeToLight": "Chuyển sang giao diện sáng",
     "nav.themeToDark": "Chuyển sang giao diện tối",
     "nav.languageToggle": "Chuyển ngôn ngữ sang tiếng Anh",
+    "nav.cartAria": "Giỏ phòng đã chọn ({count})",
 
     "search.provinceLabel": "Tỉnh / Thành phố",
     "search.provinceAllOption": "Tất cả điểm đến",
@@ -101,6 +102,17 @@
     "room.perNight": "/đêm",
     "room.totalForNights": "{total} cho {count} đêm",
     "room.selectButton": "Chọn phòng",
+    "room.selected": "Đã chọn",
+
+    "cart.title": "Giỏ phòng đã chọn",
+    "cart.subtitle": "Xem lại các phòng đã chọn trước khi đặt",
+    "cart.empty": "Chưa có phòng nào được chọn.",
+    "cart.emptyCta": "Khám phá khách sạn",
+    "cart.remove": "Xoá",
+    "cart.viewHotel": "Xem khách sạn",
+    "cart.summaryTotal": "Tổng cộng",
+    "cart.proceedToBook": "Tiếp tục đặt phòng",
+    "cart.itemsInHotel": "{count} phòng đã chọn",
 
     "notFound.title": "Không tìm thấy trang",
     "notFound.description": "Trang bạn tìm không tồn tại hoặc đã được di chuyển sang nơi khác.",

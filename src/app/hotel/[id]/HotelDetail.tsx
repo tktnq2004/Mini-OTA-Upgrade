@@ -244,7 +244,14 @@ export default function HotelDetail({ hotel }: HotelDetailProps) {
                     {pageRooms.length > 0 ? (
                         <div className={styles.roomsGrid}>
                             {pageRooms.map((room) => (
-                                <RoomCard key={room.id} room={room} nights={nights} />
+                                <RoomCard
+                                    key={room.id}
+                                    room={room}
+                                    nights={nights}
+                                    checkin={checkin}
+                                    checkout={checkout}
+                                    guests={guests}
+                                />
                             ))}
                         </div>
                     ) : (

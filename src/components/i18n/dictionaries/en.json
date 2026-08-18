@@ -5,6 +5,7 @@
     "nav.themeToLight": "Switch to light theme",
     "nav.themeToDark": "Switch to dark theme",
     "nav.languageToggle": "Switch language to Vietnamese",
+    "nav.cartAria": "Selected rooms cart ({count})",
 
     "search.provinceLabel": "Province / City",
     "search.provinceAllOption": "All destinations",
@@ -101,6 +102,17 @@
     "room.perNight": "/night",
     "room.totalForNights": "{total} for {count} nights",
     "room.selectButton": "Select room",
+    "room.selected": "Selected",
+
+    "cart.title": "Selected rooms",
+    "cart.subtitle": "Review the rooms you picked before booking",
+    "cart.empty": "No rooms selected yet.",
+    "cart.emptyCta": "Explore hotels",
+    "cart.remove": "Remove",
+    "cart.viewHotel": "View hotel",
+    "cart.summaryTotal": "Total",
+    "cart.proceedToBook": "Proceed to book",
+    "cart.itemsInHotel": "{count} rooms selected",
 
     "notFound.title": "Page not found",
     "notFound.description": "The page you're looking for doesn't exist or has been moved.",

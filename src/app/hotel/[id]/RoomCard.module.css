@@ -143,26 +143,46 @@
     margin-top: 2px;
 }
 
-.selectButton {
+.selectButton,
+.selectButtonActive {
     flex: none;
     height: 32px;
     padding: 0 14px;
     border-radius: var(--radius-sm);
-    border: none;
-    background: var(--color-accent);
-    color: var(--color-accent-ink);
+    border: 1px solid transparent;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     font-size: 12.5px;
     font-weight: 600;
     font-family: inherit;
     cursor: pointer;
     white-space: nowrap;
-    transition: background 0.15s ease, transform 0.05s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.05s ease;
+}
+
+.selectButton {
+    background: var(--color-accent);
+    color: var(--color-accent-ink);
 }
 
 .selectButton:hover {
     background: var(--color-accent-strong);
 }
 
-.selectButton:active {
+.selectButtonActive {
+    background: var(--color-accent-soft);
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+}
+
+.selectButtonActive:hover {
+    background: var(--color-error-soft);
+    border-color: var(--color-error);
+    color: var(--color-error);
+}
+
+.selectButton:active,
+.selectButtonActive:active {
     transform: translateY(1px);
 }
