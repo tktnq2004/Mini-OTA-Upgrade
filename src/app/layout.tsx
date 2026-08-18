@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import Script from "next/script";
 
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./globals.css";
@@ -36,15 +35,6 @@ export default function RootLayout({
             <CartProvider>{children}</CartProvider>
           </LanguageProvider>
         </ThemeProvider>
-
-        <Script
-
-          src="https://connect.facebook.net/en_US/sdk.js"
-          strategy="afterInteractive"
-        />
-        <Script src="https://accounts.google.com/gsi/client"
-          strategy="afterInteractive" async defer
-        />
       </body>
     </html>
   );

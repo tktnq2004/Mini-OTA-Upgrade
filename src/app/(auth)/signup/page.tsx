@@ -2,9 +2,8 @@
 
 import { useState, type SubmitEvent } from "react";
 import Link from "next/link";
-import { FacebookLogoIcon, GoogleLogoIcon } from "@phosphor-icons/react";
 import AuthShell from "@/components/auth/AuthShell";
-import { useSocialAuth } from "@/components/auth/useSocialAuth";
+import { SocialLoginButtons } from "@/components/auth/social";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import controls from "@/styles/controls.module.css";
 import form from "@/components/auth/AuthForm.module.css";
@@ -18,7 +17,6 @@ export default function SignupPage() {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [agreed, setAgreed] = useState(false);
     const [error, setError] = useState("");
-    const { loginFacebook, loginGoogle } = useSocialAuth();
 
     const handleSubmit = (e: SubmitEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -156,16 +154,7 @@ export default function SignupPage() {
                 <span>{t("auth.or")}</span>
             </div>
 
-            <div className={form.socialRow}>
-                <button type="button" className={form.socialButton} onClick={loginFacebook}>
-                    <FacebookLogoIcon size={18} weight="fill" />
-                    {t("auth.signupWithFacebook")}
-                </button>
-                <button type="button" className={form.socialButton} onClick={loginGoogle}>
-                    <GoogleLogoIcon size={18} weight="bold" />
-                    {t("auth.signupWithGoogle")}
-                </button>
-            </div>
+            <SocialLoginButtons googleText="signup_with" />
         </AuthShell>
     );
 }

@@ -123,11 +123,6 @@ Backend Spring Boot (Mini-OTA, localhost:8080/api/v1/...)
 | `/admin/users` | `users/page.tsx` | Danh sách người dùng, phân trang, tìm theo email, tạo/sửa/xoá, đổi vai trò. |
 | `/admin/discounts` | `discounts/page.tsx` | CRUD mã giảm giá (%, ngày bắt đầu/kết thúc) + form gán/gỡ mã giảm giá vào 1 phòng cụ thể (nhập room ID + discount ID). |
 
-### 5.5. File khác đã sửa
-
-- `.env` — thêm `ADMIN_API_BASE_URL=http://localhost:8080/api/v1` (không có tiền tố `NEXT_PUBLIC_` vì chỉ dùng ở server, không lộ ra trình duyệt).
-
----
 
 ## 6. Giới hạn đã biết (do backend, không phải bug ở FE)
 
