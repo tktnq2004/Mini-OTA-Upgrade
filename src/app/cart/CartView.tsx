@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
     ShoppingBagIcon,
     BuildingsIcon,
@@ -14,47 +14,19 @@ import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback"
 import Stepper from "@/components/Stepper/Stepper";
 import { useCart } from "@/components/cart/CartProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
-import { hotels, type Hotel } from "@/data/hotels.data";
-import { ROOM_TYPE_LABELS, formatVnd, generateRoomsForHotel, type Room } from "@/data/rooms.data";
+import { ROOM_TYPE_LABELS, formatVnd } from "@/data/rooms.data";
 import { formatDateVn, nightsBetween } from "@/lib/searchFilters";
-import type { CartItem } from "@/components/cart/cartStorage";
+import { cartGrandTotal, findRoomForItem, groupCartItemsByHotel, cartLineTotal } from "@/components/cart/cartUtils";
 import controls from "@/styles/controls.module.css";
 import styles from "./cart.module.css";
 
-interface HotelGroup {
-    hotel: Hotel;
-    items: CartItem[];
-}
-
-function lineTotal(room: Room, item: CartItem): number {
-    return room.price * item.quantity * nightsBetween(item.checkin, item.checkout);
-}
-
 export default function CartView() {
     const { t, language } = useLanguage();
+    const router = useRouter();
     const { items, removeItem, setQuantity } = useCart();
 
-    const groups = useMemo<HotelGroup[]>(() => {
-        const byHotel = new Map<number, CartItem[]>();
-        for (const item of items) {
-            const list = byHotel.get(item.hotelId) ?? [];
-            list.push(item);
-            byHotel.set(item.hotelId, list);
-        }
-        const result: HotelGroup[] = [];
-        for (const [hotelId, hotelItems] of byHotel) {
-            const hotel = hotels.find((h) => h.id === hotelId);
-            if (hotel) result.push({ hotel, items: hotelItems });
-        }
-        return result;
-    }, [items]);
-
-    const grandTotal = useMemo(() => {
-        return items.reduce((sum, item) => {
-            const room = generateRoomsForHotel(item.hotelId).find((r) => r.id === item.roomId);
-            return room ? sum + lineTotal(room, item) : sum;
-        }, 0);
-    }, [items]);
+    const groups = groupCartItemsByHotel(items);
+    const grandTotal = cartGrandTotal(items);
 
     return (
         <div className={styles.page}>
@@ -101,9 +73,7 @@ export default function CartView() {
 
                                     <ul className={styles.roomList}>
                                         {hotelItems.map((item) => {
-                                            const room = generateRoomsForHotel(item.hotelId).find(
-                                                (r) => r.id === item.roomId
-                                            );
+                                            const room = findRoomForItem(item);
                                             if (!room) return null;
                                             const nights = nightsBetween(item.checkin, item.checkout);
 
@@ -139,7 +109,7 @@ export default function CartView() {
                                                     />
 
                                                     <div className={styles.roomPrice}>
-                                                        {formatVnd(lineTotal(room, item))}
+                                                        {formatVnd(cartLineTotal(room, item))}
                                                     </div>
 
                                                     <button
@@ -161,7 +131,11 @@ export default function CartView() {
                         <div className={styles.summary}>
                             <span className={styles.summaryLabel}>{t("cart.summaryTotal")}</span>
                             <strong className={styles.summaryTotal}>{formatVnd(grandTotal)}</strong>
-                            <button type="button" className={controls.button}>
+                            <button
+                                type="button"
+                                className={controls.button}
+                                onClick={() => router.push("/checkout")}
+                            >
                                 {t("cart.proceedToBook")}
                             </button>
                         </div>

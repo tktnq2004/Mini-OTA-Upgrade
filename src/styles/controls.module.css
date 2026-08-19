@@ -44,7 +44,7 @@
 }
 
 .button {
-    height: 38px;
+    height: 40px;
     border-radius: var(--radius-sm);
     border: none;
     background: var(--color-accent);

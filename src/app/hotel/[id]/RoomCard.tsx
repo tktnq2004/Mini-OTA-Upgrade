@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { BedIcon, UsersIcon, ArrowsOutIcon, CheckIcon } from "@phosphor-icons/react";
 import { ROOM_TYPE_LABELS, formatVnd, type Room } from "@/data/rooms.data";
 import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
@@ -19,6 +20,7 @@ interface RoomCardProps {
 
 export default function RoomCard({ room, nights, checkin, checkout, guests }: RoomCardProps) {
     const { t } = useLanguage();
+    const router = useRouter();
     const { isInCart, addItem, removeItem } = useCart();
     const selected = isInCart(room.hotelId, room.id);
     const visibleAmenities = room.amenities.slice(0, VISIBLE_AMENITIES);
@@ -31,6 +33,17 @@ export default function RoomCard({ room, nights, checkin, checkout, guests }: Ro
         } else {
             addItem(room.hotelId, room.id, { checkin, checkout, guests });
         }
+    };
+
+    const bookNow = () => {
+        const params = new URLSearchParams({
+            hotelId: String(room.hotelId),
+            roomId: room.id,
+            checkin,
+            checkout,
+            guests: String(guests),
+        });
+        router.push(`/checkout?${params.toString()}`);
     };
 
     return (
@@ -82,14 +95,20 @@ export default function RoomCard({ room, nights, checkin, checkout, guests }: Ro
                             </span>
                         )}
                     </div>
-                    <button
-                        type="button"
-                        className={selected ? styles.selectButtonActive : styles.selectButton}
-                        onClick={toggleCart}
-                    >
-                        {selected && <CheckIcon size={13} weight="bold" />}
-                        {selected ? t("room.selected") : t("room.selectButton")}
-                    </button>
+
+                    <div className={styles.actions}>
+                        <button
+                            type="button"
+                            className={selected ? styles.selectButtonActive : styles.selectButton}
+                            onClick={toggleCart}
+                        >
+                            {selected && <CheckIcon size={13} weight="bold" />}
+                            {selected ? t("room.selected") : t("room.selectButton")}
+                        </button>
+                        <button type="button" className={styles.bookNowButton} onClick={bookNow}>
+                            {t("room.bookNow")}
+                        </button>
+                    </div>
                 </div>
             </div>
         </article>

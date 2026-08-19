@@ -1,0 +1,387 @@
+.page {
+    min-height: 100vh;
+}
+
+.layout {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 20px 20px 60px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.backLink {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--color-text-muted);
+    align-self: flex-start;
+}
+
+.backLink:hover {
+    color: var(--color-accent);
+}
+
+.title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    align-items: start;
+    gap: 20px;
+}
+
+.formColumn {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.formSection {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    background: var(--color-panel);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.formSection h2 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.sectionHint {
+    margin-top: -6px;
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+.fieldRow {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.paymentOptions {
+    display: flex;
+    gap: 10px;
+}
+
+.paymentOption {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.paymentOption input {
+    accent-color: var(--color-accent);
+}
+
+.paymentOption:hover {
+    border-color: var(--color-text-faint);
+}
+
+.paymentOptionActive {
+    border-color: var(--color-accent);
+    background: var(--color-accent-soft);
+    color: var(--color-text);
+}
+
+.cardFields {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    background: var(--color-inset);
+    border-radius: var(--radius-sm);
+}
+
+.submitButton {
+    height: 44px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: var(--color-accent);
+    color: var(--color-accent-ink);
+    font-size: 14px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.05s ease;
+}
+
+.submitButton:hover {
+    background: var(--color-accent-strong);
+}
+
+.submitButton:active {
+    transform: translateY(1px);
+}
+
+.summaryColumn {
+    position: sticky;
+    top: 72px;
+}
+
+.summaryCard {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 16px;
+    background: var(--color-panel);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.summaryCard h2 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.summaryHotelGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--color-border-soft);
+}
+
+.summaryHotelGroup:last-of-type {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.summaryHotelHead {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.summaryHotelThumb {
+    width: 36px;
+    height: 36px;
+    flex: none;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+}
+
+.summaryHotelThumbFallback {
+    width: 36px;
+    height: 36px;
+    flex: none;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-inset);
+    color: var(--color-text-faint);
+}
+
+.summaryHotelText {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.summaryHotelName {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--color-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.summaryHotelAddress {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 10.5px;
+    color: var(--color-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.summaryRoomRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-left: 8px;
+}
+
+.summaryRoomThumb {
+    width: 30px;
+    height: 30px;
+    flex: none;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+}
+
+.summaryRoomThumbFallback {
+    width: 30px;
+    height: 30px;
+    flex: none;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-inset);
+    color: var(--color-text-faint);
+}
+
+.summaryRoomInfo {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.summaryRoomName {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--color-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.summaryRoomMeta {
+    font-size: 10.5px;
+    color: var(--color-text-muted);
+}
+
+.summaryRoomPrice {
+    flex: none;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--color-accent-strong);
+}
+
+.summaryTotalRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 12px;
+    border-top: 1px solid var(--color-border);
+}
+
+.summaryTotalRow span {
+    font-size: 12.5px;
+    color: var(--color-text-muted);
+}
+
+.summaryTotalRow strong {
+    font-size: 16px;
+    color: var(--color-accent-strong);
+}
+
+.emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 56px 20px;
+    text-align: center;
+    color: var(--color-text-muted);
+    background: var(--color-panel);
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.successLayout {
+    min-height: calc(100vh - 56px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.successCard {
+    max-width: 420px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    text-align: center;
+    padding: 32px 24px;
+    background: var(--color-panel);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.successIcon {
+    color: var(--color-success);
+    margin-bottom: 4px;
+}
+
+.successCard h1 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.successCard p {
+    font-size: 12.5px;
+    color: var(--color-text-muted);
+}
+
+.successSummary {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    margin: 8px 0;
+    background: var(--color-inset);
+    border-radius: var(--radius-sm);
+    font-size: 12.5px;
+    color: var(--color-text-muted);
+}
+
+.successSummary strong {
+    font-size: 14px;
+    color: var(--color-accent-strong);
+}
+
+@media (max-width: 860px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+
+    .summaryColumn {
+        position: static;
+    }
+}
+
+@media (max-width: 560px) {
+    .fieldRow {
+        grid-template-columns: 1fr;
+    }
+
+    .paymentOptions {
+        flex-direction: column;
+    }
+}

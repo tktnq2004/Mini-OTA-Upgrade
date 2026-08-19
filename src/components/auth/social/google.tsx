@@ -50,17 +50,23 @@ export function GoogleLoginButton({ text }: GoogleLoginButtonProps) {
     const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        // GIS renderButton chỉ nhận width theo pixel cố định, không hỗ trợ "100%",
+        // nên phải đo chiều rộng container thực tế và vẽ lại mỗi khi nó đổi.
         const render = () => {
-            if (containerRef.current) {
-                window.google.accounts.id.renderButton(containerRef.current, {
-                    type: "standard",
-                    theme: "outline",
-                    size: "large",
-                    text,
-                    shape: "rectangular",
-                    width: 320,
-                });
-            }
+            if (!sdkReady) return;
+            const width = Math.round(container.getBoundingClientRect().width);
+            if (width <= 0) return;
+            window.google.accounts.id.renderButton(container, {
+                type: "standard",
+                theme: "outline",
+                size: "large",
+                text,
+                shape: "rectangular",
+                width,
+            });
         };
 
         if (sdkReady) {
@@ -69,10 +75,14 @@ export function GoogleLoginButton({ text }: GoogleLoginButtonProps) {
             window.addEventListener("google-sdk-ready", render, { once: true });
         }
 
+        const resizeObserver = new ResizeObserver(render);
+        resizeObserver.observe(container);
+
         return () => {
             window.removeEventListener("google-sdk-ready", render);
+            resizeObserver.disconnect();
         };
     }, [text]);
 
-    return <div ref={containerRef} style={{ minHeight: 40 }} />;
+    return <div ref={containerRef} style={{ minHeight: 40, width: "100%" }} />;
 }
