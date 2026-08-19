@@ -16,6 +16,7 @@
 
 .thumbWrap {
     position: relative;
+    display: block;
     aspect-ratio: 16 / 10;
     background: var(--color-inset);
 }
@@ -60,11 +61,20 @@
     padding: 12px;
 }
 
+.nameLink {
+    display: block;
+}
+
+.nameLink:hover .name {
+    color: var(--color-accent);
+}
+
 .name {
     font-size: 14px;
     font-weight: 600;
     color: var(--color-text);
     line-height: 1.3;
+    transition: color 0.15s ease;
 }
 
 .metaRow {

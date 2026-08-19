@@ -1,5 +1,6 @@
 {
     "nav.map": "Map",
+    "nav.hotelsList": "Hotels",
     "nav.login": "Log in",
     "nav.signup": "Sign up",
     "nav.themeToLight": "Switch to light theme",
@@ -105,6 +106,18 @@
     "room.selected": "Selected",
     "room.bookNow": "Book now",
 
+    "room.detail.backToHotel": "Back to hotel",
+    "room.detail.photoAria": "Room photo",
+    "room.detail.descriptionTitle": "Room description",
+    "room.detail.amenitiesTitle": "Room amenities",
+    "room.detail.policiesTitle": "Policies",
+    "room.detail.policyCheckin": "Check-in from 2:00 PM",
+    "room.detail.policyCheckout": "Check-out before 12:00 PM",
+    "room.detail.policyCancellation": "Free cancellation up to 24 hours before check-in",
+    "room.detail.policyId": "Valid ID required at check-in",
+    "room.detail.policySmoking": "No smoking in the room",
+    "room.detail.otherRoomsTitle": "Other rooms at this hotel",
+
     "cart.title": "Selected rooms",
     "cart.subtitle": "Review the rooms you picked before booking",
     "cart.empty": "No rooms selected yet.",
@@ -137,6 +150,12 @@
     "checkout.successSubtitle": "Your booking code: {code}",
     "checkout.roomsBooked": "{count} rooms booked",
     "checkout.backHome": "Back to home",
+
+    "hotels.title": "All hotels",
+    "hotels.subtitle": "Filter by area, dates, or your location to find the right hotel",
+    "hotels.emptyState": "No hotels match the current filters.",
+    "hotels.distanceAway": "{distance} km away",
+    "hotels.clearSearchText": "Clear search text",
 
     "notFound.title": "Page not found",
     "notFound.description": "The page you're looking for doesn't exist or has been moved.",

@@ -26,6 +26,9 @@ export default function SiteHeader() {
                     <Link href="/map" className={styles.navLink}>
                         {t("nav.map")}
                     </Link>
+                    <Link href="/hotels" className={styles.navLink}>
+                        {t("nav.hotelsList")}
+                    </Link>
                 </nav>
 
                 <div className={styles.actions}>

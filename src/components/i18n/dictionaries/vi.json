@@ -1,5 +1,6 @@
 {
     "nav.map": "Bản đồ",
+    "nav.hotelsList": "Khách sạn",
     "nav.login": "Đăng nhập",
     "nav.signup": "Đăng ký",
     "nav.themeToLight": "Chuyển sang giao diện sáng",
@@ -105,6 +106,18 @@
     "room.selected": "Đã chọn",
     "room.bookNow": "Đặt ngay",
 
+    "room.detail.backToHotel": "Quay lại khách sạn",
+    "room.detail.photoAria": "Ảnh phòng",
+    "room.detail.descriptionTitle": "Mô tả phòng",
+    "room.detail.amenitiesTitle": "Tiện nghi phòng",
+    "room.detail.policiesTitle": "Chính sách",
+    "room.detail.policyCheckin": "Nhận phòng từ 14:00",
+    "room.detail.policyCheckout": "Trả phòng trước 12:00",
+    "room.detail.policyCancellation": "Miễn phí huỷ phòng trước 24 giờ nhận phòng",
+    "room.detail.policyId": "Xuất trình giấy tờ tuỳ thân khi nhận phòng",
+    "room.detail.policySmoking": "Không hút thuốc trong phòng",
+    "room.detail.otherRoomsTitle": "Phòng khác tại khách sạn này",
+
     "cart.title": "Giỏ phòng đã chọn",
     "cart.subtitle": "Xem lại các phòng đã chọn trước khi đặt",
     "cart.empty": "Chưa có phòng nào được chọn.",
@@ -137,6 +150,12 @@
     "checkout.successSubtitle": "Mã đặt phòng của bạn: {code}",
     "checkout.roomsBooked": "{count} phòng đã đặt",
     "checkout.backHome": "Về trang chủ",
+
+    "hotels.title": "Danh sách khách sạn",
+    "hotels.subtitle": "Lọc theo khu vực, ngày ở hoặc vị trí của bạn để tìm khách sạn phù hợp",
+    "hotels.emptyState": "Không có khách sạn nào khớp với bộ lọc hiện tại.",
+    "hotels.distanceAway": "Cách {distance} km",
+    "hotels.clearSearchText": "Xoá từ khoá tìm kiếm",
 
     "notFound.title": "Không tìm thấy trang",
     "notFound.description": "Trang bạn tìm không tồn tại hoặc đã được di chuyển sang nơi khác.",

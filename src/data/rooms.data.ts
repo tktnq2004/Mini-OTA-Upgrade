@@ -150,3 +150,20 @@ export function generateRoomsForHotel(hotelId: number, count = 13): Room[] {
 export function formatVnd(amount: number): string {
   return `${amount.toLocaleString("vi-VN")} ₫`;
 }
+
+// Ảnh phòng đầu tiên luôn trùng thumbnail (để nhất quán với RoomCard), các ảnh
+// sau sinh thêm bằng seed riêng — deterministic, không cần lưu thêm dữ liệu.
+export function getRoomGallery(room: Room, count = 5): string[] {
+  const images = [room.thumbnail];
+  for (let i = 1; i < count; i++) {
+    images.push(`https://picsum.photos/seed/wengo-room-${room.id}-g${i}/1200/800`);
+  }
+  return images;
+}
+
+// Mô tả sinh từ chính dữ liệu phòng — giữ tiếng Việt cố định giống các nội
+// dung mock khác (tên phòng, tiện nghi...), không đi qua i18n.
+export function getRoomDescription(room: Room): string {
+  const highlight = room.amenities.slice(0, 3).join(", ");
+  return `Phòng ${room.name} rộng ${room.sizeSqm} m², phù hợp cho tối đa ${room.capacity} khách. Không gian được thiết kế hiện đại, đầy đủ tiện nghi với ${highlight} cùng nhiều tiện ích khác đi kèm.`;
+}

@@ -1,0 +1,106 @@
+.card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--color-panel);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.card:hover {
+    border-color: var(--color-text-faint);
+    box-shadow: var(--shadow-panel);
+}
+
+.thumbWrap {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    background: var(--color-inset);
+}
+
+.thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.thumbFallback {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-faint);
+    background: var(--color-inset);
+}
+
+.distanceBadge {
+    /* Đè lên ảnh (màu bất kỳ) nên cố định màu, không theo token theme sáng/tối */
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(17, 22, 28, 0.78);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: var(--radius-pill);
+}
+
+.body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+}
+
+.name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text);
+    line-height: 1.3;
+}
+
+.address {
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--color-text-muted);
+}
+
+.address svg {
+    flex: none;
+    margin-top: 2px;
+}
+
+.bookButton {
+    margin-top: auto;
+    height: 34px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: var(--color-accent);
+    color: var(--color-accent-ink);
+    font-size: 12.5px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.05s ease;
+}
+
+.bookButton:hover {
+    background: var(--color-accent-strong);
+}
+
+.bookButton:active {
+    transform: translateY(1px);
+}

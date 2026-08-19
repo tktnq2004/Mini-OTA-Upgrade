@@ -18,7 +18,10 @@ import type { ViewMode } from "../types";
 // khung nhìn bản đồ / bán kính quanh vị trí) và danh sách khách sạn lọc theo
 // viewMode hiện tại. Tách khỏi Map.tsx vì đây là state độc lập với vòng đời
 // bản đồ MapLibre.
-export function useMapFilters(searchParams: ReadonlyURLSearchParams) {
+// basePath: route mà bộ lọc sẽ ghi lại vào URL (router.replace) — mặc định
+// "/map" cho trang Map, trang khác tái sử dụng hook này (vd. /hotels) truyền
+// path của chính nó vào, nếu không sẽ bị đẩy nhầm sang "/map" khi submit.
+export function useMapFilters(searchParams: ReadonlyURLSearchParams, basePath: string = "/map") {
     const router = useRouter();
 
     const [filters, setFilters] = useState<SearchFilters>(() => {
@@ -75,7 +78,7 @@ export function useMapFilters(searchParams: ReadonlyURLSearchParams) {
         // filters (React state) để dùng lúc bấm "đặt phòng", không phải là
         // tham số tìm kiếm nên không ghi vào query string.
         const params = locationSearchParams(next);
-        router.replace(`/map?${params.toString()}`, { scroll: false });
+        router.replace(`${basePath}?${params.toString()}`, { scroll: false });
     };
 
     const clearProvince = () => {

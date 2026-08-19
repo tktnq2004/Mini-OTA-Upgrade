@@ -36,7 +36,7 @@ import RoomCard from "./RoomCard";
 import controls from "@/styles/controls.module.css";
 import styles from "./HotelDetail.module.css";
 
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 12;
 const PRICE_CEILING = 5_000_000;
 
 interface HotelDetailProps {

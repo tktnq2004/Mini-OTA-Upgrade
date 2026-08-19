@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BedIcon, UsersIcon, ArrowsOutIcon, CheckIcon } from "@phosphor-icons/react";
 import { ROOM_TYPE_LABELS, formatVnd, type Room } from "@/data/rooms.data";
@@ -26,6 +27,11 @@ export default function RoomCard({ room, nights, checkin, checkout, guests }: Ro
     const visibleAmenities = room.amenities.slice(0, VISIBLE_AMENITIES);
     const extraCount = room.amenities.length - visibleAmenities.length;
     const total = room.price * nights;
+    const detailHref = `/hotel/${room.hotelId}/room/${room.id}?${new URLSearchParams({
+        checkin,
+        checkout,
+        guests: String(guests),
+    }).toString()}`;
 
     const toggleCart = () => {
         if (selected) {
@@ -48,7 +54,7 @@ export default function RoomCard({ room, nights, checkin, checkout, guests }: Ro
 
     return (
         <article className={styles.card}>
-            <div className={styles.thumbWrap}>
+            <Link href={detailHref} className={styles.thumbWrap}>
                 <ImageWithFallback
                     src={room.thumbnail}
                     alt={room.name}
@@ -57,10 +63,12 @@ export default function RoomCard({ room, nights, checkin, checkout, guests }: Ro
                     fallback={<BedIcon size={22} weight="light" />}
                 />
                 <span className={styles.typeBadge}>{ROOM_TYPE_LABELS[room.roomType]}</span>
-            </div>
+            </Link>
 
             <div className={styles.body}>
-                <h3 className={styles.name}>{room.name}</h3>
+                <Link href={detailHref} className={styles.nameLink}>
+                    <h3 className={styles.name}>{room.name}</h3>
+                </Link>
 
                 <div className={styles.metaRow}>
                     <span className={styles.metaItem}>
