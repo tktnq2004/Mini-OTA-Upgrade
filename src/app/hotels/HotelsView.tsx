@@ -13,20 +13,21 @@ import SiteHeader from "@/components/SiteHeader/SiteHeader";
 import SearchWidget from "@/components/SearchWidget/SearchWidget";
 import Pagination from "@/components/Pagination/Pagination";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
-import { useMapFilters } from "@/app/map/hooks/useMapFilters";
-import { useGeolocation } from "@/app/map/hooks/useGeolocation";
+import { useHotelFilters } from "@/hooks/useHotelFilters";
+import { useGeolocation } from "@/hooks/useGeolocation";
 import { haversineDistanceKm } from "@/lib/geo";
 import HotelCard from "./HotelCard";
 import styles from "./HotelsView.module.css";
 
 const PAGE_SIZE = 12;
 
-// Trang danh sách khách sạn — tái sử dụng nguyên bộ state/hook lọc của trang
-// Map (useMapFilters, useGeolocation) để có cùng bộ lọc tỉnh/xã, ngày/khách
-// và tìm quanh đây bằng GPS. Không truyền flyTo thật vì trang này không có
-// bản đồ, và không gắn sự kiện kéo/zoom map nên viewMode ở đây chỉ bao giờ là
-// "province" hoặc "radius" — chế độ "bounds" (lọc theo khung nhìn khi kéo
-// map) tự động không xảy ra, đúng như yêu cầu bỏ bộ lọc đó ở trang này.
+// Trang danh sách khách sạn — dùng chung useHotelFilters/useGeolocation với
+// trang Map (đã được nâng lên src/hooks/ vì có từ 2 trang dùng trở lên) để
+// có cùng bộ lọc tỉnh/xã, ngày/khách và tìm quanh đây bằng GPS. Không truyền
+// flyTo thật vì trang này không có bản đồ, và không gắn sự kiện kéo/zoom map
+// nên viewMode ở đây chỉ bao giờ là "province" hoặc "radius" — chế độ
+// "bounds" (lọc theo khung nhìn khi kéo map) tự động không xảy ra, đúng như
+// yêu cầu bỏ bộ lọc đó ở trang này.
 export default function HotelsView() {
     const { t } = useLanguage();
     const searchParams = useSearchParams();
@@ -40,7 +41,7 @@ export default function HotelsView() {
         handleFilterSubmit,
         clearProvince,
         bookHotel,
-    } = useMapFilters(searchParams, "/hotels");
+    } = useHotelFilters(searchParams, "/hotels");
 
     const { isLocating, geoError, findNearby } = useGeolocation({
         t,

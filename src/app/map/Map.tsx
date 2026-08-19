@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader/SiteHeader";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
-import { useMapFilters } from "./hooks/useMapFilters";
+import { useHotelFilters } from "@/hooks/useHotelFilters";
+import { useGeolocation } from "@/hooks/useGeolocation";
 import { useMapInstance } from "./hooks/useMapInstance";
-import { useGeolocation } from "./hooks/useGeolocation";
 import MapOverlay from "./components/MapOverlay";
 import { PROVINCE_ZOOM, VIETNAM_CENTER, VIETNAM_ZOOM, WARD_ZOOM } from "./mapConstants";
 import styles from "./Map.module.css";
@@ -24,7 +24,7 @@ export default function MapView() {
         handleFilterSubmit,
         clearProvince,
         bookHotel,
-    } = useMapFilters(searchParams);
+    } = useHotelFilters(searchParams, "/map");
 
     const [searchQuery, setSearchQuery] = useState("");
 

@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { NEARBY_RADIUS_KM, NEARBY_ZOOM } from "../mapConstants";
-import type { ViewMode } from "../types";
+import type { ViewMode } from "./useHotelFilters";
+
+const NEARBY_ZOOM = 13;
+const NEARBY_RADIUS_KM = 10;
 
 interface UseGeolocationOptions {
     t: (key: string) => string;
@@ -11,7 +13,10 @@ interface UseGeolocationOptions {
 }
 
 // Xử lý nút "Tìm quanh đây": xin quyền định vị, chuyển viewMode sang bán
-// kính quanh vị trí người dùng, và bay bản đồ tới đó.
+// kính quanh vị trí người dùng, và bay camera tới đó. Dùng chung cho mọi
+// trang — nếu trang không có bản đồ thật (vd. /hotels) thì truyền
+// flyTo: () => {} (no-op), phần xin quyền GPS + đổi viewMode vẫn hoạt động
+// bình thường.
 export function useGeolocation({ t, setViewMode, flyTo }: UseGeolocationOptions) {
     const [isLocating, setIsLocating] = useState(false);
     const [geoError, setGeoError] = useState("");

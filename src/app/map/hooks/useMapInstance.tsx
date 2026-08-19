@@ -2,15 +2,22 @@
 
 import { useEffect, useRef } from "react";
 import * as maplibregl from "maplibre-gl";
-import { Map as MapLibreMap, type MapLibreEvent } from "maplibre-gl";
-import { createRoot } from "react-dom/client";
+import { Map as MapLibreMap, type MapLibreEvent, type Marker, type Popup } from "maplibre-gl";
+import { createRoot, type Root } from "react-dom/client";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { Hotel } from "@/data/hotels.data";
 import { getProvinceById } from "@/data/locations.data";
 import type { BoundsBox } from "@/lib/geo";
 import HotelPopupCard from "../HotelPopupCard";
 import { MAPTILER_STYLE_URL, PROVINCE_ZOOM, VIETNAM_CENTER, VIETNAM_ZOOM } from "../mapConstants";
-import type { MarkerEntry } from "../types";
+
+// Chỉ dùng nội bộ để dọn dẹp marker/popup/React root khi vẽ lại hoặc unmount
+// — không nơi nào khác cần type này nên không tách ra file types riêng.
+interface MarkerEntry {
+    marker: Marker;
+    popup: Popup;
+    root: Root;
+}
 
 function disposeMarkerEntries(entries: MarkerEntry[]) {
     entries.forEach(({ marker, popup, root }) => {
