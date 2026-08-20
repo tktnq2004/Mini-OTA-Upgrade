@@ -1,0 +1,74 @@
+.header {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    right: 16px;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.leftButtons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    pointer-events: auto;
+}
+
+.chipButton {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 34px;
+    padding: 0 13px;
+    border-radius: var(--radius-sm);
+    background: rgba(17, 22, 28, 0.6);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    color: #ffffff;
+    font-size: 12.5px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.chipButton:hover {
+    background: rgba(30, 36, 44, 0.75);
+}
+
+.titleChip {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    padding: 6px 14px;
+    border-radius: var(--radius-sm);
+    background: rgba(17, 22, 28, 0.6);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    pointer-events: auto;
+    max-width: 55%;
+}
+
+.hotelName {
+    font-size: 13px;
+    font-weight: 700;
+    color: #ffffff;
+    text-align: right;
+}
+
+.sceneName {
+    margin-top: 1px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.6);
+    text-align: right;
+}
+
+@media (max-width: 560px) {
+    .titleChip {
+        display: none;
+    }
+}

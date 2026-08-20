@@ -1,0 +1,36 @@
+.container {
+    position: absolute;
+    inset: 0;
+    background: #000000;
+    touch-action: none;
+    cursor: grab;
+}
+
+.container:active {
+    cursor: grabbing;
+}
+
+.container :global(canvas) {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.errorOverlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 0 40px;
+    color: rgba(255, 255, 255, 0.75);
+    text-align: center;
+    pointer-events: none;
+}
+
+.errorOverlay p {
+    font-size: 13.5px;
+    line-height: 1.5;
+}

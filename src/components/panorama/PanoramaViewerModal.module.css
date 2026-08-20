@@ -1,0 +1,17 @@
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: #000000;
+    overflow: hidden;
+}
+
+.transitionFade {
+    position: absolute;
+    inset: 0;
+    z-index: 40;
+    background: #000000;
+    /* transition-duration set inline (bất đối xứng fade-in/fade-out, xem PanoramaViewerModal.tsx) */
+    transition-property: opacity;
+    transition-timing-function: ease;
+}

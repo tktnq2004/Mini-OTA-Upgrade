@@ -16,6 +16,7 @@ import {
     BuildingsIcon,
     CalendarBlankIcon,
     BedIcon,
+    ArrowsClockwiseIcon,
 } from "@phosphor-icons/react";
 import type { Hotel } from "@/data/hotels.data";
 import {
@@ -32,6 +33,8 @@ import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback"
 import Stepper from "@/components/Stepper/Stepper";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { useCart } from "@/components/cart/CartProvider";
+import { getPanoramaTourForHotel } from "@/components/panorama/panoramaTours.data";
+import PanoramaViewerModal from "@/components/panorama/PanoramaViewerModal";
 import RoomCard from "../../RoomCard";
 import controls from "@/styles/controls.module.css";
 import styles from "./RoomDetail.module.css";
@@ -56,6 +59,11 @@ export default function RoomDetailView({ hotel, room }: RoomDetailViewProps) {
     const [checkout, setCheckout] = useState(initial.checkout);
     const [guests, setGuests] = useState(() => Math.min(initial.guests, room.capacity));
     const [activePhoto, setActivePhoto] = useState(0);
+    const [showPanorama, setShowPanorama] = useState(false);
+
+    // Chỉ 2 khách sạn demo có ảnh 360° thật (không thể sinh hàng loạt như ảnh
+    // 2D mock khác) nên nút "Xem Panorama 360°" chỉ hiện đúng ở đó.
+    const panoramaTour = getPanoramaTourForHotel(hotel.id);
 
     const gallery = useMemo(() => getRoomGallery(room), [room]);
     const description = useMemo(() => getRoomDescription(room), [room]);
@@ -117,6 +125,16 @@ export default function RoomDetailView({ hotel, room }: RoomDetailViewProps) {
                                 fallback={<BedIcon size={32} weight="light" />}
                                 loading="eager"
                             />
+                            {panoramaTour && (
+                                <button
+                                    type="button"
+                                    className={styles.panoramaButton}
+                                    onClick={() => setShowPanorama(true)}
+                                >
+                                    <ArrowsClockwiseIcon size={15} weight="bold" />
+                                    {t("room.detail.viewPanorama")}
+                                </button>
+                            )}
                         </div>
                         {gallery.length > 1 && (
                             <div className={styles.thumbRow}>
@@ -284,6 +302,14 @@ export default function RoomDetailView({ hotel, room }: RoomDetailViewProps) {
                     </div>
                 </aside>
             </div>
+
+            {showPanorama && panoramaTour && (
+                <PanoramaViewerModal
+                    tour={panoramaTour}
+                    hotelName={hotel.name}
+                    onClose={() => setShowPanorama(false)}
+                />
+            )}
         </div>
     );
 }

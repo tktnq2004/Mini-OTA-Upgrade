@@ -35,10 +35,6 @@ export function useHotelFilters(searchParams: ReadonlyURLSearchParams, basePath:
 
     const [filters, setFilters] = useState<SearchFilters>(() => {
         const parsed = parseFilters(searchParams);
-        // Mặc định HCM chỉ áp dụng cho lần mở trang đầu tiên khi URL không có
-        // province — không áp dụng lại mỗi khi searchParams đổi (xem block
-        // đồng bộ bên dưới), nếu không nút "Xem tất cả" sẽ không bao giờ thật
-        // sự về trạng thái "toàn quốc" được.
         return parsed.provinceId ? parsed : { ...parsed, provinceId: DEFAULT_PROVINCE_ID };
     });
     const [viewMode, setViewMode] = useState<ViewMode>({ type: "province" });

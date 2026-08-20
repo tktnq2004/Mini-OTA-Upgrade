@@ -1,0 +1,90 @@
+.backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(8, 10, 14, 0.55);
+    backdrop-filter: blur(4px);
+    animation: panorama-fade-in 0.18s ease;
+}
+
+@keyframes panorama-fade-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.card {
+    width: 90%;
+    max-width: 380px;
+    background: #14181f;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: var(--radius-lg);
+    padding: 22px;
+    animation: panorama-zoom-in 0.2s ease;
+}
+
+@keyframes panorama-zoom-in {
+    from {
+        opacity: 0;
+        transform: scale(0.94);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.iconBadge {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid #7dabff;
+    color: #a9c6ff;
+    margin-bottom: 14px;
+}
+
+.name {
+    font-size: 17px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 8px;
+}
+
+.description {
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.68);
+    margin-bottom: 20px;
+}
+
+.closeButton {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 40px;
+    padding: 0 18px;
+    border: none;
+    border-radius: var(--radius-pill);
+    background: #ffffff;
+    color: #14181f;
+    font-size: 13.5px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.closeButton:hover {
+    background: #e5e7eb;
+}

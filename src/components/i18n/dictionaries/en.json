@@ -117,6 +117,11 @@
     "room.detail.policyId": "Valid ID required at check-in",
     "room.detail.policySmoking": "No smoking in the room",
     "room.detail.otherRoomsTitle": "Other rooms at this hotel",
+    "room.detail.viewPanorama": "View 360° tour",
+
+    "panorama.close": "Close",
+    "panorama.return": "Return",
+    "panorama.viewerTitle": "360° panorama viewer",
 
     "cart.title": "Selected rooms",
     "cart.subtitle": "Review the rooms you picked before booking",

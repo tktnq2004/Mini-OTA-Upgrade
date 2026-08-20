@@ -117,6 +117,11 @@
     "room.detail.policyId": "Xuất trình giấy tờ tuỳ thân khi nhận phòng",
     "room.detail.policySmoking": "Không hút thuốc trong phòng",
     "room.detail.otherRoomsTitle": "Phòng khác tại khách sạn này",
+    "room.detail.viewPanorama": "Xem Panorama 360°",
+
+    "panorama.close": "Đóng",
+    "panorama.return": "Quay lại",
+    "panorama.viewerTitle": "Xem Panorama 360°",
 
     "cart.title": "Giỏ phòng đã chọn",
     "cart.subtitle": "Xem lại các phòng đã chọn trước khi đặt",

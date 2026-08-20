@@ -39,11 +39,38 @@
 }
 
 .heroWrap {
+    position: relative;
     aspect-ratio: 16 / 9;
     border-radius: var(--radius-lg);
     overflow: hidden;
     background: var(--color-inset);
     border: 1px solid var(--color-border);
+}
+
+/* Đè lên ảnh (màu bất kỳ) nên cố định màu, không theo token theme sáng/tối */
+.panoramaButton {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(17, 22, 28, 0.72);
+    backdrop-filter: blur(6px);
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.panoramaButton:hover {
+    background: rgba(17, 22, 28, 0.88);
 }
 
 .hero {
