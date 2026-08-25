@@ -11,6 +11,7 @@ const NAV_ITEMS = [
     { href: "/admin/amenities", label: "Tiện nghi" },
     { href: "/admin/views", label: "Hướng nhìn" },
     { href: "/admin/users", label: "Người dùng" },
+    { href: "/admin/roles", label: "Phân quyền" },
     { href: "/admin/discounts", label: "Khuyến mãi" },
 ];
 

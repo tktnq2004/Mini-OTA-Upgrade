@@ -28,13 +28,16 @@ export default function RoomCard({ room, allAmenities, allViews, onChanged }: Ro
     });
     const [addAmenityIds, setAddAmenityIds] = useState<number[]>([]);
     const [addViewIds, setAddViewIds] = useState<number[]>([]);
+    const [removeViewId, setRemoveViewId] = useState<number | "">("");
     const [error, setError] = useState("");
     const [saving, setSaving] = useState(false);
 
     const currentAmenityIds = new Set((room.amenities ?? []).map((a) => a.id));
-    const currentViewIds = new Set((room.views ?? []).map((v) => v.id));
     const availableAmenities = allAmenities.filter((a) => !currentAmenityIds.has(a.id));
-    const availableViews = allViews.filter((v) => !currentViewIds.has(v.id));
+    // Room.views bị @JsonIgnore bên backend — API không bao giờ trả lại
+    // hướng nhìn hiện tại của phòng, nên không biết cái nào đã gán để lọc
+    // ra danh sách "còn lại". Ô thêm hiển thị tất cả hướng nhìn, ô gỡ để
+    // admin tự chọn theo trí nhớ.
 
     const handleSave = async () => {
         setError("");
@@ -82,9 +85,11 @@ export default function RoomCard({ room, allAmenities, allViews, onChanged }: Ro
         }
     };
 
-    const handleRemoveView = async (viewId: number) => {
+    const handleRemoveView = async () => {
+        if (removeViewId === "") return;
         try {
-            await removeRoomView(room.id, viewId);
+            await removeRoomView(room.id, removeViewId);
+            setRemoveViewId("");
             onChanged();
         } catch (e) {
             setError(e instanceof AdminApiError ? e.message : "Gỡ hướng nhìn thất bại");
@@ -121,17 +126,12 @@ export default function RoomCard({ room, allAmenities, allViews, onChanged }: Ro
                         </button>
                     </span>
                 ))}
-                {(room.views ?? []).map((v) => (
-                    <span key={v.id} className={styles.chip}>
-                        {v.name}
-                        <button type="button" className={styles.chipRemove} onClick={() => handleRemoveView(v.id)}>
-                            ×
-                        </button>
-                    </span>
-                ))}
-                {(room.amenities?.length ?? 0) === 0 && (room.views?.length ?? 0) === 0 && (
-                    <span style={{ fontSize: 12, color: "var(--color-text-faint)" }}>Chưa có tiện nghi/hướng nhìn</span>
+                {(room.amenities?.length ?? 0) === 0 && (
+                    <span style={{ fontSize: 12, color: "var(--color-text-faint)" }}>Chưa có tiện nghi</span>
                 )}
+            </div>
+            <div style={{ fontSize: 11.5, color: "var(--color-text-faint)", marginTop: 4 }}>
+                Hướng nhìn hiện tại không hiển thị được (API backend ẩn field này) — bấm &quot;Sửa&quot; để thêm/gỡ.
             </div>
 
             {expanded && (
@@ -227,12 +227,34 @@ export default function RoomCard({ room, allAmenities, allViews, onChanged }: Ro
                                 value={addViewIds.map(String)}
                                 onChange={(e) => setAddViewIds(Array.from(e.target.selectedOptions).map((o) => Number(o.value)))}
                             >
-                                {availableViews.map((v) => (
+                                {allViews.map((v) => (
                                     <option key={v.id} value={v.id}>
                                         {v.name}
                                     </option>
                                 ))}
                             </select>
+                        </div>
+                    </div>
+
+                    <div className={controls.field}>
+                        <label className={controls.label}>Gỡ hướng nhìn (chọn 1)</label>
+                        <div style={{ display: "flex", gap: 8 }}>
+                            <select
+                                className={controls.select}
+                                style={{ flex: 1 }}
+                                value={removeViewId}
+                                onChange={(e) => setRemoveViewId(e.target.value ? Number(e.target.value) : "")}
+                            >
+                                <option value="">— chọn hướng nhìn —</option>
+                                {allViews.map((v) => (
+                                    <option key={v.id} value={v.id}>
+                                        {v.name}
+                                    </option>
+                                ))}
+                            </select>
+                            <button type="button" className={controls.buttonGhost} onClick={handleRemoveView} disabled={removeViewId === ""}>
+                                Gỡ
+                            </button>
                         </div>
                     </div>
 

@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import controls from "@/styles/controls.module.css";
 import styles from "@/components/admin/adminPage.module.css";
 import { AdminApiError } from "@/lib/admin/apiClient";
-import { createUser, deleteUser, listUsers, updateUser } from "@/lib/admin/resources";
-import type { AppUser, Role, UserInput } from "@/lib/admin/types";
+import { assignUserRoles, createUser, deleteUser, listRoles, listUsers, updateUser } from "@/lib/admin/resources";
+import type { AppUser, LegacyRole, Role, UserInput } from "@/lib/admin/types";
 
 const EMPTY_FORM: UserInput = { fullName: "", username: "", email: "", password: "", phone: "", role: "CUSTOMER" };
 
@@ -22,6 +22,17 @@ export default function UsersPage() {
     const [form, setForm] = useState<UserInput>(EMPTY_FORM);
     const [formError, setFormError] = useState("");
     const [saving, setSaving] = useState(false);
+
+    const [roles, setRoles] = useState<Role[]>([]);
+    const [assignRoleIds, setAssignRoleIds] = useState<number[]>([]);
+    const [assigning, setAssigning] = useState(false);
+    const [assignStatus, setAssignStatus] = useState("");
+
+    useEffect(() => {
+        listRoles()
+            .then(setRoles)
+            .catch(() => setRoles([]));
+    }, []);
 
     const load = () => {
         setLoading(true);
@@ -53,7 +64,23 @@ export default function UsersPage() {
         setEditingId(u.id);
         setForm({ fullName: u.fullName, username: u.username, email: u.email, password: "", phone: u.phone, role: u.role });
         setFormError("");
+        setAssignRoleIds([]);
+        setAssignStatus("");
         setShowForm(true);
+    };
+
+    const handleAssignRoles = async () => {
+        if (!editingId) return;
+        setAssignStatus("");
+        setAssigning(true);
+        try {
+            await assignUserRoles(editingId, assignRoleIds);
+            setAssignStatus("Đã gán role — thay thế toàn bộ role cũ của user này (không cộng dồn).");
+        } catch (e) {
+            setAssignStatus(e instanceof AdminApiError ? e.message : "Gán role thất bại");
+        } finally {
+            setAssigning(false);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -94,7 +121,11 @@ export default function UsersPage() {
             <div className={styles.pageHeader}>
                 <div>
                     <h1 className={styles.pageTitle}>Người dùng</h1>
-                    <p className={styles.pageSubtitle}>Danh sách tài khoản trong hệ thống.</p>
+                    <p className={styles.pageSubtitle}>
+                        Danh sách tài khoản trong hệ thống. Lưu ý: backend hiện có bug — <code>GET /users</code> (API
+                        danh sách) luôn trả <code>id: null</code> cho mọi user dù <code>GET /users/&#123;id&#125;</code>{" "}
+                        đơn lẻ thì đúng, nên các user hiện có trong bảng dưới không sửa/xoá được từ đây.
+                    </p>
                 </div>
                 <button type="button" className={controls.button} onClick={openCreate}>
                     Thêm người dùng
@@ -143,11 +174,11 @@ export default function UsersPage() {
                             />
                         </div>
                         <div className={controls.field}>
-                            <label className={controls.label}>Vai trò</label>
+                            <label className={controls.label}>Vai trò (chỉ để hiển thị, không cấp quyền)</label>
                             <select
                                 className={controls.select}
                                 value={form.role}
-                                onChange={(e) => setForm({ ...form, role: e.target.value as Role })}
+                                onChange={(e) => setForm({ ...form, role: e.target.value as LegacyRole })}
                             >
                                 <option value="CUSTOMER">CUSTOMER</option>
                                 <option value="ADMIN">ADMIN</option>
@@ -163,6 +194,33 @@ export default function UsersPage() {
                             Huỷ
                         </button>
                     </div>
+
+                    {editingId && (
+                        <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid var(--color-border-soft)" }}>
+                            <label className={controls.label}>Gán role thật (quyết định quyền thật sự qua Role/Permission)</label>
+                            <div style={{ display: "flex", gap: 8, marginTop: 6, alignItems: "flex-start" }}>
+                                <select
+                                    className={controls.select}
+                                    multiple
+                                    style={{ flex: 1 }}
+                                    value={assignRoleIds.map(String)}
+                                    onChange={(e) =>
+                                        setAssignRoleIds(Array.from(e.target.selectedOptions).map((o) => Number(o.value)))
+                                    }
+                                >
+                                    {roles.map((r) => (
+                                        <option key={r.id} value={r.id}>
+                                            {r.roleName}
+                                        </option>
+                                    ))}
+                                </select>
+                                <button type="button" className={controls.buttonGhost} onClick={handleAssignRoles} disabled={assigning}>
+                                    {assigning ? "Đang gán..." : "Gán"}
+                                </button>
+                            </div>
+                            {assignStatus && <p className={styles.pageSubtitle}>{assignStatus}</p>}
+                        </div>
+                    )}
                 </form>
             )}
 
@@ -184,22 +242,28 @@ export default function UsersPage() {
                         </thead>
                         <tbody>
                             {users.map((u) => (
-                                <tr key={u.id}>
-                                    <td>{u.id}</td>
+                                <tr key={u.email}>
+                                    <td>{u.id ?? "— (lỗi BE)"}</td>
                                     <td>{u.fullName}</td>
                                     <td>{u.email}</td>
                                     <td>{u.username}</td>
                                     <td>{u.phone}</td>
                                     <td>{u.role}</td>
                                     <td>
-                                        <div className={styles.rowActions}>
-                                            <button type="button" className={styles.linkButton} onClick={() => openEdit(u)}>
-                                                Sửa
-                                            </button>
-                                            <button type="button" className={styles.linkButtonDanger} onClick={() => handleDelete(u.id)}>
-                                                Xoá
-                                            </button>
-                                        </div>
+                                        {u.id ? (
+                                            <div className={styles.rowActions}>
+                                                <button type="button" className={styles.linkButton} onClick={() => openEdit(u)}>
+                                                    Sửa
+                                                </button>
+                                                <button type="button" className={styles.linkButtonDanger} onClick={() => handleDelete(u.id)}>
+                                                    Xoá
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <span style={{ fontSize: 11.5, color: "var(--color-text-faint)" }}>
+                                                Không sửa/xoá được (backend trả id null ở API danh sách)
+                                            </span>
+                                        )}
                                     </td>
                                 </tr>
                             ))}

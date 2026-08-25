@@ -6,8 +6,9 @@ const SECTIONS = [
     { href: "/admin/roomtypes", title: "Loại phòng", desc: "Backend chưa có API liệt kê — tra cứu/sửa/xoá theo ID." },
     { href: "/admin/amenities", title: "Tiện nghi", desc: "Danh sách tiện nghi gán cho phòng (wifi, hồ bơi...)." },
     { href: "/admin/views", title: "Hướng nhìn", desc: "Danh sách hướng nhìn gán cho phòng (biển, thành phố...)." },
-    { href: "/admin/users", title: "Người dùng", desc: "Danh sách tài khoản, phân trang, sửa vai trò." },
-    { href: "/admin/discounts", title: "Khuyến mãi", desc: "Tạo mã giảm giá theo % và gán vào từng phòng." },
+    { href: "/admin/users", title: "Người dùng", desc: "Danh sách tài khoản, phân trang, gán role thật cho user." },
+    { href: "/admin/roles", title: "Phân quyền", desc: "Tạo role, gán quyền cho role — quyết định quyền thật của tài khoản." },
+    { href: "/admin/discounts", title: "Khuyến mãi", desc: "Tạo khuyến mãi (%/số tiền) và gán vào từng phòng kèm khung ngày." },
 ];
 
 export default function AdminHomePage() {

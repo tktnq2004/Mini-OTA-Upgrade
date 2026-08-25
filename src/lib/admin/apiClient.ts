@@ -40,6 +40,13 @@ export async function adminFetch<T>(path: string, init?: RequestInit): Promise<T
     }
     throw new AdminApiError(errorMessageFrom(payload, res.statusText), res.status, payload);
   }
+
+  // Backend bọc mọi response thành công trong { statuscode, error, message,
+  // data } (xem FormatResponse.java) — bóc "data" ra ở đây, 1 lần duy nhất,
+  // để phần còn lại của app không phải biết tới envelope này.
+  if (payload && typeof payload === "object" && "data" in payload && "statuscode" in payload) {
+    return (payload as { data: T }).data;
+  }
   return payload as T;
 }
 

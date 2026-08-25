@@ -19,7 +19,6 @@ export async function POST() {
   const header = base64url({ alg: "none", typ: "JWT" });
   const payload = base64url({
     sub: "dev@local",
-    role: "ADMIN",
     user: { id: 0, email: "dev@local", name: "Dev (giả lập)" },
     iat: Math.floor(Date.now() / 1000),
     exp: Math.floor(Date.now() / 1000) + 3600,

@@ -10,6 +10,7 @@ import {
     ArrowLeftIcon,
     BuildingsIcon,
     SmileyMehIcon,
+    ArrowsClockwiseIcon,
 } from "@phosphor-icons/react";
 import type { Hotel } from "@/data/hotels.data";
 import {
@@ -32,6 +33,8 @@ import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback"
 import Stepper from "@/components/Stepper/Stepper";
 import Pagination from "@/components/Pagination/Pagination";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { getPanoramaTourForHotel } from "@/components/panorama/panoramaTours.data";
+import PanoramaViewerModal from "@/components/panorama/PanoramaViewerModal";
 import RoomCard from "./RoomCard";
 import controls from "@/styles/controls.module.css";
 import styles from "./HotelDetail.module.css";
@@ -60,6 +63,11 @@ export default function HotelDetail({ hotel }: HotelDetailProps) {
     const [roomType, setRoomType] = useState<"all" | RoomType>("all");
     const [maxPrice, setMaxPrice] = useState(PRICE_CEILING);
     const [page, setPage] = useState(1);
+    const [showPanorama, setShowPanorama] = useState(false);
+
+    // Chỉ 2 khách sạn demo có ảnh 360° thật nên nút "Xem Panorama 360°" chỉ
+    // hiện đúng ở đó — giống RoomDetailView.
+    const panoramaTour = getPanoramaTourForHotel(hotel.id);
 
     const nights = nightsBetween(checkin, checkout);
     const minCheckin = todayIso();
@@ -118,13 +126,25 @@ export default function HotelDetail({ hotel }: HotelDetailProps) {
                         <ArrowLeftIcon size={14} weight="bold" /> {t("hotel.backToMap")}
                     </Link>
 
-                    <ImageWithFallback
-                        src={hotel.thumbnail}
-                        alt={hotel.name}
-                        className={styles.thumb}
-                        fallbackClassName={styles.thumbFallback}
-                        fallback={<BuildingsIcon size={28} weight="light" />}
-                    />
+                    <div className={styles.thumbWrap}>
+                        <ImageWithFallback
+                            src={hotel.thumbnail}
+                            alt={hotel.name}
+                            className={styles.thumb}
+                            fallbackClassName={styles.thumbFallback}
+                            fallback={<BuildingsIcon size={28} weight="light" />}
+                        />
+                        {panoramaTour && (
+                            <button
+                                type="button"
+                                className={styles.panoramaButton}
+                                onClick={() => setShowPanorama(true)}
+                            >
+                                <ArrowsClockwiseIcon size={15} weight="bold" />
+                                {t("room.detail.viewPanorama")}
+                            </button>
+                        )}
+                    </div>
 
                     <div className={styles.identity}>
                         <h1 className={styles.name}>{hotel.name}</h1>
@@ -267,6 +287,14 @@ export default function HotelDetail({ hotel }: HotelDetailProps) {
                     <Pagination page={currentPage} totalPages={totalPages} onChange={setPage} />
                 </section>
             </div>
+
+            {showPanorama && panoramaTour && (
+                <PanoramaViewerModal
+                    tour={panoramaTour}
+                    hotelName={hotel.name}
+                    onClose={() => setShowPanorama(false)}
+                />
+            )}
         </div>
     );
 }

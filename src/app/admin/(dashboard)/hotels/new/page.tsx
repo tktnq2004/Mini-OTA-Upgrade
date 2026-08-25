@@ -1,25 +1,34 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import controls from "@/styles/controls.module.css";
 import styles from "@/components/admin/adminPage.module.css";
 import { AdminApiError } from "@/lib/admin/apiClient";
-import { createHotel } from "@/lib/admin/resources";
+import { createHotel, listProvinceNames } from "@/lib/admin/resources";
 import type { HotelInput } from "@/lib/admin/types";
 
-const EMPTY: HotelInput = { name: "", address: "", image: "", latitude: "", longitude: "", provinceId: 0 };
+const EMPTY: HotelInput = { name: "", address: "", image: "", latitude: "", longitude: "", wardId: 0 };
 
 export default function NewHotelPage() {
     const router = useRouter();
     const [form, setForm] = useState<HotelInput>(EMPTY);
     const [error, setError] = useState("");
     const [saving, setSaving] = useState(false);
+    const [provinceNames, setProvinceNames] = useState<string[]>([]);
+
+    // Chỉ để tham khảo — API /provinces và /wards/provinces/{id} chỉ trả
+    // TÊN, không có id, nên không dùng được để làm dropdown chọn ward thật.
+    useEffect(() => {
+        listProvinceNames()
+            .then(setProvinceNames)
+            .catch(() => setProvinceNames([]));
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!form.name || !form.address || !form.image || !form.latitude || !form.longitude || !form.provinceId) {
-            setError("Vui lòng nhập đủ thông tin, kể cả province ID");
+        if (!form.name || !form.address || !form.image || !form.latitude || !form.longitude || !form.wardId) {
+            setError("Vui lòng nhập đủ thông tin, kể cả ward ID");
             return;
         }
         setError("");
@@ -40,8 +49,9 @@ export default function NewHotelPage() {
                 <div>
                     <h1 className={styles.pageTitle}>Thêm khách sạn</h1>
                     <p className={styles.pageSubtitle}>
-                        Backend chưa có API liệt kê tỉnh — province ID phải nhập tay (xem ID ở bảng khách sạn khác hoặc hỏi
-                        backend).
+                        Backend chưa có API liệt kê ward kèm id — Ward ID phải nhập tay (xem ở bảng khách sạn đã có, cột
+                        &quot;Phường/xã&quot;).{" "}
+                        {provinceNames.length > 0 && <>Tỉnh đã seed: {provinceNames.join(", ")}.</>}
                     </p>
                 </div>
             </div>
@@ -53,8 +63,11 @@ export default function NewHotelPage() {
                         <input className={controls.input} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
                     </div>
                     <div className={`${controls.field} ${styles.formGridFull}`}>
-                        <label className={controls.label}>Địa chỉ</label>
+                        <label className={controls.label}>Địa chỉ (số nhà, tên đường)</label>
                         <input className={controls.input} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+                        <span style={{ fontSize: 11.5, color: "var(--color-text-faint)" }}>
+                            Backend tự nối thêm tên phường + tỉnh vào sau khi lưu.
+                        </span>
                     </div>
                     <div className={`${controls.field} ${styles.formGridFull}`}>
                         <label className={controls.label}>URL ảnh</label>
@@ -69,12 +82,12 @@ export default function NewHotelPage() {
                         <input className={controls.input} value={form.longitude} onChange={(e) => setForm({ ...form, longitude: e.target.value })} />
                     </div>
                     <div className={controls.field}>
-                        <label className={controls.label}>Province ID</label>
+                        <label className={controls.label}>Ward ID</label>
                         <input
                             className={controls.input}
                             type="number"
-                            value={form.provinceId || ""}
-                            onChange={(e) => setForm({ ...form, provinceId: Number(e.target.value) })}
+                            value={form.wardId || ""}
+                            onChange={(e) => setForm({ ...form, wardId: Number(e.target.value) })}
                         />
                     </div>
                 </div>

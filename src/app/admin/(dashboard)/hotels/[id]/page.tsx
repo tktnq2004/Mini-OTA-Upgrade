@@ -57,7 +57,7 @@ export default function HotelDetailPage({ params }: { params: Promise<{ id: stri
                     image: h.image,
                     latitude: h.latitude,
                     longitude: h.longitude,
-                    provinceId: h.province?.id ?? 0,
+                    wardId: h.ward?.id ?? 0,
                 });
             })
             .catch((e) => setLoadError(e instanceof AdminApiError ? e.message : "Không tải được khách sạn"))
@@ -69,8 +69,8 @@ export default function HotelDetailPage({ params }: { params: Promise<{ id: stri
     const handleSaveHotel = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!form) return;
-        if (!form.name || !form.address || !form.image || !form.latitude || !form.longitude || !form.provinceId) {
-            setFormError("Vui lòng nhập đủ thông tin, kể cả province ID");
+        if (!form.name || !form.address || !form.image || !form.latitude || !form.longitude || !form.wardId) {
+            setFormError("Vui lòng nhập đủ thông tin, kể cả ward ID");
             return;
         }
         setFormError("");
@@ -123,7 +123,9 @@ export default function HotelDetailPage({ params }: { params: Promise<{ id: stri
             <div className={styles.pageHeader}>
                 <div>
                     <h1 className={styles.pageTitle}>{hotel.name}</h1>
-                    <p className={styles.pageSubtitle}>Khách sạn #{hotel.id}</p>
+                    <p className={styles.pageSubtitle}>
+                        Khách sạn #{hotel.id} — {hotel.ward?.name}, {hotel.ward?.province?.name} (ward #{hotel.ward?.id})
+                    </p>
                 </div>
                 <button type="button" className={styles.linkButtonDanger} onClick={handleDeleteHotel}>
                     Xoá khách sạn
@@ -155,12 +157,12 @@ export default function HotelDetailPage({ params }: { params: Promise<{ id: stri
                             <input className={controls.input} value={form.longitude} onChange={(e) => setForm({ ...form, longitude: e.target.value })} />
                         </div>
                         <div className={controls.field}>
-                            <label className={controls.label}>Province ID</label>
+                            <label className={controls.label}>Ward ID</label>
                             <input
                                 className={controls.input}
                                 type="number"
-                                value={form.provinceId || ""}
-                                onChange={(e) => setForm({ ...form, provinceId: Number(e.target.value) })}
+                                value={form.wardId || ""}
+                                onChange={(e) => setForm({ ...form, wardId: Number(e.target.value) })}
                             />
                         </div>
                     </div>

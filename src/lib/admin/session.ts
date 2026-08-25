@@ -2,17 +2,22 @@ export const ACCESS_COOKIE = "mota_admin_at";
 export const REFRESH_COOKIE = "mota_admin_rt";
 const BACKEND_REFRESH_COOKIE_NAME = "refresh-token-Mini";
 
+// JWT của backend giờ KHÔNG mang claim role/permission nào đáng tin cả —
+// quyền thật được backend tự tra lại từ DB (bảng Role/Permission) ở MỖI
+// request qua CustomJwtAuthenticationConverter, dựa trên user.id. Claims ở
+// đây chỉ dùng để hiển thị (tên/email) và kiểm tra hết hạn (exp), không
+// dùng để tự quyết "user này có phải admin không" — việc đó phải hỏi thật
+// backend (xem probeAdminAccess bên dưới).
 export interface AdminJwtClaims {
   sub: string;
-  role: string;
   user: { id: number; email: string; name: string };
   iat: number;
   exp: number;
 }
 
-// Chỉ giải mã payload để đọc role/thông tin hiển thị — không cần verify chữ
-// ký ở đây vì mọi request thật sự vẫn phải qua backend (backend tự verify
-// JWT khi FE gọi API qua proxy). Payload JWT là base64url, không mã hoá.
+// Chỉ giải mã payload để đọc thông tin hiển thị — không cần verify chữ ký ở
+// đây vì mọi request thật sự vẫn phải qua backend (backend tự verify JWT
+// khi FE gọi API qua proxy). Payload JWT là base64url, không mã hoá.
 export function decodeAdminJwt(token: string): AdminJwtClaims | null {
   try {
     const payload = token.split(".")[1];
@@ -86,17 +91,33 @@ export async function refreshBackendSession(refreshToken: string): Promise<Refre
   });
   if (!res.ok) return null;
 
-  const data = await res.json().catch(() => null);
-  if (!data?.access_token) return null;
+  const envelope = await res.json().catch(() => null);
+  const accessToken: string | undefined = envelope?.data?.access_token;
+  if (!accessToken) return null;
 
-  const claims = decodeAdminJwt(data.access_token);
+  const claims = decodeAdminJwt(accessToken);
   if (!claims) return null;
 
   const rotated = extractBackendRefreshCookie(res.headers);
   return {
-    accessToken: data.access_token,
+    accessToken,
     accessMaxAge: Math.max(60, claims.exp - Math.floor(Date.now() / 1000)),
     refreshToken: rotated?.value,
     refreshMaxAge: rotated?.maxAgeSeconds,
   };
+}
+
+// Không còn cách nào đọc "user này có phải admin không" từ JWT — quyền thật
+// nằm trong bảng Role/Permission phía backend, tự tra theo user.id ở mỗi
+// request. Cách duy nhất để biết chắc là THỬ gọi 1 endpoint chỉ role admin
+// mới có quyền (GET /roles cần authority ROLE_READ, hiện chỉ ROLE_ADMIN có
+// sẵn quyền này) — 200 nghĩa là tài khoản có quyền quản trị thật, 403 nghĩa
+// là không (đăng nhập đúng mật khẩu nhưng không đủ quyền vào admin).
+export async function probeAdminAccess(accessToken: string): Promise<boolean> {
+  const res = await fetch(`${getAdminApiBaseUrl()}/roles`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${accessToken}` },
+    cache: "no-store",
+  });
+  return res.ok;
 }

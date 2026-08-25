@@ -2,31 +2,34 @@
 
 Tài liệu này mô tả toàn bộ phần **admin dashboard** đã được thêm vào project WenGo/MiniOTA (frontend Next.js) để CRUD dữ liệu qua backend Spring Boot [`kyss18/Mini-OTA`](https://github.com/kyss18/Mini-OTA).
 
+> Backend đã đổi khá nhiều lần kể từ bản đầu tiên (thêm hệ thống Role/Permission thật, đổi model Hotel/Discount, thêm Province/Ward...). Bản tài liệu này khớp với backend đã **test thật qua kết nối MySQL + Redis chạy thật**, không chỉ đọc code tĩnh.
+
 ---
 
 ## 1. Mục tiêu & bối cảnh
 
-Backend Mini-OTA (Java/Spring Boot) đã có sẵn REST API CRUD cho Hotels, Rooms, RoomTypes, Amenities, Views, Users, Discounts... nhưng chưa có giao diện quản trị. Yêu cầu: xây một trang `/admin` trong chính project Next.js này, gọi API sang backend đó để quản lý dữ liệu.
+Backend Mini-OTA có sẵn REST API CRUD cho Hotels, Rooms, RoomTypes, Amenities, Views, Users, Discounts, Roles/Permissions... nhưng chưa có giao diện quản trị. Admin dashboard này là trang `/admin` trong chính project Next.js, gọi API sang backend đó qua 1 lớp proxy (xem mục 3–4).
 
-Trước khi code, đã khảo sát trực tiếp mã nguồn backend (clone tạm về máy để đọc, không sửa) và phát hiện 2 nhóm vấn đề cần quyết định cách xử lý — đã hỏi và chốt với bạn:
+Các quyết định đã hỏi và chốt qua nhiều lần trao đổi:
 
 | Vấn đề | Đã chốt |
 |---|---|
-| Backend chưa cấu hình CORS (`SecurityConfig.java` chỉ có `.cors(Customizer.withDefaults())` nhưng không có `CorsConfigurationSource` nào) → nếu FE gọi thẳng từ trình duyệt sang `localhost:8080` sẽ bị chặn | **Proxy qua Next.js API routes** — FE chỉ gọi `/api/admin/*` (cùng origin), route đó gọi tiếp sang backend ở phía server (server-to-server, không bị CORS) |
-| Backend không có `@PreAuthorize`/`hasRole` nào — bất kỳ user đã đăng nhập (kể cả role `CUSTOMER`) đều gọi được các endpoint CRUD | **Chỉ chặn ở FE** (kiểm tra `role` từ JWT, redirect nếu không phải `ADMIN`) — chấp nhận đây là giới hạn demo, backend thực tế vẫn chưa an toàn tuyệt đối nếu ai đó gọi API trực tiếp bằng token hợp lệ |
-| 3 lỗ hổng dữ liệu: không có `GET /provinces`, không có `GET /roomtype` (list toàn bộ), `Room.roomType` bị đánh `@JsonIgnore` nên không bao giờ trả về trong JSON | **Chấp nhận UX giới hạn** — xem mục 6 |
+| Backend chưa cấu hình CORS | **Proxy qua Next.js API routes** — FE chỉ gọi `/api/admin/*` (cùng origin), route đó gọi tiếp sang backend ở phía server (server-to-server, không bị CORS) |
+| Backend giờ **có** hệ thống Role/Permission thật (`@PreAuthorize("hasAuthority(...)")` trên mọi endpoint CRUD, quyền tra từ DB mỗi request) | FE không cần tự chặn theo role nữa — backend đã là lớp bảo mật thật. FE chỉ giữ 1 bước xác nhận nhẹ lúc đăng nhập (xem mục 4.1) |
+| 3 lỗ hổng dữ liệu ban đầu (không có API liệt kê tỉnh, không có API liệt kê loại phòng, `Room.roomType` bị ẩn khỏi response) | **Chấp nhận UX giới hạn** — xem mục 7 |
+| Có thêm hệ thống Role/Permission (ngoài phạm vi CRUD chốt ban đầu) | **Thêm trang `/admin/roles` cơ bản** — nếu không có trang này thì không có cách nào qua giao diện để cấp quyền cho tài khoản mới |
 
-Phạm vi CRUD đã chọn: **Hotels + Rooms + RoomTypes + Amenities + Views, Users, Discounts**.
+Phạm vi CRUD: **Hotels + Rooms + RoomTypes + Amenities + Views + Users + Discounts + Roles/Permissions (cơ bản)**.
 
 ---
 
 ## 2. Công nghệ sử dụng
 
 - **Next.js 16 App Router** (Route Handlers cho backend proxy, Server Component cho auth guard, Client Component cho toàn bộ UI tương tác).
-- **TypeScript** — toàn bộ code admin có kiểu dữ liệu khớp với DTO backend (đọc trực tiếp từ Java source).
-- **CSS Modules** — tái dùng `src/styles/controls.module.css` (input/button/select có sẵn của toàn site) + 2 module CSS mới riêng cho admin (`AdminShell.module.css`, `adminPage.module.css`).
-- **Cookie-based session** (`httpOnly`, không dùng localStorage cho token) — access token & refresh token của backend được giữ ở cookie phía server, không lộ ra JS phía client.
-- Không dùng thư viện form/state ngoài (React state thuần), không thêm dependency mới nào vào `package.json`.
+- **TypeScript** — kiểu dữ liệu khớp với DTO/Entity Java thật (đọc trực tiếp từ Java source, có test lại bằng request thật qua backend chạy thật).
+- **CSS Modules** — tái dùng `src/styles/controls.module.css` + 2 module CSS riêng cho admin.
+- **Cookie-based session** (`httpOnly`) — access token & refresh token giữ ở cookie phía server, không lộ ra JS phía client.
+- Không dùng thư viện form/state ngoài, không thêm dependency mới vào `package.json`.
 
 ---
 
@@ -41,119 +44,116 @@ Next.js Route Handler  (src/app/api/admin/[...path]/route.ts)
         │  fetch(`${ADMIN_API_BASE_URL}/hotels`)      ← server-to-server, không bị CORS
         ▼
 Backend Spring Boot (Mini-OTA, localhost:8080/api/v1/...)
+        │  @PreAuthorize("hasAuthority('HOTEL_READ')") tự tra quyền từ DB theo user.id trong JWT
+        ▼
+{ statuscode, error, message, data }   ← envelope bọc MỌI response (FormatResponse.java)
 ```
 
-- **Không có state quản lý toàn cục (Redux/Context) cho dữ liệu** — mỗi trang tự fetch dữ liệu của nó qua các hàm trong `src/lib/admin/resources.ts`.
-- **Không có SSR data-fetching** cho các trang CRUD (tất cả là Client Component, fetch trong `useEffect` sau khi mount) — chỉ riêng bước kiểm tra đăng nhập (`layout.tsx`) chạy ở server.
+- Envelope `{statuscode, error, message, data}` được bóc tự động trong `apiClient.ts` — phần còn lại của code chỉ làm việc với dữ liệu thật (`data`), không cần biết envelope tồn tại.
+- Không có state quản lý toàn cục — mỗi trang tự fetch dữ liệu qua `src/lib/admin/resources.ts`.
+- Không có SSR data-fetching cho các trang CRUD (Client Component, fetch trong `useEffect`) — chỉ bước kiểm tra đăng nhập (`layout.tsx`) chạy ở server.
 
 ---
 
 ## 4. Luồng xác thực (auth flow)
 
-### 4.1. Đăng nhập thật
+### 4.1. Đăng nhập thật — không còn dựa vào "role" trong JWT
 
-1. Người dùng nhập email/password ở `/admin/login` → `POST /api/admin/auth/login` (route nội bộ Next.js).
-2. Route này gọi `POST {backend}/auth/login`. Backend trả về `{ access_token, user }` + set cookie `refresh-token-Mini` (cookie của backend, scope tới domain `localhost:8080`, path `/api/v1`).
-3. Route giải mã payload của `access_token` (JWT) để đọc `role` — **nếu `role !== "ADMIN"` thì từ chối ngay** (403), không cho vào dù đăng nhập đúng mật khẩu.
-4. Nếu là ADMIN: set 2 cookie **của chính Next.js** (domain `localhost:3000`, `httpOnly`):
-   - `mota_admin_at` — access token thật của backend.
-   - `mota_admin_rt` — refresh token thật của backend (giá trị lấy từ header `Set-Cookie: refresh-token-Mini=...` mà backend trả về, parse thủ công vì đây là gọi server-to-server nên trình duyệt không tự nhận cookie đó).
-5. Chuyển hướng vào `/admin`.
+Thay đổi quan trọng so với bản đầu: **JWT giờ không mang role/permission nào đáng tin cả**. Quyền thật được backend tự tra lại từ DB (bảng `Role` ↔ `Permission` ↔ `User`) ở **mỗi request**, qua `CustomJwtAuthenticationConverter` (dựa vào `user.id` trong JWT). JWT chỉ còn mang `sub`, `user: {id, email, name}`, `iat`, `exp`.
 
-### 4.2. Guard mọi trang trong `/admin`
+Luồng đăng nhập (`POST /api/admin/auth/login`):
+1. Gọi `POST {backend}/auth/login` → backend trả `{ data: { access_token, user }, ... }` (đã bọc envelope) + set cookie `refresh-token-Mini`.
+2. **Không đọc role từ JWT nữa.** Thay vào đó, gọi thử `GET {backend}/roles` (cần authority `ROLE_READ`, hiện chỉ `ROLE_ADMIN` có sẵn) bằng chính access token vừa nhận — 200 nghĩa là tài khoản có quyền quản trị thật, 403 nghĩa là đăng nhập đúng mật khẩu nhưng không đủ quyền vào `/admin`.
+3. Nếu qua được bước 2: set 2 cookie **của chính Next.js** (`mota_admin_at`, `mota_admin_rt`, `httpOnly`), lấy refresh token thật từ header `Set-Cookie` mà backend trả (phải tự parse thủ công vì đây là gọi server-to-server, trình duyệt không tự nhận cookie đó).
 
-`src/app/admin/(dashboard)/layout.tsx` là **Server Component**, chạy trên server mỗi lần vào bất kỳ trang con nào:
-- Đọc cookie `mota_admin_at`, giải mã JWT (chỉ đọc payload, không cần verify chữ ký ở đây vì mọi API call thật sự vẫn phải qua backend tự verify).
-- Không có cookie, hoặc `role !== "ADMIN"` → `redirect("/admin/login")`.
-- Hợp lệ → render `<AdminShell>` (sidebar + topbar) bọc quanh nội dung trang.
+### 4.2. Guard mọi trang trong `/admin` — giờ chỉ còn là UX, không phải lớp bảo mật
+
+`src/app/admin/(dashboard)/layout.tsx` chạy trên server mỗi lần vào trang con: chỉ kiểm tra **có cookie + JWT chưa hết hạn** — **không kiểm tra role nữa** (JWT không còn mang role đáng tin, xem 4.1). Bảo mật thật giờ nằm hoàn toàn ở backend (`@PreAuthorize` theo permission thật) — đây là điểm khác biệt lớn so với bản đầu, khi backend chưa chặn gì cả và FE phải tự gánh vai trò đó.
 
 ### 4.3. Gọi API CRUD (proxy + tự làm mới token)
 
-`src/app/api/admin/[...path]/route.ts` là **catch-all route**, nhận mọi method (GET/POST/PUT/DELETE/PATCH) tới `/api/admin/<bất kỳ path nào>`:
-1. Lấy access token từ cookie, gắn header `Authorization: Bearer <token>`, forward request sang backend với path + query string y hệt.
-2. Nếu backend trả `401` (token hết hạn) **và** có refresh token trong cookie → tự gọi `GET {backend}/auth/refresh` (gắn thủ công header `Cookie: refresh-token-Mini=...`), lấy access token mới, **thử lại request gốc 1 lần**, đồng thời cập nhật lại 2 cookie.
-3. Nếu vẫn `401` sau khi refresh (hoặc không có refresh token) → xoá cả 2 cookie, trả `401` về client.
-4. Phía client (`src/lib/admin/apiClient.ts`), nếu nhận `401` → tự động `window.location.href = "/admin/login"`.
+`src/app/api/admin/[...path]/route.ts` — không đổi so với bản đầu: gắn `Authorization: Bearer`, forward request, tự gọi `/auth/refresh` và thử lại 1 lần nếu gặp 401, xoá cookie nếu refresh cũng thất bại.
 
-→ Người dùng gần như không bao gigiờ thấy lỗi hết hạn phiên trong lúc thao tác — refresh diễn ra âm thầm ở route proxy.
+### 4.4. Nút "Xem giao diện Admin (dev)"
 
+Vẫn giữ nguyên cơ chế cũ (tạo JWT giả để qua guard 4.2 mà không cần backend) — chỉ hoạt động khi `NODE_ENV !== "production"`. Vì guard giờ không kiểm tra role, token giả chỉ cần đúng cấu trúc + `exp` hợp lệ.
 
-## 5. Danh sách file đã tạo
+---
+
+## 5. Danh sách file (cập nhật)
 
 ### 5.1. Lớp dữ liệu & API client (`src/lib/admin/`)
 
 | File | Vai trò |
 |---|---|
-| `types.ts` | Toàn bộ interface TypeScript khớp với DTO/Entity Java: `Hotel`, `Room`, `RoomType`, `Amenity`, `View`, `AppUser`, `Discount`, `Province`, `Meta`, `Paginated<T>`... |
-| `session.ts` | Hàm dùng ở server: tên cookie (`ACCESS_COOKIE`, `REFRESH_COOKIE`), `decodeAdminJwt()` (giải mã payload JWT base64url), `extractSetCookie()`/`extractBackendRefreshCookie()` (parse header `Set-Cookie` thủ công), `refreshBackendSession()` (gọi `/auth/refresh` backend), `getAdminApiBaseUrl()` (đọc env `ADMIN_API_BASE_URL`). |
-| `apiClient.ts` | `adminFetch<T>()` — hàm fetch dùng ở client, gọi `/api/admin/*`, tự parse envelope lỗi của backend (`{error, message}`), tự redirect về login khi gặp 401. Có sẵn `adminGet/adminPost/adminPut/adminDelete`. |
-| `resources.ts` | Toàn bộ hàm gọi API theo từng resource: `listHotels`, `createHotel`, `updateRoom`, `listAmenities`, `assignDiscountToRoom`, `removeRoomAmenity`... — nơi duy nhất biết URL/path thật của backend. |
+| `types.ts` | Interface khớp DTO/Entity Java thật, đã test qua request thật: `Hotel` (gắn `Ward`, không còn `Province` trực tiếp), `Room`, `RoomType`, `Amenity`, `View`, `AppUser`, `Discount` (`discountValue`+`unit`, không còn ngày), `DiscountDetail` (ngày áp dụng theo từng phòng), `Role`, `Permission`, `Ward`, `Province`, `BackendEnvelope<T>`. |
+| `session.ts` | Cookie helpers, `decodeAdminJwt()`, `extractBackendRefreshCookie()`, `refreshBackendSession()` (đã sửa để bóc envelope `.data`), **`probeAdminAccess()`** (mới — gọi thử `GET /roles` để xác nhận quyền admin thật lúc login). |
+| `apiClient.ts` | `adminFetch<T>()` — đã thêm bước tự bóc `{data, error, message, statuscode}` ở response thành công. |
+| `resources.ts` | Toàn bộ hàm gọi API theo resource — đã cập nhật cho model mới: `createHotel`/`updateHotel` dùng `wardId`, `createRoom` tự gắn `discount_id: []` (né bug backend, xem mục 6), `attachDiscountToRoom`/`detachDiscountFromRoom` theo model discount mới, thêm `listRoles`/`createRole`/`replaceRolePermissions`/`assignUserRoles`/`derivePermissionCatalog`. |
 
-### 5.2. Route nội bộ Next.js (`src/app/api/admin/`)
+### 5.2. Route nội bộ Next.js (`src/app/api/admin/`) — không đổi cấu trúc
 
-| File | Vai trò |
-|---|---|
-| `auth/login/route.ts` | Xử lý đăng nhập thật (mục 4.1). |
-| `auth/logout/route.ts` | Gọi `POST /auth/logout` bên backend (best-effort) rồi xoá cookie phía FE. |
-| `auth/dev-session/route.ts` | Tạo session giả cho dev (mục 4.4). |
-| `[...path]/route.ts` | Proxy chung + tự refresh token (mục 4.3). |
+`auth/login/route.ts` (đã cập nhật: bóc envelope + gọi `probeAdminAccess`), `auth/logout/route.ts`, `auth/dev-session/route.ts`, `[...path]/route.ts`.
 
 ### 5.3. Giao diện dùng chung (`src/components/admin/`)
 
-| File | Vai trò |
-|---|---|
-| `AdminShell.tsx` + `.module.css` | Khung layout: sidebar (menu điều hướng 6 mục), topbar (tên admin đang đăng nhập + nút đăng xuất). |
-| `adminPage.module.css` | Bộ class CSS dùng chung cho mọi trang admin: `pageHeader`, `panel`, `table`, `pagination`, `card`, `formGrid`, `chip`... — tránh lặp CSS giữa các trang. |
-| `NameIconManager.tsx` | Component dùng chung cho 2 trang **Tiện nghi** và **Hướng nhìn** (cấu trúc dữ liệu giống hệt nhau: `{id, name, icon}`) — 1 component nhận vào các hàm `list/create/update/remove` qua props, tránh trùng code 2 lần. |
-| `RoomCard.tsx` | Component hiển thị 1 phòng trong trang chi tiết khách sạn — sửa thông tin cơ bản, thêm/gỡ tiện nghi & hướng nhìn, xoá phòng. |
+Không đổi cấu trúc so với bản đầu (`AdminShell`, `adminPage.module.css`, `NameIconManager`, `RoomCard`) — `RoomCard` đã sửa lại phần hướng nhìn vì `Room.views` bị `@JsonIgnore` (xem mục 7).
 
 ### 5.4. Các trang (`src/app/admin/`)
 
-| Route | File | Chức năng |
+| Route | Ghi chú thay đổi |
+|---|---|
+| `/admin/hotels`, `/admin/hotels/new`, `/admin/hotels/[id]` | `provinceId` → **`wardId`**; địa chỉ nhập vào chỉ là "số nhà, tên đường", backend tự nối thêm tên phường + tỉnh. |
+| `/admin/roomtypes` | Không đổi (vẫn tra theo ID, không có list-all). |
+| `/admin/amenities`, `/admin/views` | Không đổi. |
+| `/admin/users` | Thêm khối "Gán role thật" (khác với field "Vai trò" chỉ để hiển thị) — xem mục 6 về bug `id: null`. |
+| `/admin/roles` | **Trang mới** — tạo role, gán bộ quyền cho role (thay thế toàn bộ), gán role cho user. Danh sách quyền lấy gián tiếp từ các role đang có (vì `GET /permissions` là stub luôn trả `null`). |
+| `/admin/discounts` | Viết lại hoàn toàn theo model mới: Discount chỉ là `{discountValue, unit}`, ngày áp dụng gắn theo từng phòng qua `POST /room/{id}/discounts`. |
+
+---
+
+## 6. Bug backend đã xác nhận qua test thật (không phải đoán từ đọc code)
+
+| Bug | Cách phát hiện | Cách FE xử lý |
 |---|---|---|
-| `/admin/login` | `login/page.tsx` + `login.module.css` | Form đăng nhập + nút dev-bypass. |
-| `/admin` | `(dashboard)/layout.tsx` | Auth guard + bọc `AdminShell` (mục 4.2). |
-| `/admin` | `(dashboard)/page.tsx` | Trang tổng quan — 6 thẻ liên kết nhanh tới từng mục. |
-| `/admin/hotels` | `hotels/page.tsx` | Danh sách khách sạn, phân trang, tìm theo tên, xoá. |
-| `/admin/hotels/new` | `hotels/new/page.tsx` | Form tạo khách sạn mới. |
-| `/admin/hotels/[id]` | `hotels/[id]/page.tsx` | Sửa thông tin khách sạn **+ quản lý toàn bộ phòng của khách sạn đó** (thêm/sửa/xoá phòng, gán/gỡ tiện nghi-hướng nhìn) trong cùng 1 trang. |
-| `/admin/roomtypes` | `roomtypes/page.tsx` | Tạo loại phòng mới + tra cứu/sửa/xoá theo ID (không có bảng danh sách — xem mục 6). |
-| `/admin/amenities` | `amenities/page.tsx` | CRUD tiện nghi (dùng `NameIconManager`). |
-| `/admin/views` | `views/page.tsx` | CRUD hướng nhìn (dùng `NameIconManager`). |
-| `/admin/users` | `users/page.tsx` | Danh sách người dùng, phân trang, tìm theo email, tạo/sửa/xoá, đổi vai trò. |
-| `/admin/discounts` | `discounts/page.tsx` | CRUD mã giảm giá (%, ngày bắt đầu/kết thúc) + form gán/gỡ mã giảm giá vào 1 phòng cụ thể (nhập room ID + discount ID). |
+| **`POST /rooms` luôn lỗi "Ids must not be null" nếu không gửi `discount_id`** | Test tạo phòng qua UI thật → lỗi 400; cô lập bằng curl từng field → xác định `RoomService.create_room` gọi `discountRepository.findAllById(discount_id)` **không kiểm tra null**, trong khi field này không bắt buộc theo DTO | `createRoom()` trong `resources.ts` luôn tự gắn thêm `discount_id: []` vào payload, dù field này không dùng vào việc gì |
+| **`GET /users` (danh sách phân trang) luôn trả `id: null` cho mọi user**, dù `GET /users/{id}` đơn lẻ thì đúng | Test trang Users thật → React báo "duplicate key" (vì mọi row đều `key=null`) → so sánh response 2 endpoint bằng curl, xác nhận khác nhau | Dùng `email` làm React key thay vì `id`; ẩn nút Sửa/Xoá ở các row có `id` null, kèm ghi chú giải thích cho admin |
+| `PATCH /roles/{id}` luôn trả `null`, không sửa gì (stub) | Đọc code backend | Trang Roles không có chức năng "sửa tên/level" — chỉ tạo mới, xoá, và thay bộ quyền |
+| `GET /permissions` và `GET /permissions/{id}` luôn trả `null` (stub) | Đọc code backend | Không dùng 2 endpoint này — danh sách quyền lấy gián tiếp bằng cách gộp `permissions` từ tất cả role đang có (`derivePermissionCatalog`) |
+| `DELETE /discounts` (gỡ khuyến mãi khỏi phòng) xác thực dữ liệu nhưng **không thật sự xoá** (logic bị comment trong `DiscountService`) | Đọc code backend | Trang Discounts vẫn gọi đúng API này nhưng hiển thị cảnh báo cố định là chưa hoạt động, không giả vờ báo thành công |
+| `Room.views` bị `@JsonIgnore` — API không bao giờ trả lại hướng nhìn hiện tại của 1 phòng | Đọc code backend, khớp với hành vi thật quan sát được | `RoomCard` không hiển thị được hướng nhìn hiện tại; chỉ có ô "thêm" (chọn mù) và ô "gỡ" (chọn theo tên, không theo trạng thái hiện tại) |
+| `POST /users/{userId}/roles` trả về **entity `User` thô**, lộ cả `password` (hash bcrypt) và `refreshToken` trong JSON | Quan sát response thật lúc test | FE không đọc/hiển thị response này (chỉ quan tâm thành công hay lỗi) nên không lộ ra giao diện, nhưng đáng lưu ý nếu sau này có ai log response này ra |
+| `DELETE /roles/{id}` trả lỗi thô HTTP 500 (không qua envelope, không thông báo rõ ràng) nếu role đó đang được gán cho user nào đó | Test xoá role thật khi còn user gán role đó | Không xử lý đặc biệt — người dùng sẽ thấy thông báo lỗi chung, cần tự gỡ role khỏi user trước khi xoá |
 
+---
 
-## 6. Giới hạn đã biết (do backend, không phải bug ở FE)
+## 7. Giới hạn UX đã biết (do backend thiếu API, không phải bug)
 
 | Giới hạn | Ảnh hưởng | Cách FE xử lý |
 |---|---|---|
-| Không có `GET /provinces` | Không thể làm dropdown chọn tỉnh khi tạo/sửa khách sạn | Ô nhập số **Province ID** thủ công |
-| Không có `GET /roomtype` (list toàn bộ) | Không thể hiện danh sách loại phòng để chọn | Trang `/admin/roomtypes` chỉ có "tạo mới" + "tra theo ID"; khi tạo phòng phải tự gõ **Room type ID** |
-| `Room.roomType` bị `@JsonIgnore` trong entity Java | API không bao giờ trả tên/ID loại phòng của 1 phòng đã tạo | Không hiển thị được loại phòng trên `RoomCard` |
-| Không có `GET /rooms` (list toàn bộ) | Không thể có trang "danh sách tất cả phòng" độc lập | Quản lý phòng lồng trong trang chi tiết từng khách sạn (`hotels/[id]`), lấy qua field `rooms` trả về kèm trong `GET /hotels/{id}` |
-| `PUT /rooms` (update) chỉ **cộng thêm** amenities/views, không thay thế toàn bộ danh sách | Nếu gửi danh sách rỗng sẽ không xoá cái đã có (an toàn), nhưng không thể "ghi đè" 1 lần | Tách riêng: sửa thông tin cơ bản dùng `PUT /rooms`; gỡ tiện nghi/hướng nhìn dùng riêng `DELETE /relationships` |
-| Backend không kiểm tra `role` ở tầng API | Một user role `CUSTOMER` có JWT hợp lệ vẫn gọi được API xoá/sửa dữ liệu nếu biết endpoint | FE chỉ chặn ở giao diện (đã thống nhất là chấp nhận được cho demo) |
+| `GET /provinces` chỉ trả **tên** tỉnh (string[]), không có id | Không dùng được để làm dropdown | Chỉ hiện làm text tham khảo trên form tạo khách sạn |
+| `GET /wards/provinces/{id}` cũng chỉ trả tên, và `{id}` đó lại là province id (thứ không có sẵn id) | Không thể chain 2 API này để lấy ward id | Không dùng — Ward ID phải nhập tay, tra theo cột "Phường/xã" ở bảng khách sạn đã có (field đó *có* id thật vì nằm lồng trong response khách sạn) |
+| Không có `GET /roomtype` (list toàn bộ) | Không thể hiện danh sách loại phòng để chọn | Trang riêng: tạo mới + tra theo ID; lúc tạo phòng phải tự gõ Room type ID |
+| `PUT /rooms` (update) chỉ **cộng thêm** amenities/views, không thay thế | Gửi mảng rỗng không xoá cái đã có (an toàn) nhưng không "ghi đè" được | Gỡ tiện nghi/hướng nhìn dùng riêng `DELETE /relationships` |
 
 ---
 
-## 7. Cách chạy thử
+## 8. Cách chạy thử
 
-1. **Backend**: cần MySQL (`localhost:3306`, DB `Mini_OTA`) và Redis (`localhost:6379`) đang chạy, rồi khởi động Spring Boot app (repo `Mini-OTA`) — mặc định lắng nghe `http://localhost:8080`.
-2. **Tạo tài khoản ADMIN đầu tiên** (nếu chưa có) — gọi thẳng API tạo user (endpoint này public):
-   ```bash
-   curl -X POST http://localhost:8080/api/v1/users \
-     -H "Content-Type: application/json" \
-     -d '{"fullName":"Admin","username":"admin","email":"admin@example.com","password":"Admin123!","phone":"0900000000","role":"ADMIN"}'
-   ```
-3. **Frontend**: `npm run dev`, mở `http://localhost:3000/admin/login`, đăng nhập bằng tài khoản ADMIN vừa tạo.
-4. Muốn chỉ xem/sửa giao diện mà không cần backend: dùng nút **"Xem giao diện Admin (dev)"** ngay trên trang login (chỉ hiện khi chạy dev).
+1. **Backend**: cần MySQL (`localhost:3306`, DB `Mini_OTA`) và Redis (`localhost:6379`) đang chạy, rồi khởi động Spring Boot app — mặc định `http://localhost:8080`.
+2. **Tài khoản ADMIN có sẵn** — `StartupRunner.java` tự seed lúc khởi động lần đầu (nếu chưa có user với email này):
+   - Email: `admin@gmail.com` / Mật khẩu: `123456` — có role `ROLE_ADMIN` với đầy đủ quyền, dùng đăng nhập `/admin/login` được ngay, không cần tạo tay.
+3. **Frontend**: `npm run dev`, mở `http://localhost:3000/admin/login`, đăng nhập bằng tài khoản trên.
+4. Muốn chỉ xem/sửa giao diện mà không cần backend: nút **"Xem giao diện Admin (dev)"** trên trang login (chỉ hiện khi chạy dev) — lưu ý các thao tác dữ liệu thật vẫn cần backend thật.
 
 ---
 
-## 8. Hướng nâng cấp nếu cần sau này
+## 9. Hướng nâng cấp nếu cần sau này
 
-- Thêm `@PreAuthorize("hasRole('ADMIN')")` ở các controller CRUD bên backend để chặn thật sự ở tầng API, không chỉ ở FE.
-- Thêm `GET /provinces` và `GET /roomtype` (list toàn bộ) bên backend để bỏ được các ô nhập ID thủ công, thay bằng dropdown thật.
-- Bỏ `@JsonIgnore` trên `Room.roomType` (hoặc thêm riêng field `roomTypeId`/`roomTypeName` vào response) để hiển thị được loại phòng trong danh sách phòng.
-- Nếu cần deploy thật (không chỉ chạy local): đổi `ADMIN_API_BASE_URL` sang domain backend thật, và cấu hình CORS thật ở backend nếu sau này muốn bỏ proxy gọi thẳng từ trình duyệt.
+- Sửa `RoomService.create_room` để kiểm tra `discount_id != null` trước khi gọi `findAllById` (bug mục 6, đang phải né bằng cách luôn gửi `[]` từ FE).
+- Sửa mapping `id` trong `UserService.fetch_all` (danh sách user) để khớp với `fetch_id` (đơn lẻ) — hiện danh sách luôn trả `id: null`.
+- Cài lại `PATCH /roles/{id}` (hiện là stub trả `null`, dù `RoleService.update_role` đã viết đầy đủ, chỉ chưa nối vào controller) và `GET /permissions` (hiện cũng stub) — 2 endpoint này xong thì trang Roles có thể làm đầy đủ hơn (sửa role, danh sách quyền không cần suy ra gián tiếp).
+- Cài lại logic xoá thật trong `DiscountService.delete_arr_room` (hiện bị comment).
+- Bỏ `@JsonIgnore` trên `Room.views` (hoặc thêm field riêng trả về danh sách view hiện tại) để hiển thị được trên `RoomCard`.
+- Thêm endpoint trả `{id, name}` cho provinces/wards (thay vì chỉ tên) để bỏ được ô nhập Ward ID thủ công.
+- Nếu deploy thật: đổi `ADMIN_API_BASE_URL` sang domain backend thật; CORS không cần cấu hình gì thêm vì kiến trúc vẫn qua proxy.

@@ -5,16 +5,16 @@ import controls from "@/styles/controls.module.css";
 import styles from "@/components/admin/adminPage.module.css";
 import { AdminApiError } from "@/lib/admin/apiClient";
 import {
-    assignDiscountToRoom,
+    attachDiscountToRoom,
     createDiscount,
     deleteDiscount,
+    detachDiscountFromRoom,
     listDiscounts,
-    removeDiscountFromRoom,
     updateDiscount,
 } from "@/lib/admin/resources";
-import type { Discount, DiscountInput } from "@/lib/admin/types";
+import type { Discount, DiscountInput, DiscountUnit } from "@/lib/admin/types";
 
-const EMPTY_FORM: DiscountInput = { discountPercent: 10, startDate: "", endDate: "" };
+const EMPTY_FORM: DiscountInput = { discountValue: 10, discountUnit: "PERCENT" };
 
 export default function DiscountsPage() {
     const [discounts, setDiscounts] = useState<Discount[]>([]);
@@ -26,11 +26,17 @@ export default function DiscountsPage() {
     const [formError, setFormError] = useState("");
     const [saving, setSaving] = useState(false);
 
-    const [assignRoomId, setAssignRoomId] = useState("");
-    const [assignDiscountId, setAssignDiscountId] = useState("");
-    const [assignError, setAssignError] = useState("");
-    const [assignSuccess, setAssignSuccess] = useState("");
-    const [assigning, setAssigning] = useState(false);
+    const [attachRoomId, setAttachRoomId] = useState("");
+    const [attachDiscountId, setAttachDiscountId] = useState("");
+    const [attachStart, setAttachStart] = useState("");
+    const [attachEnd, setAttachEnd] = useState("");
+    const [attachError, setAttachError] = useState("");
+    const [attachSuccess, setAttachSuccess] = useState("");
+    const [attaching, setAttaching] = useState(false);
+
+    const [detachRoomId, setDetachRoomId] = useState("");
+    const [detachDiscountId, setDetachDiscountId] = useState("");
+    const [detachStatus, setDetachStatus] = useState("");
 
     const load = () => {
         setLoading(true);
@@ -49,13 +55,13 @@ export default function DiscountsPage() {
 
     const startEdit = (d: Discount) => {
         setEditingId(d.id);
-        setForm({ discountPercent: d.discountPercent, startDate: d.startDate, endDate: d.endDate });
+        setForm({ discountValue: d.discountValue, discountUnit: d.unit });
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!form.discountPercent || !form.startDate || !form.endDate) {
-            setFormError("Vui lòng nhập đủ % giảm, ngày bắt đầu và kết thúc");
+        if (!form.discountValue || !form.discountUnit) {
+            setFormError("Vui lòng nhập đủ giá trị và đơn vị giảm giá");
             return;
         }
         setFormError("");
@@ -85,41 +91,41 @@ export default function DiscountsPage() {
         }
     };
 
-    const handleAssign = async (e: React.FormEvent) => {
+    const handleAttach = async (e: React.FormEvent) => {
         e.preventDefault();
-        setAssignError("");
-        setAssignSuccess("");
-        const roomId = Number(assignRoomId);
-        const discountId = Number(assignDiscountId);
-        if (!roomId || !discountId) {
-            setAssignError("Nhập room ID và discount ID hợp lệ");
+        setAttachError("");
+        setAttachSuccess("");
+        const roomId = Number(attachRoomId);
+        const discountId = Number(attachDiscountId);
+        if (!roomId || !discountId || !attachStart || !attachEnd) {
+            setAttachError("Nhập đủ room ID, discount ID, ngày bắt đầu và kết thúc");
             return;
         }
-        setAssigning(true);
+        setAttaching(true);
         try {
-            await assignDiscountToRoom(roomId, discountId);
-            setAssignSuccess(`Đã gán khuyến mãi #${discountId} vào phòng #${roomId}`);
+            await attachDiscountToRoom(roomId, discountId, attachStart, attachEnd);
+            setAttachSuccess(`Đã gán khuyến mãi #${discountId} vào phòng #${roomId} (${attachStart} → ${attachEnd})`);
         } catch (e) {
-            setAssignError(e instanceof AdminApiError ? e.message : "Gán thất bại");
+            setAttachError(e instanceof AdminApiError ? e.message : "Gán thất bại");
         } finally {
-            setAssigning(false);
+            setAttaching(false);
         }
     };
 
-    const handleUnassign = async () => {
-        setAssignError("");
-        setAssignSuccess("");
-        const roomId = Number(assignRoomId);
-        const discountId = Number(assignDiscountId);
+    const handleDetach = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setDetachStatus("");
+        const roomId = Number(detachRoomId);
+        const discountId = Number(detachDiscountId);
         if (!roomId || !discountId) {
-            setAssignError("Nhập room ID và discount ID hợp lệ");
+            setDetachStatus("Nhập room ID và discount ID hợp lệ");
             return;
         }
         try {
-            await removeDiscountFromRoom(roomId, discountId);
-            setAssignSuccess(`Đã gỡ khuyến mãi #${discountId} khỏi phòng #${roomId}`);
+            await detachDiscountFromRoom(roomId, [discountId]);
+            setDetachStatus("Đã gọi API gỡ — nhưng backend hiện chưa thật sự xoá (xem ghi chú bên dưới).");
         } catch (e) {
-            setAssignError(e instanceof AdminApiError ? e.message : "Gỡ thất bại");
+            setDetachStatus(e instanceof AdminApiError ? e.message : "Gỡ thất bại");
         }
     };
 
@@ -128,7 +134,9 @@ export default function DiscountsPage() {
             <div className={styles.pageHeader}>
                 <div>
                     <h1 className={styles.pageTitle}>Khuyến mãi</h1>
-                    <p className={styles.pageSubtitle}>Tạo mã giảm giá theo % và gán vào từng phòng cụ thể.</p>
+                    <p className={styles.pageSubtitle}>
+                        Discount chỉ là định nghĩa giá trị + đơn vị. Ngày áp dụng gắn riêng theo từng phòng bên dưới.
+                    </p>
                 </div>
             </div>
 
@@ -137,34 +145,25 @@ export default function DiscountsPage() {
                     <h2 className={styles.cardTitle}>{editingId ? `Sửa #${editingId}` : "Tạo khuyến mãi"}</h2>
                     <div className={styles.formGrid}>
                         <div className={controls.field}>
-                            <label className={controls.label}>Phần trăm giảm (%)</label>
+                            <label className={controls.label}>Giá trị giảm</label>
                             <input
                                 className={controls.input}
                                 type="number"
-                                min={1}
-                                max={100}
-                                value={form.discountPercent}
-                                onChange={(e) => setForm({ ...form, discountPercent: Number(e.target.value) })}
-                            />
-                        </div>
-                        <div />
-                        <div className={controls.field}>
-                            <label className={controls.label}>Ngày bắt đầu</label>
-                            <input
-                                className={controls.input}
-                                type="date"
-                                value={form.startDate}
-                                onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+                                min={0}
+                                value={form.discountValue}
+                                onChange={(e) => setForm({ ...form, discountValue: Number(e.target.value) })}
                             />
                         </div>
                         <div className={controls.field}>
-                            <label className={controls.label}>Ngày kết thúc</label>
-                            <input
-                                className={controls.input}
-                                type="date"
-                                value={form.endDate}
-                                onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-                            />
+                            <label className={controls.label}>Đơn vị</label>
+                            <select
+                                className={controls.select}
+                                value={form.discountUnit}
+                                onChange={(e) => setForm({ ...form, discountUnit: e.target.value as DiscountUnit })}
+                            >
+                                <option value="PERCENT">Phần trăm (0–100)</option>
+                                <option value="FIXED_AMOUNT">Số tiền cố định</option>
+                            </select>
                         </div>
                     </div>
                     {formError && <p className={controls.error}>{formError}</p>}
@@ -181,24 +180,59 @@ export default function DiscountsPage() {
                 </form>
 
                 <div className={styles.card}>
-                    <h2 className={styles.cardTitle}>Gán / gỡ khuyến mãi cho phòng</h2>
-                    <form className={styles.formGrid} onSubmit={handleAssign}>
+                    <h2 className={styles.cardTitle}>Gán khuyến mãi vào phòng (kèm khung ngày)</h2>
+                    <form className={styles.formGrid} onSubmit={handleAttach}>
                         <div className={controls.field}>
                             <label className={controls.label}>Room ID</label>
-                            <input className={controls.input} value={assignRoomId} onChange={(e) => setAssignRoomId(e.target.value)} />
+                            <input className={controls.input} value={attachRoomId} onChange={(e) => setAttachRoomId(e.target.value)} />
                         </div>
                         <div className={controls.field}>
                             <label className={controls.label}>Discount ID</label>
-                            <input className={controls.input} value={assignDiscountId} onChange={(e) => setAssignDiscountId(e.target.value)} />
+                            <input className={controls.input} value={attachDiscountId} onChange={(e) => setAttachDiscountId(e.target.value)} />
                         </div>
-                        {assignError && <p className={`${controls.error} ${styles.formGridFull}`}>{assignError}</p>}
-                        {assignSuccess && <p className={`${styles.success} ${styles.formGridFull}`}>{assignSuccess}</p>}
+                        <div className={controls.field}>
+                            <label className={controls.label}>Ngày bắt đầu</label>
+                            <input
+                                className={controls.input}
+                                type="date"
+                                value={attachStart}
+                                onChange={(e) => setAttachStart(e.target.value)}
+                            />
+                        </div>
+                        <div className={controls.field}>
+                            <label className={controls.label}>Ngày kết thúc</label>
+                            <input className={controls.input} type="date" value={attachEnd} onChange={(e) => setAttachEnd(e.target.value)} />
+                        </div>
+                        {attachError && <p className={`${controls.error} ${styles.formGridFull}`}>{attachError}</p>}
+                        {attachSuccess && <p className={`${styles.success} ${styles.formGridFull}`}>{attachSuccess}</p>}
                         <div className={`${styles.formActions} ${styles.formGridFull}`} style={{ marginTop: 0 }}>
-                            <button type="submit" className={controls.button} disabled={assigning}>
-                                Gán
+                            <button type="submit" className={controls.button} disabled={attaching}>
+                                {attaching ? "Đang gán..." : "Gán"}
                             </button>
-                            <button type="button" className={controls.buttonGhost} onClick={handleUnassign}>
-                                Gỡ
+                        </div>
+                    </form>
+                </div>
+
+                <div className={styles.card}>
+                    <h2 className={styles.cardTitle}>Gỡ khuyến mãi khỏi phòng</h2>
+                    <p style={{ fontSize: 12, color: "var(--color-error)", marginTop: -6 }}>
+                        Backend hiện có bug: endpoint gỡ (DELETE /discounts) xác thực dữ liệu nhưng KHÔNG thật sự xoá liên
+                        kết (logic xoá bị comment trong DiscountService). Bấm nút này sẽ không có tác dụng cho tới khi bên
+                        backend sửa.
+                    </p>
+                    <form className={styles.formGrid} onSubmit={handleDetach}>
+                        <div className={controls.field}>
+                            <label className={controls.label}>Room ID</label>
+                            <input className={controls.input} value={detachRoomId} onChange={(e) => setDetachRoomId(e.target.value)} />
+                        </div>
+                        <div className={controls.field}>
+                            <label className={controls.label}>Discount ID</label>
+                            <input className={controls.input} value={detachDiscountId} onChange={(e) => setDetachDiscountId(e.target.value)} />
+                        </div>
+                        {detachStatus && <p className={`${styles.pageSubtitle} ${styles.formGridFull}`}>{detachStatus}</p>}
+                        <div className={`${styles.formActions} ${styles.formGridFull}`} style={{ marginTop: 0 }}>
+                            <button type="submit" className={controls.buttonGhost}>
+                                Gỡ (chưa hoạt động)
                             </button>
                         </div>
                     </form>
@@ -210,9 +244,8 @@ export default function DiscountsPage() {
                             <thead>
                                 <tr>
                                     <th>ID</th>
-                                    <th>% Giảm</th>
-                                    <th>Bắt đầu</th>
-                                    <th>Kết thúc</th>
+                                    <th>Giá trị</th>
+                                    <th>Đơn vị</th>
                                     <th></th>
                                 </tr>
                             </thead>
@@ -220,9 +253,8 @@ export default function DiscountsPage() {
                                 {discounts.map((d) => (
                                     <tr key={d.id}>
                                         <td>{d.id}</td>
-                                        <td>{d.discountPercent}%</td>
-                                        <td>{d.startDate}</td>
-                                        <td>{d.endDate}</td>
+                                        <td>{d.discountValue}</td>
+                                        <td>{d.unit === "PERCENT" ? "%" : "Số tiền cố định"}</td>
                                         <td>
                                             <div className={styles.rowActions}>
                                                 <button type="button" className={styles.linkButton} onClick={() => startEdit(d)}>

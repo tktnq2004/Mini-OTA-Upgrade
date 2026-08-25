@@ -5,6 +5,7 @@ import {
   decodeAdminJwt,
   extractBackendRefreshCookie,
   getAdminApiBaseUrl,
+  probeAdminAccess,
 } from "@/lib/admin/session";
 
 export async function POST(req: NextRequest) {
@@ -20,23 +21,38 @@ export async function POST(req: NextRequest) {
     cache: "no-store",
   });
 
-  const data = await backendRes.json().catch(() => null);
-  if (!backendRes.ok || !data?.access_token) {
-    return NextResponse.json(data ?? { message: "Đăng nhập thất bại" }, { status: backendRes.status || 401 });
+  // Response thành công của backend bọc trong { data: { access_token, user }, ... }.
+  const envelope = await backendRes.json().catch(() => null);
+  const accessToken: string | undefined = envelope?.data?.access_token;
+  if (!backendRes.ok || !accessToken) {
+    return NextResponse.json(
+      { message: envelope?.error ?? envelope?.message ?? "Đăng nhập thất bại" },
+      { status: backendRes.status || 401 }
+    );
   }
 
-  const claims = decodeAdminJwt(data.access_token);
-  if (!claims || claims.role !== "ADMIN") {
-    return NextResponse.json({ message: "Tài khoản này không có quyền admin" }, { status: 403 });
+  const claims = decodeAdminJwt(accessToken);
+  if (!claims) {
+    return NextResponse.json({ message: "Token trả về không hợp lệ" }, { status: 500 });
+  }
+
+  // JWT không còn mang role/permission — phải thử gọi thật 1 endpoint chỉ
+  // admin mới có quyền để biết tài khoản này có được vào /admin hay không.
+  const isAdmin = await probeAdminAccess(accessToken);
+  if (!isAdmin) {
+    return NextResponse.json(
+      { message: "Tài khoản này không có quyền quản trị (thiếu role/permission phù hợp)" },
+      { status: 403 }
+    );
   }
 
   const refreshCookie = extractBackendRefreshCookie(backendRes.headers);
   const accessMaxAge = Math.max(60, claims.exp - Math.floor(Date.now() / 1000));
 
   const res = NextResponse.json({
-    user: { id: claims.user.id, email: claims.user.email, name: claims.user.name, role: claims.role },
+    user: { id: claims.user.id, email: claims.user.email, name: claims.user.name },
   });
-  res.cookies.set(ACCESS_COOKIE, data.access_token, {
+  res.cookies.set(ACCESS_COOKIE, accessToken, {
     httpOnly: true,
     sameSite: "lax",
     path: "/",

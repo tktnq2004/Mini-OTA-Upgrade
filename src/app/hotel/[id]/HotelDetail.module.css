@@ -34,24 +34,54 @@
     color: var(--color-accent);
 }
 
+.thumbWrap {
+    position: relative;
+    aspect-ratio: 2 / 1;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+}
+
 .thumb {
     width: 100%;
-    aspect-ratio: 2 / 1;
+    height: 100%;
     object-fit: cover;
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--color-border);
 }
 
 .thumbFallback {
     width: 100%;
-    aspect-ratio: 2 / 1;
+    height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--color-border);
     color: var(--color-text-faint);
     background: var(--color-inset);
+}
+
+/* Đè lên ảnh (màu bất kỳ) nên cố định màu, không theo token theme sáng/tối */
+.panoramaButton {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 28px;
+    padding: 0 10px;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(17, 22, 28, 0.72);
+    backdrop-filter: blur(6px);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.panoramaButton:hover {
+    background: rgba(17, 22, 28, 0.88);
 }
 
 .identity {

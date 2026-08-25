@@ -79,7 +79,7 @@ export default function HotelsPage() {
                                 <th>ID</th>
                                 <th>Tên</th>
                                 <th>Địa chỉ</th>
-                                <th>Tỉnh/thành</th>
+                                <th>Phường/xã (tỉnh)</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -89,7 +89,9 @@ export default function HotelsPage() {
                                     <td>{h.id}</td>
                                     <td>{h.name}</td>
                                     <td>{h.address}</td>
-                                    <td>{h.province?.name ?? h.province?.id}</td>
+                                    <td>
+                                        {h.ward?.name} ({h.ward?.province?.name}) — ward #{h.ward?.id}
+                                    </td>
                                     <td>
                                         <div className={styles.rowActions}>
                                             <Link href={`/admin/hotels/${h.id}`} className={styles.linkButton}>
