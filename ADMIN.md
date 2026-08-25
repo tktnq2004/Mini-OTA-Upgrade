@@ -74,10 +74,6 @@ Luồng đăng nhập (`POST /api/admin/auth/login`):
 
 `src/app/api/admin/[...path]/route.ts` — không đổi so với bản đầu: gắn `Authorization: Bearer`, forward request, tự gọi `/auth/refresh` và thử lại 1 lần nếu gặp 401, xoá cookie nếu refresh cũng thất bại.
 
-### 4.4. Nút "Xem giao diện Admin (dev)"
-
-Vẫn giữ nguyên cơ chế cũ (tạo JWT giả để qua guard 4.2 mà không cần backend) — chỉ hoạt động khi `NODE_ENV !== "production"`. Vì guard giờ không kiểm tra role, token giả chỉ cần đúng cấu trúc + `exp` hợp lệ.
-
 ---
 
 ## 5. Danh sách file (cập nhật)
@@ -93,7 +89,7 @@ Vẫn giữ nguyên cơ chế cũ (tạo JWT giả để qua guard 4.2 mà khôn
 
 ### 5.2. Route nội bộ Next.js (`src/app/api/admin/`) — không đổi cấu trúc
 
-`auth/login/route.ts` (đã cập nhật: bóc envelope + gọi `probeAdminAccess`), `auth/logout/route.ts`, `auth/dev-session/route.ts`, `[...path]/route.ts`.
+`auth/login/route.ts` (đã cập nhật: bóc envelope + gọi `probeAdminAccess`), `auth/logout/route.ts`, `[...path]/route.ts`.
 
 ### 5.3. Giao diện dùng chung (`src/components/admin/`)
 
@@ -106,8 +102,8 @@ Không đổi cấu trúc so với bản đầu (`AdminShell`, `adminPage.module
 | `/admin/hotels`, `/admin/hotels/new`, `/admin/hotels/[id]` | `provinceId` → **`wardId`**; địa chỉ nhập vào chỉ là "số nhà, tên đường", backend tự nối thêm tên phường + tỉnh. |
 | `/admin/roomtypes` | Không đổi (vẫn tra theo ID, không có list-all). |
 | `/admin/amenities`, `/admin/views` | Không đổi. |
-| `/admin/users` | Thêm khối "Gán role thật" (khác với field "Vai trò" chỉ để hiển thị) — xem mục 6 về bug `id: null`. |
-| `/admin/roles` | **Trang mới** — tạo role, gán bộ quyền cho role (thay thế toàn bộ), gán role cho user. Danh sách quyền lấy gián tiếp từ các role đang có (vì `GET /permissions` là stub luôn trả `null`). |
+| `/admin/users` | Bỏ hẳn dropdown "Vai trò" cũ (CUSTOMER/ADMIN, cosmetic không cấp quyền) — field "Vai trò" giờ là danh sách role thật (checkbox, lấy từ `listRoles()`), gán qua `POST /users/{id}/roles`, cùng cơ chế với trang Phân quyền. Xem mục 6 về bug `id: null`. |
+| `/admin/roles` | **Trang mới** — 1 form dùng chung cho cả Tạo role và Sửa quyền (bấm "Sửa quyền" ở 1 role trong bảng sẽ nạp dữ liệu role đó vào form phía trên, cuộn lên tự động, disable field tên/level/mô tả vì không sửa được). Danh sách quyền lấy gián tiếp từ các role đang có (vì `GET /permissions` là stub luôn trả `null`). Gán role cho user thực hiện ở trang Người dùng. |
 | `/admin/discounts` | Viết lại hoàn toàn theo model mới: Discount chỉ là `{discountValue, unit}`, ngày áp dụng gắn theo từng phòng qua `POST /room/{id}/discounts`. |
 
 ---
@@ -117,13 +113,15 @@ Không đổi cấu trúc so với bản đầu (`AdminShell`, `adminPage.module
 | Bug | Cách phát hiện | Cách FE xử lý |
 |---|---|---|
 | **`POST /rooms` luôn lỗi "Ids must not be null" nếu không gửi `discount_id`** | Test tạo phòng qua UI thật → lỗi 400; cô lập bằng curl từng field → xác định `RoomService.create_room` gọi `discountRepository.findAllById(discount_id)` **không kiểm tra null**, trong khi field này không bắt buộc theo DTO | `createRoom()` trong `resources.ts` luôn tự gắn thêm `discount_id: []` vào payload, dù field này không dùng vào việc gì |
-| **`GET /users` (danh sách phân trang) luôn trả `id: null` cho mọi user**, dù `GET /users/{id}` đơn lẻ thì đúng | Test trang Users thật → React báo "duplicate key" (vì mọi row đều `key=null`) → so sánh response 2 endpoint bằng curl, xác nhận khác nhau | Dùng `email` làm React key thay vì `id`; ẩn nút Sửa/Xoá ở các row có `id` null, kèm ghi chú giải thích cho admin |
+| **`GET /users` (danh sách phân trang) luôn trả `id: null` cho mọi user**, dù `GET /users/{id}` đơn lẻ thì đúng | Test trang Users thật → React báo "duplicate key" (vì mọi row đều `key=null`) → so sánh response 2 endpoint bằng curl, xác nhận khác nhau | Dùng `email` làm React key thay vì `id`. Nút **Sửa** vẫn luôn mở được form (kể cả khối "Gán role thật" bên trong) — nếu `id` thiếu, form hiện thêm ô nhập tay "User ID" bắt buộc trước khi Cập nhật/Gán được. Nút **Xoá** ở ngoài bảng vẫn cần `id` thật (destructive, không cho đoán) — phải vào form Sửa, nhập ID rồi thao tác từ đó |
 | `PATCH /roles/{id}` luôn trả `null`, không sửa gì (stub) | Đọc code backend | Trang Roles không có chức năng "sửa tên/level" — chỉ tạo mới, xoá, và thay bộ quyền |
 | `GET /permissions` và `GET /permissions/{id}` luôn trả `null` (stub) | Đọc code backend | Không dùng 2 endpoint này — danh sách quyền lấy gián tiếp bằng cách gộp `permissions` từ tất cả role đang có (`derivePermissionCatalog`) |
 | `DELETE /discounts` (gỡ khuyến mãi khỏi phòng) xác thực dữ liệu nhưng **không thật sự xoá** (logic bị comment trong `DiscountService`) | Đọc code backend | Trang Discounts vẫn gọi đúng API này nhưng hiển thị cảnh báo cố định là chưa hoạt động, không giả vờ báo thành công |
 | `Room.views` bị `@JsonIgnore` — API không bao giờ trả lại hướng nhìn hiện tại của 1 phòng | Đọc code backend, khớp với hành vi thật quan sát được | `RoomCard` không hiển thị được hướng nhìn hiện tại; chỉ có ô "thêm" (chọn mù) và ô "gỡ" (chọn theo tên, không theo trạng thái hiện tại) |
 | `POST /users/{userId}/roles` trả về **entity `User` thô**, lộ cả `password` (hash bcrypt) và `refreshToken` trong JSON | Quan sát response thật lúc test | FE không đọc/hiển thị response này (chỉ quan tâm thành công hay lỗi) nên không lộ ra giao diện, nhưng đáng lưu ý nếu sau này có ai log response này ra |
 | `DELETE /roles/{id}` trả lỗi thô HTTP 500 (không qua envelope, không thông báo rõ ràng) nếu role đó đang được gán cho user nào đó | Test xoá role thật khi còn user gán role đó | Không xử lý đặc biệt — người dùng sẽ thấy thông báo lỗi chung, cần tự gỡ role khỏi user trước khi xoá |
+| **⚠️ Nghiêm trọng — `PUT /users` (update) không có `@Valid`, và `UserService.update` ghi `user.setPassword(req.getPassword())` thẳng không hash lại, không kiểm tra rỗng.** Để trống ô mật khẩu lúc Sửa (như UI cũ từng gợi ý "để trống nếu không đổi") sẽ ghi đè password của user đó thành chuỗi rỗng — **tài khoản mất khả năng đăng nhập ngay lập tức, không cách nào tự sửa lại qua API** (mọi lần gọi `PUT /users` sau đó cũng ghi đè kiểu tương tự, không có cách "giữ nguyên"). Đã tự tay gây ra sự cố này với chính tài khoản `admin@gmail.com` lúc test, phải khôi phục bằng cách connect thẳng MySQL (`INSERT INTO user_roles...`) sau khi tạo lại tài khoản qua `POST /users` (đường tạo mới thì hash đúng) | Test thật: gọi `PUT /users` với `password:""` bằng token còn hạn → login lại bằng mật khẩu cũ thất bại ngay | FE **bắt buộc nhập mật khẩu ở cả Sửa lẫn Tạo**, không cho để trống nữa — kèm cảnh báo đỏ ngay tại field. Đây là hướng né duy nhất phía FE; **cần backend thêm `@Valid` cho `ReqUpdateUserDTO` + chỉ set password khi field không rỗng + hash lại bằng `passwordEncoder.encode()`** mới xử lý tận gốc được |
+| **⚠️ Nghiêm trọng — role có 0 quyền biến mất khỏi API và không thể sửa/xoá lại được nữa.** `RoleRepository.findAllRoles()` và `findRoleById()` dùng `join fetch r.permissions` (**inner join**, không phải `left join fetch`) — role nào có 0 permission bị loại thẳng khỏi kết quả. Vì `DELETE /roles/{id}` và `PUT /roles/{id}/permissions` đều gọi `findRoleById()` trước khi thao tác, nên 1 role rơi vào trạng thái 0 quyền sẽ: biến mất khỏi bảng ở trang Phân quyền, `DELETE` trả 404 "Role not found", và **`PUT .../permissions` cũng không gán lại quyền được nữa** (cùng lỗi lookup) — tức là kẹt vĩnh viễn, chỉ gỡ được bằng cách connect thẳng DB (`DELETE FROM roles WHERE ...`). Tình huống này xảy ra tự nhiên chỉ bằng cách: tạo role mới mà không tick quyền nào, HOẶC vào "Sửa quyền" một role đang có sẵn rồi bấm "Bỏ chọn tất cả" → Lưu | Test thật: tạo role qua UI không chọn quyền nào → API trả 200 tạo thành công (role thật sự có trong DB, verify bằng `SELECT * FROM roles`) nhưng biến mất khỏi bảng ngay khi list lại; gọi `DELETE`/`PUT permissions` cho role đó đều trả lỗi | Không có cách né an toàn 100% từ FE (không có role để hiển thị nghĩa là không cản được thao tác) — cách giảm thiểu: **luôn chọn ít nhất 1 quyền khi tạo role**, và cẩn thận khi bấm "Bỏ chọn tất cả" trong lúc sửa quyền 1 role đang dùng thật. Cần sửa backend: đổi `join fetch r.permissions` thành `left join fetch r.permissions` ở cả `findAllRoles()` và `findRoleById()` |
 
 ---
 
@@ -144,12 +142,13 @@ Không đổi cấu trúc so với bản đầu (`AdminShell`, `adminPage.module
 2. **Tài khoản ADMIN có sẵn** — `StartupRunner.java` tự seed lúc khởi động lần đầu (nếu chưa có user với email này):
    - Email: `admin@gmail.com` / Mật khẩu: `123456` — có role `ROLE_ADMIN` với đầy đủ quyền, dùng đăng nhập `/admin/login` được ngay, không cần tạo tay.
 3. **Frontend**: `npm run dev`, mở `http://localhost:3000/admin/login`, đăng nhập bằng tài khoản trên.
-4. Muốn chỉ xem/sửa giao diện mà không cần backend: nút **"Xem giao diện Admin (dev)"** trên trang login (chỉ hiện khi chạy dev) — lưu ý các thao tác dữ liệu thật vẫn cần backend thật.
 
 ---
 
 ## 9. Hướng nâng cấp nếu cần sau này
 
+- **Ưu tiên cao nhất**: thêm `@Valid` vào `UserController.update`, và sửa `UserService.update` chỉ gọi `passwordEncoder.encode()` + `setPassword()` khi `req.getPassword()` khác rỗng/null — hiện tại field này ghi đè trực tiếp, không hash, không kiểm tra, có thể khoá tài khoản bất kỳ lúc nào chỉ bằng 1 request `PUT /users` thiếu password (mục 6).
+- **Ưu tiên cao**: đổi `join fetch r.permissions` → `left join fetch r.permissions` trong `RoleRepository.findAllRoles()` và `findRoleById()` — hiện tại role 0 quyền bị kẹt vĩnh viễn (không list, không sửa, không xoá được qua API) (mục 6).
 - Sửa `RoomService.create_room` để kiểm tra `discount_id != null` trước khi gọi `findAllById` (bug mục 6, đang phải né bằng cách luôn gửi `[]` từ FE).
 - Sửa mapping `id` trong `UserService.fetch_all` (danh sách user) để khớp với `fetch_id` (đơn lẻ) — hiện danh sách luôn trả `id: null`.
 - Cài lại `PATCH /roles/{id}` (hiện là stub trả `null`, dù `RoleService.update_role` đã viết đầy đủ, chỉ chưa nối vào controller) và `GET /permissions` (hiện cũng stub) — 2 endpoint này xong thì trang Roles có thể làm đầy đủ hơn (sửa role, danh sách quyền không cần suy ra gián tiếp).

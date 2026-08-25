@@ -146,12 +146,16 @@ export interface RoomUpdateInput {
   viewIds: number[];
 }
 
+// id/fullName/username/phone khai báo nullable vì backend thật sự trả null
+// cho các field này trong một số trường hợp (xem ADMIN.md mục 6 — GET /users
+// danh sách luôn trả id: null; fullName/username/phone cũng có thể null với
+// tài khoản seed/tạo qua đường khác).
 export interface AppUser {
-  id: number;
+  id: number | null;
   email: string;
-  fullName: string;
-  username: string;
-  phone: string;
+  fullName: string | null;
+  username: string | null;
+  phone: string | null;
   role: LegacyRole;
   createdAt?: string;
   updatedAt?: string;
@@ -159,13 +163,15 @@ export interface AppUser {
   updatedBy?: string;
 }
 
+// Không còn field "role" (LegacyRole) — field đó bên backend chỉ cosmetic,
+// không cấp quyền gì (xem ADMIN.md mục 6). Quyền thật gán qua danh sách Role
+// thật (roleIds) ở đây, cùng cơ chế với trang Phân quyền.
 export interface UserInput {
   fullName: string;
   username: string;
   email: string;
   password: string;
   phone: string;
-  role: LegacyRole;
 }
 
 export type DiscountUnit = "PERCENT" | "FIXED_AMOUNT";

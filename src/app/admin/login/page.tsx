@@ -11,8 +11,6 @@ export default function AdminLoginPage() {
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [submitting, setSubmitting] = useState(false);
-    const [devLoading, setDevLoading] = useState(false);
-    const isDev = process.env.NODE_ENV !== "production";
 
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -41,17 +39,6 @@ export default function AdminLoginPage() {
             setError("Không thể kết nối tới máy chủ");
         } finally {
             setSubmitting(false);
-        }
-    };
-
-    const handleDevBypass = async () => {
-        setDevLoading(true);
-        try {
-            await fetch("/api/admin/auth/dev-session", { method: "POST" });
-            router.push("/admin");
-            router.refresh();
-        } finally {
-            setDevLoading(false);
         }
     };
 
@@ -98,27 +85,6 @@ export default function AdminLoginPage() {
                         {submitting ? "Đang đăng nhập..." : "Đăng nhập"}
                     </button>
                 </form>
-
-                {isDev && (
-                    <>
-                        <div className={styles.devDivider}>
-                            <span>chỉ hiện khi chạy dev</span>
-                        </div>
-                        <button
-                            type="button"
-                            className={controls.buttonGhost}
-                            style={{ width: "100%" }}
-                            onClick={handleDevBypass}
-                            disabled={devLoading}
-                        >
-                            {devLoading ? "Đang vào..." : "Xem giao diện Admin (dev)"}
-                        </button>
-                        <p className={styles.devNote}>
-                            Bỏ qua đăng nhập, chỉ để xem/sửa layout — thao tác dữ liệu thật vẫn cần backend + tài khoản ADMIN
-                            thật.
-                        </p>
-                    </>
-                )}
             </div>
         </div>
     );

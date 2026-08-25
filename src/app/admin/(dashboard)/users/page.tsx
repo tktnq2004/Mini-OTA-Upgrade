@@ -5,9 +5,9 @@ import controls from "@/styles/controls.module.css";
 import styles from "@/components/admin/adminPage.module.css";
 import { AdminApiError } from "@/lib/admin/apiClient";
 import { assignUserRoles, createUser, deleteUser, listRoles, listUsers, updateUser } from "@/lib/admin/resources";
-import type { AppUser, LegacyRole, Role, UserInput } from "@/lib/admin/types";
+import type { AppUser, Role, UserInput } from "@/lib/admin/types";
 
-const EMPTY_FORM: UserInput = { fullName: "", username: "", email: "", password: "", phone: "", role: "CUSTOMER" };
+const EMPTY_FORM: UserInput = { fullName: "", username: "", email: "", password: "", phone: "" };
 
 export default function UsersPage() {
     const [users, setUsers] = useState<AppUser[]>([]);
@@ -18,6 +18,7 @@ export default function UsersPage() {
     const [listError, setListError] = useState("");
 
     const [showForm, setShowForm] = useState(false);
+    const [isEditingUser, setIsEditingUser] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [form, setForm] = useState<UserInput>(EMPTY_FORM);
     const [formError, setFormError] = useState("");
@@ -54,6 +55,7 @@ export default function UsersPage() {
     };
 
     const openCreate = () => {
+        setIsEditingUser(false);
         setEditingId(null);
         setForm(EMPTY_FORM);
         setFormError("");
@@ -61,8 +63,22 @@ export default function UsersPage() {
     };
 
     const openEdit = (u: AppUser) => {
+        // Sửa lần trước: nếu u.id là null (bug backend — xem ghi chú dưới
+        // bảng), ẩn hẳn nút Sửa. Hệ quả là khối "Gán role thật" (nằm trong
+        // form Sửa) không bao giờ mở được với user có sẵn — không đúng ý,
+        // giờ luôn cho mở form Sửa, chỉ khác là phải tự nhập ID khi backend
+        // không trả được.
+        setIsEditingUser(true);
         setEditingId(u.id);
-        setForm({ fullName: u.fullName, username: u.username, email: u.email, password: "", phone: u.phone, role: u.role });
+        // fullName/username/phone có thể null (dữ liệu cũ/seed thiếu) —
+        // input controlled không chấp nhận value=null, phải đổi về "".
+        setForm({
+            fullName: u.fullName ?? "",
+            username: u.username ?? "",
+            email: u.email,
+            password: "",
+            phone: u.phone ?? "",
+        });
         setFormError("");
         setAssignRoleIds([]);
         setAssignStatus("");
@@ -85,14 +101,23 @@ export default function UsersPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!form.fullName || !form.username || !form.email || !form.phone || (!editingId && !form.password)) {
-            setFormError("Vui lòng nhập đủ thông tin bắt buộc");
+        // Bug backend đã xác nhận (PUT /users không có @Valid + UserService.update
+        // ghi thẳng password không hash lại): để trống mật khẩu lúc Sửa sẽ GHI ĐÈ
+        // password của user đó bằng chuỗi rỗng, không đăng nhập lại được nữa. Vì
+        // vậy bắt buộc nhập mật khẩu ở CẢ Sửa lẫn Tạo, không có chuyện "để trống
+        // nếu không đổi".
+        if (!form.fullName || !form.username || !form.email || !form.phone || !form.password) {
+            setFormError("Vui lòng nhập đủ thông tin bắt buộc, kể cả mật khẩu");
+            return;
+        }
+        if (isEditingUser && !editingId) {
+            setFormError("Backend không trả ID cho user này ở API danh sách — nhập User ID thủ công ở khối bên dưới trước.");
             return;
         }
         setFormError("");
         setSaving(true);
         try {
-            if (editingId) {
+            if (isEditingUser && editingId) {
                 await updateUser(editingId, form);
             } else {
                 await createUser(form);
@@ -124,7 +149,8 @@ export default function UsersPage() {
                     <p className={styles.pageSubtitle}>
                         Danh sách tài khoản trong hệ thống. Lưu ý: backend hiện có bug — <code>GET /users</code> (API
                         danh sách) luôn trả <code>id: null</code> cho mọi user dù <code>GET /users/&#123;id&#125;</code>{" "}
-                        đơn lẻ thì đúng, nên các user hiện có trong bảng dưới không sửa/xoá được từ đây.
+                        đơn lẻ thì đúng. Bấm &quot;Sửa&quot; vẫn mở được form (kể cả để gán role) — nếu ID bị thiếu, form
+                        sẽ hỏi nhập tay.
                     </p>
                 </div>
                 <button type="button" className={controls.button} onClick={openCreate}>
@@ -146,7 +172,9 @@ export default function UsersPage() {
 
             {showForm && (
                 <form className={styles.card} onSubmit={handleSubmit} style={{ marginBottom: 16 }}>
-                    <h2 className={styles.cardTitle}>{editingId ? `Sửa #${editingId}` : "Thêm người dùng"}</h2>
+                    <h2 className={styles.cardTitle}>
+                        {isEditingUser ? `Sửa${editingId ? ` #${editingId}` : ""}` : "Thêm người dùng"}
+                    </h2>
                     <div className={styles.formGrid}>
                         <div className={controls.field}>
                             <label className={controls.label}>Họ tên</label>
@@ -165,62 +193,90 @@ export default function UsersPage() {
                             <input className={controls.input} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
                         </div>
                         <div className={controls.field}>
-                            <label className={controls.label}>{editingId ? "Mật khẩu mới (để trống nếu không đổi)" : "Mật khẩu"}</label>
+                            <label className={controls.label}>{isEditingUser ? "Mật khẩu mới (bắt buộc)" : "Mật khẩu"}</label>
                             <input
                                 className={controls.input}
                                 type="password"
                                 value={form.password}
                                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                             />
-                        </div>
-                        <div className={controls.field}>
-                            <label className={controls.label}>Vai trò (chỉ để hiển thị, không cấp quyền)</label>
-                            <select
-                                className={controls.select}
-                                value={form.role}
-                                onChange={(e) => setForm({ ...form, role: e.target.value as LegacyRole })}
-                            >
-                                <option value="CUSTOMER">CUSTOMER</option>
-                                <option value="ADMIN">ADMIN</option>
-                            </select>
+                            {isEditingUser && (
+                                <span style={{ fontSize: 11.5, color: "var(--color-error)" }}>
+                                    Bug backend: để trống ô này sẽ xoá mật khẩu cũ (ghi đè bằng chuỗi rỗng, không hash
+                                    lại) — luôn phải nhập mật khẩu mới, kể cả khi chỉ muốn sửa thông tin khác.
+                                </span>
+                            )}
                         </div>
                     </div>
                     {formError && <p className={controls.error}>{formError}</p>}
                     <div className={styles.formActions}>
                         <button type="submit" className={controls.button} disabled={saving}>
-                            {saving ? "Đang lưu..." : editingId ? "Cập nhật" : "Tạo"}
+                            {saving ? "Đang lưu..." : isEditingUser ? "Cập nhật" : "Tạo"}
                         </button>
                         <button type="button" className={controls.buttonGhost} onClick={() => setShowForm(false)}>
                             Huỷ
                         </button>
                     </div>
 
-                    {editingId && (
-                        <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid var(--color-border-soft)" }}>
-                            <label className={controls.label}>Gán role thật (quyết định quyền thật sự qua Role/Permission)</label>
-                            <div style={{ display: "flex", gap: 8, marginTop: 6, alignItems: "flex-start" }}>
-                                <select
-                                    className={controls.select}
-                                    multiple
-                                    style={{ flex: 1 }}
-                                    value={assignRoleIds.map(String)}
-                                    onChange={(e) =>
-                                        setAssignRoleIds(Array.from(e.target.selectedOptions).map((o) => Number(o.value)))
-                                    }
-                                >
+                    <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid var(--color-border-soft)" }}>
+                        <label className={controls.label}>Vai trò</label>
+                        {!isEditingUser ? (
+                            <p style={{ fontSize: 12, color: "var(--color-text-faint)", marginTop: 6 }}>
+                                Tạo user xong rồi mới gán được vai trò (cần ID thật) — sau khi tạo, bấm &quot;Sửa&quot; ở
+                                user vừa tạo để gán.
+                            </p>
+                        ) : (
+                            <>
+                                {!editingId && (
+                                    <div className={controls.field} style={{ margin: "6px 0 12px" }}>
+                                        <label className={controls.label}>
+                                            User ID (backend không trả ID cho user này ở API danh sách — nhập tay)
+                                        </label>
+                                        <input
+                                            className={controls.input}
+                                            type="number"
+                                            placeholder="Nhập User ID"
+                                            onChange={(e) => setEditingId(e.target.value ? Number(e.target.value) : null)}
+                                        />
+                                    </div>
+                                )}
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 8 }}>
                                     {roles.map((r) => (
-                                        <option key={r.id} value={r.id}>
+                                        <label key={r.id} className={styles.checkRow}>
+                                            <input
+                                                type="checkbox"
+                                                checked={assignRoleIds.includes(r.id)}
+                                                onChange={(e) =>
+                                                    setAssignRoleIds((current) =>
+                                                        e.target.checked
+                                                            ? [...current, r.id]
+                                                            : current.filter((id) => id !== r.id)
+                                                    )
+                                                }
+                                            />
                                             {r.roleName}
-                                        </option>
+                                        </label>
                                     ))}
-                                </select>
-                                <button type="button" className={controls.buttonGhost} onClick={handleAssignRoles} disabled={assigning}>
-                                    {assigning ? "Đang gán..." : "Gán"}
-                                </button>
-                            </div>
-                            {assignStatus && <p className={styles.pageSubtitle}>{assignStatus}</p>}
-                        </div>
-                    )}
+                                    {roles.length === 0 && (
+                                        <span style={{ fontSize: 12, color: "var(--color-text-faint)" }}>
+                                            Chưa có role nào — tạo ở trang Phân quyền trước.
+                                        </span>
+                                    )}
+                                </div>
+                                <div style={{ marginTop: 10 }}>
+                                    <button
+                                        type="button"
+                                        className={controls.buttonGhost}
+                                        onClick={handleAssignRoles}
+                                        disabled={assigning || !editingId}
+                                    >
+                                        {assigning ? "Đang gán..." : "Gán vai trò (thay thế toàn bộ)"}
+                                    </button>
+                                </div>
+                                {assignStatus && <p className={styles.pageSubtitle}>{assignStatus}</p>}
+                            </>
+                        )}
+                    </div>
                 </form>
             )}
 
@@ -236,7 +292,6 @@ export default function UsersPage() {
                                 <th>Email</th>
                                 <th>Username</th>
                                 <th>SĐT</th>
-                                <th>Vai trò</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -248,22 +303,25 @@ export default function UsersPage() {
                                     <td>{u.email}</td>
                                     <td>{u.username}</td>
                                     <td>{u.phone}</td>
-                                    <td>{u.role}</td>
                                     <td>
-                                        {u.id ? (
-                                            <div className={styles.rowActions}>
-                                                <button type="button" className={styles.linkButton} onClick={() => openEdit(u)}>
-                                                    Sửa
-                                                </button>
-                                                <button type="button" className={styles.linkButtonDanger} onClick={() => handleDelete(u.id)}>
+                                        <div className={styles.rowActions}>
+                                            <button type="button" className={styles.linkButton} onClick={() => openEdit(u)}>
+                                                Sửa
+                                            </button>
+                                            {u.id ? (
+                                                <button
+                                                    type="button"
+                                                    className={styles.linkButtonDanger}
+                                                    onClick={() => handleDelete(u.id as number)}
+                                                >
                                                     Xoá
                                                 </button>
-                                            </div>
-                                        ) : (
-                                            <span style={{ fontSize: 11.5, color: "var(--color-text-faint)" }}>
-                                                Không sửa/xoá được (backend trả id null ở API danh sách)
-                                            </span>
-                                        )}
+                                            ) : (
+                                                <span style={{ fontSize: 11.5, color: "var(--color-text-faint)" }} title="Backend trả id null ở API danh sách — nhập tay ID trong form Sửa nếu cần thao tác">
+                                                    Xoá: cần nhập tay ID trong form Sửa
+                                                </span>
+                                            )}
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
