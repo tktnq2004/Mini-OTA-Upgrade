@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import controls from "@/styles/controls.module.css";
 import styles from "@/components/admin/adminPage.module.css";
 import { AdminApiError } from "@/lib/admin/apiClient";
-import { assignUserRoles, createUser, deleteUser, listRoles, listUsers, updateUser } from "@/lib/admin/resources";
-import type { AppUser, Role, UserInput } from "@/lib/admin/types";
+import { assignUserRoles, createUser, deleteUser, listHotels, listRoles, listUsers, updateUser } from "@/lib/admin/resources";
+import type { AppUser, Hotel, Role, UserInput } from "@/lib/admin/types";
 
-const EMPTY_FORM: UserInput = { fullName: "", username: "", email: "", password: "", phone: "" };
+const EMPTY_FORM: UserInput = { fullName: "", username: "", email: "", password: "", phone: "", hotelId: null };
 
 export default function UsersPage() {
     const [users, setUsers] = useState<AppUser[]>([]);
@@ -29,10 +29,19 @@ export default function UsersPage() {
     const [assigning, setAssigning] = useState(false);
     const [assignStatus, setAssignStatus] = useState("");
 
+    // Danh sách khách sạn cho dropdown "Khách sạn phụ trách" — lấy 1 trang
+    // lớn (size:100) vì listHotels vốn phân trang mà dropdown cần thấy hết;
+    // đủ dùng cho quy mô demo hiện tại, cần đổi cách lấy nếu số khách sạn
+    // vượt quá 100.
+    const [hotels, setHotels] = useState<Hotel[]>([]);
+
     useEffect(() => {
         listRoles()
             .then(setRoles)
             .catch(() => setRoles([]));
+        listHotels({ size: 100 })
+            .then((res) => setHotels(res.result))
+            .catch(() => setHotels([]));
     }, []);
 
     const load = () => {
@@ -78,6 +87,7 @@ export default function UsersPage() {
             email: u.email,
             password: "",
             phone: u.phone ?? "",
+            hotelId: u.hotelId ?? null,
         });
         setFormError("");
         setAssignRoleIds([]);
@@ -130,6 +140,9 @@ export default function UsersPage() {
             setSaving(false);
         }
     };
+
+    const hotelName = (hotelId?: number | null) =>
+        hotelId ? (hotels.find((h) => h.id === hotelId)?.name ?? `#${hotelId}`) : "—";
 
     const handleDelete = async (id: number) => {
         if (!confirm("Xoá người dùng này?")) return;
@@ -206,6 +219,21 @@ export default function UsersPage() {
                                     lại) — luôn phải nhập mật khẩu mới, kể cả khi chỉ muốn sửa thông tin khác.
                                 </span>
                             )}
+                        </div>
+                        <div className={controls.field}>
+                            <label className={controls.label}>Khách sạn phụ trách</label>
+                            <select
+                                className={controls.select}
+                                value={form.hotelId ?? ""}
+                                onChange={(e) => setForm({ ...form, hotelId: e.target.value ? Number(e.target.value) : null })}
+                            >
+                                <option value="">Không thuộc khách sạn cụ thể (Admin toàn hệ thống)</option>
+                                {hotels.map((h) => (
+                                    <option key={h.id} value={h.id}>
+                                        {h.name}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                     </div>
                     {formError && <p className={controls.error}>{formError}</p>}
@@ -292,6 +320,7 @@ export default function UsersPage() {
                                 <th>Email</th>
                                 <th>Username</th>
                                 <th>SĐT</th>
+                                <th>Khách sạn</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -303,6 +332,7 @@ export default function UsersPage() {
                                     <td>{u.email}</td>
                                     <td>{u.username}</td>
                                     <td>{u.phone}</td>
+                                    <td>{hotelName(u.hotelId)}</td>
                                     <td>
                                         <div className={styles.rowActions}>
                                             <button type="button" className={styles.linkButton} onClick={() => openEdit(u)}>

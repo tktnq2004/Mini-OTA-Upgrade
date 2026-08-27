@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import controls from "@/styles/controls.module.css";
 import styles from "@/components/admin/adminPage.module.css";
+import ProvinceWardSelect from "@/components/admin/ProvinceWardSelect";
 import { AdminApiError } from "@/lib/admin/apiClient";
-import { createHotel, listProvinceNames } from "@/lib/admin/resources";
+import { createHotel } from "@/lib/admin/resources";
 import type { HotelInput } from "@/lib/admin/types";
 
 const EMPTY: HotelInput = { name: "", address: "", image: "", latitude: "", longitude: "", wardId: 0 };
@@ -15,15 +17,6 @@ export default function NewHotelPage() {
     const [form, setForm] = useState<HotelInput>(EMPTY);
     const [error, setError] = useState("");
     const [saving, setSaving] = useState(false);
-    const [provinceNames, setProvinceNames] = useState<string[]>([]);
-
-    // Chỉ để tham khảo — API /provinces và /wards/provinces/{id} chỉ trả
-    // TÊN, không có id, nên không dùng được để làm dropdown chọn ward thật.
-    useEffect(() => {
-        listProvinceNames()
-            .then(setProvinceNames)
-            .catch(() => setProvinceNames([]));
-    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -45,14 +38,13 @@ export default function NewHotelPage() {
 
     return (
         <div>
+            <Link href="/admin/hotels" className={styles.backLink}>
+                ← Quay lại danh sách khách sạn
+            </Link>
             <div className={styles.pageHeader}>
                 <div>
                     <h1 className={styles.pageTitle}>Thêm khách sạn</h1>
-                    <p className={styles.pageSubtitle}>
-                        Backend chưa có API liệt kê ward kèm id — Ward ID phải nhập tay (xem ở bảng khách sạn đã có, cột
-                        &quot;Phường/xã&quot;).{" "}
-                        {provinceNames.length > 0 && <>Tỉnh đã seed: {provinceNames.join(", ")}.</>}
-                    </p>
+                    <p className={styles.pageSubtitle}>Chọn tỉnh rồi chọn phường/xã — không cần nhập tay ward ID nữa.</p>
                 </div>
             </div>
 
@@ -81,15 +73,7 @@ export default function NewHotelPage() {
                         <label className={controls.label}>Longitude</label>
                         <input className={controls.input} value={form.longitude} onChange={(e) => setForm({ ...form, longitude: e.target.value })} />
                     </div>
-                    <div className={controls.field}>
-                        <label className={controls.label}>Ward ID</label>
-                        <input
-                            className={controls.input}
-                            type="number"
-                            value={form.wardId || ""}
-                            onChange={(e) => setForm({ ...form, wardId: Number(e.target.value) })}
-                        />
-                    </div>
+                    <ProvinceWardSelect wardId={form.wardId} onChange={(wardId) => setForm({ ...form, wardId })} />
                 </div>
                 {error && <p className={controls.error}>{error}</p>}
                 <div className={styles.formActions}>

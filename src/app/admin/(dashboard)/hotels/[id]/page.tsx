@@ -1,10 +1,13 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import controls from "@/styles/controls.module.css";
 import styles from "@/components/admin/adminPage.module.css";
 import RoomCard from "@/components/admin/RoomCard";
+import ChipPicker from "@/components/admin/ChipPicker";
+import ProvinceWardSelect from "@/components/admin/ProvinceWardSelect";
 import { AdminApiError } from "@/lib/admin/apiClient";
 import { createRoom, deleteHotel, getHotel, listAmenities, listViews, updateHotel } from "@/lib/admin/resources";
 import type { Amenity, Hotel, HotelInput, RoomInput, View } from "@/lib/admin/types";
@@ -120,6 +123,9 @@ export default function HotelDetailPage({ params }: { params: Promise<{ id: stri
 
     return (
         <div>
+            <Link href="/admin/hotels" className={styles.backLink}>
+                ← Quay lại danh sách khách sạn
+            </Link>
             <div className={styles.pageHeader}>
                 <div>
                     <h1 className={styles.pageTitle}>{hotel.name}</h1>
@@ -156,15 +162,7 @@ export default function HotelDetailPage({ params }: { params: Promise<{ id: stri
                             <label className={controls.label}>Longitude</label>
                             <input className={controls.input} value={form.longitude} onChange={(e) => setForm({ ...form, longitude: e.target.value })} />
                         </div>
-                        <div className={controls.field}>
-                            <label className={controls.label}>Ward ID</label>
-                            <input
-                                className={controls.input}
-                                type="number"
-                                value={form.wardId || ""}
-                                onChange={(e) => setForm({ ...form, wardId: Number(e.target.value) })}
-                            />
-                        </div>
+                        <ProvinceWardSelect wardId={form.wardId} onChange={(wardId) => setForm({ ...form, wardId })} />
                     </div>
                     {formError && <p className={controls.error}>{formError}</p>}
                     <div className={styles.formActions}>
@@ -263,45 +261,35 @@ export default function HotelDetailPage({ params }: { params: Promise<{ id: stri
                                     />
                                     Có chính sách huỷ phòng
                                 </label>
-                                <div className={controls.field}>
+                                <div className={`${controls.field} ${styles.formGridFull}`}>
                                     <label className={controls.label}>Tiện nghi</label>
-                                    <select
-                                        className={controls.select}
-                                        multiple
-                                        value={roomForm.amenities_id.map(String)}
-                                        onChange={(e) =>
+                                    <ChipPicker
+                                        items={amenities}
+                                        selectedIds={roomForm.amenities_id}
+                                        onToggle={(id) =>
                                             setRoomForm({
                                                 ...roomForm,
-                                                amenities_id: Array.from(e.target.selectedOptions).map((o) => Number(o.value)),
+                                                amenities_id: roomForm.amenities_id.includes(id)
+                                                    ? roomForm.amenities_id.filter((x) => x !== id)
+                                                    : [...roomForm.amenities_id, id],
                                             })
                                         }
-                                    >
-                                        {amenities.map((a) => (
-                                            <option key={a.id} value={a.id}>
-                                                {a.name}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    />
                                 </div>
-                                <div className={controls.field}>
+                                <div className={`${controls.field} ${styles.formGridFull}`}>
                                     <label className={controls.label}>Hướng nhìn</label>
-                                    <select
-                                        className={controls.select}
-                                        multiple
-                                        value={roomForm.viewIds.map(String)}
-                                        onChange={(e) =>
+                                    <ChipPicker
+                                        items={views}
+                                        selectedIds={roomForm.viewIds}
+                                        onToggle={(id) =>
                                             setRoomForm({
                                                 ...roomForm,
-                                                viewIds: Array.from(e.target.selectedOptions).map((o) => Number(o.value)),
+                                                viewIds: roomForm.viewIds.includes(id)
+                                                    ? roomForm.viewIds.filter((x) => x !== id)
+                                                    : [...roomForm.viewIds, id],
                                             })
                                         }
-                                    >
-                                        {views.map((v) => (
-                                            <option key={v.id} value={v.id}>
-                                                {v.name}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    />
                                 </div>
                             </div>
                             {roomError && <p className={controls.error}>{roomError}</p>}

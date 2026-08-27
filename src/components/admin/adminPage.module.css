@@ -1,3 +1,19 @@
+.backLink {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    margin-bottom: 8px;
+}
+
+.backLink:hover {
+    color: var(--color-accent);
+    text-decoration: underline;
+}
+
 .pageHeader {
     display: flex;
     align-items: center;
@@ -22,7 +38,7 @@
 
 .toolbar {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     gap: 10px;
     margin-bottom: 14px;
     flex-wrap: wrap;
@@ -30,6 +46,15 @@
 
 .searchInput {
     max-width: 260px;
+}
+
+.toolbarLocation {
+    display: flex;
+    gap: 10px;
+}
+
+.toolbarLocation select {
+    width: 170px;
 }
 
 .panel {
@@ -196,4 +221,49 @@
     font-size: 12.5px;
     color: var(--color-success);
     margin: -4px 0 0;
+}
+
+.pickerGrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.pickerChip,
+.pickerChipActive {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 12px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--color-border);
+    background: var(--color-panel);
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--color-text);
+    cursor: pointer;
+    user-select: none;
+    transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.pickerChip:hover {
+    border-color: var(--color-text-faint);
+}
+
+.pickerChipActive {
+    background: var(--color-accent-soft);
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+    font-weight: 600;
+}
+
+.pickerChip input,
+.pickerChipActive input {
+    accent-color: var(--color-accent);
+    cursor: pointer;
+}
+
+.pickerEmpty {
+    font-size: 12px;
+    color: var(--color-text-faint);
 }

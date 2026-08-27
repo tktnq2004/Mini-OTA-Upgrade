@@ -3,6 +3,7 @@
 import { useState } from "react";
 import controls from "@/styles/controls.module.css";
 import styles from "./adminPage.module.css";
+import ChipPicker from "./ChipPicker";
 import { AdminApiError } from "@/lib/admin/apiClient";
 import { deleteRoom, removeRoomAmenity, removeRoomView, updateRoom } from "@/lib/admin/resources";
 import type { Amenity, Room, View } from "@/lib/admin/types";
@@ -83,6 +84,18 @@ export default function RoomCard({ room, allAmenities, allViews, onChanged }: Ro
         } catch (e) {
             setError(e instanceof AdminApiError ? e.message : "Gỡ tiện nghi thất bại");
         }
+    };
+
+    const toggleAddAmenity = (id: number) => {
+        setAddAmenityIds((current) => (current.includes(id) ? current.filter((x) => x !== id) : [...current, id]));
+    };
+
+    const toggleAddView = (id: number) => {
+        setAddViewIds((current) => (current.includes(id) ? current.filter((x) => x !== id) : [...current, id]));
+    };
+
+    const toggleRemoveView = (id: number) => {
+        setRemoveViewId((current) => (current === id ? "" : id));
     };
 
     const handleRemoveView = async () => {
@@ -201,61 +214,36 @@ export default function RoomCard({ room, allAmenities, allViews, onChanged }: Ro
                         </label>
                     </div>
 
-                    <div className={styles.formGrid}>
-                        <div className={controls.field}>
-                            <label className={controls.label}>Thêm tiện nghi</label>
-                            <select
-                                className={controls.select}
-                                multiple
-                                value={addAmenityIds.map(String)}
-                                onChange={(e) =>
-                                    setAddAmenityIds(Array.from(e.target.selectedOptions).map((o) => Number(o.value)))
-                                }
-                            >
-                                {availableAmenities.map((a) => (
-                                    <option key={a.id} value={a.id}>
-                                        {a.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        <div className={controls.field}>
-                            <label className={controls.label}>Thêm hướng nhìn</label>
-                            <select
-                                className={controls.select}
-                                multiple
-                                value={addViewIds.map(String)}
-                                onChange={(e) => setAddViewIds(Array.from(e.target.selectedOptions).map((o) => Number(o.value)))}
-                            >
-                                {allViews.map((v) => (
-                                    <option key={v.id} value={v.id}>
-                                        {v.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                    <div className={controls.field}>
+                        <label className={controls.label}>Thêm tiện nghi</label>
+                        <ChipPicker
+                            items={availableAmenities}
+                            selectedIds={addAmenityIds}
+                            onToggle={toggleAddAmenity}
+                            emptyMessage="Phòng đã có đủ mọi tiện nghi"
+                        />
+                    </div>
+                    <div className={controls.field}>
+                        <label className={controls.label}>Thêm hướng nhìn</label>
+                        <ChipPicker items={allViews} selectedIds={addViewIds} onToggle={toggleAddView} />
                     </div>
 
                     <div className={controls.field}>
-                        <label className={controls.label}>Gỡ hướng nhìn (chọn 1)</label>
-                        <div style={{ display: "flex", gap: 8 }}>
-                            <select
-                                className={controls.select}
-                                style={{ flex: 1 }}
-                                value={removeViewId}
-                                onChange={(e) => setRemoveViewId(e.target.value ? Number(e.target.value) : "")}
-                            >
-                                <option value="">— chọn hướng nhìn —</option>
-                                {allViews.map((v) => (
-                                    <option key={v.id} value={v.id}>
-                                        {v.name}
-                                    </option>
-                                ))}
-                            </select>
-                            <button type="button" className={controls.buttonGhost} onClick={handleRemoveView} disabled={removeViewId === ""}>
-                                Gỡ
-                            </button>
-                        </div>
+                        <label className={controls.label}>Gỡ hướng nhìn (chọn 1 rồi bấm Gỡ)</label>
+                        <ChipPicker
+                            items={allViews}
+                            selectedIds={removeViewId === "" ? [] : [removeViewId]}
+                            onToggle={toggleRemoveView}
+                        />
+                        <button
+                            type="button"
+                            className={controls.buttonGhost}
+                            style={{ marginTop: 8, alignSelf: "flex-start" }}
+                            onClick={handleRemoveView}
+                            disabled={removeViewId === ""}
+                        >
+                            Gỡ
+                        </button>
                     </div>
 
                     {error && <p className={controls.error}>{error}</p>}

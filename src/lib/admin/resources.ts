@@ -2,6 +2,7 @@ import { adminDelete, adminFetch, adminGet, adminPost, adminPut } from "./apiCli
 import type {
   Amenity,
   AppUser,
+  CurrentAdmin,
   Discount,
   DiscountInput,
   Hotel,
@@ -36,8 +37,25 @@ function buildListQuery({ page = 1, size = 10, query }: ListParams, searchField:
 // Địa chỉ nhập vào chỉ là phần "số nhà, tên đường" — backend tự nối thêm
 // ", <tên phường>, <tên tỉnh>" vào address khi lưu (HotelService.create),
 // nên address trả về sau khi tạo/sửa sẽ khác address bạn gõ.
-export const listHotels = (params: ListParams = {}) =>
-  adminGet<Paginated<Hotel>>(`hotels?${buildListQuery(params, "name")}`);
+export interface HotelListParams extends ListParams {
+  // Lọc theo ward.province.id / ward.id — đã test thật bằng curl, backend
+  // dùng turkraft/spring-filter nên field lồng nhau lọc được thẳng qua dấu
+  // chấm, không cần endpoint riêng. wardId ưu tiên hơn provinceId (chọn ward
+  // rồi thì không cần gửi cả hai — ward id đã tự suy ra đúng tỉnh).
+  provinceId?: number | null;
+  wardId?: number | null;
+}
+export const listHotels = ({ page = 1, size = 10, query, provinceId, wardId }: HotelListParams = {}) => {
+  const clauses: string[] = [];
+  if (query?.trim()) clauses.push(`name~'*${query.trim()}*'`);
+  if (wardId) clauses.push(`ward.id : ${wardId}`);
+  else if (provinceId) clauses.push(`ward.province.id : ${provinceId}`);
+  const params = new URLSearchParams();
+  params.set("page", String(page));
+  params.set("size", String(size));
+  if (clauses.length) params.set("filter", clauses.join(" and "));
+  return adminGet<Paginated<Hotel>>(`hotels?${params.toString()}`);
+};
 export const getHotel = (id: number) => adminGet<Hotel>(`hotels/${id}`);
 export const createHotel = (input: HotelInput) => adminPost<Hotel>("hotels", input);
 export const updateHotel = (id: number, input: HotelInput) => adminPut<Hotel>("hotels", { id, ...input });
@@ -136,6 +154,11 @@ export const createRole = (input: RoleInput) => adminPost<Role>("roles", input);
 export const deleteRole = (id: number) => adminDelete<void>(`roles/${id}`);
 export const replaceRolePermissions = (id: number, permissionIds: number[]) =>
   adminPut<Role>(`roles/${id}/permissions`, { permissionIds });
+
+// ---- Danh tính + quyền của chính user đang đăng nhập ----
+// Xem CurrentAdmin trong types.ts — đang giả định endpoint này, chưa có
+// thật ở backend.
+export const getMyAccess = () => adminGet<CurrentAdmin>("auth/me");
 
 export function derivePermissionCatalog(roles: Role[]): Permission[] {
   const byId = new Map<number, Permission>();

@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import AdminShell from "@/components/admin/AdminShell";
+import { AdminAccessProvider } from "@/components/admin/AdminAccessProvider";
 import { ACCESS_COOKIE, decodeAdminJwt, isJwtExpired } from "@/lib/admin/session";
 
 // Không kiểm tra "role" ở đây nữa — JWT không còn mang thông tin quyền nào
@@ -19,5 +20,9 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
         redirect("/admin/login");
     }
 
-    return <AdminShell user={{ name: claims.user.name, email: claims.user.email }}>{children}</AdminShell>;
+    return (
+        <AdminAccessProvider>
+            <AdminShell user={{ name: claims.user.name, email: claims.user.email }}>{children}</AdminShell>
+        </AdminAccessProvider>
+    );
 }

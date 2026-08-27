@@ -121,7 +121,20 @@ Không đổi cấu trúc so với bản đầu (`AdminShell`, `adminPage.module
 | `POST /users/{userId}/roles` trả về **entity `User` thô**, lộ cả `password` (hash bcrypt) và `refreshToken` trong JSON | Quan sát response thật lúc test | FE không đọc/hiển thị response này (chỉ quan tâm thành công hay lỗi) nên không lộ ra giao diện, nhưng đáng lưu ý nếu sau này có ai log response này ra |
 | `DELETE /roles/{id}` trả lỗi thô HTTP 500 (không qua envelope, không thông báo rõ ràng) nếu role đó đang được gán cho user nào đó | Test xoá role thật khi còn user gán role đó | Không xử lý đặc biệt — người dùng sẽ thấy thông báo lỗi chung, cần tự gỡ role khỏi user trước khi xoá |
 | **⚠️ Nghiêm trọng — `PUT /users` (update) không có `@Valid`, và `UserService.update` ghi `user.setPassword(req.getPassword())` thẳng không hash lại, không kiểm tra rỗng.** Để trống ô mật khẩu lúc Sửa (như UI cũ từng gợi ý "để trống nếu không đổi") sẽ ghi đè password của user đó thành chuỗi rỗng — **tài khoản mất khả năng đăng nhập ngay lập tức, không cách nào tự sửa lại qua API** (mọi lần gọi `PUT /users` sau đó cũng ghi đè kiểu tương tự, không có cách "giữ nguyên"). Đã tự tay gây ra sự cố này với chính tài khoản `admin@gmail.com` lúc test, phải khôi phục bằng cách connect thẳng MySQL (`INSERT INTO user_roles...`) sau khi tạo lại tài khoản qua `POST /users` (đường tạo mới thì hash đúng) | Test thật: gọi `PUT /users` với `password:""` bằng token còn hạn → login lại bằng mật khẩu cũ thất bại ngay | FE **bắt buộc nhập mật khẩu ở cả Sửa lẫn Tạo**, không cho để trống nữa — kèm cảnh báo đỏ ngay tại field. Đây là hướng né duy nhất phía FE; **cần backend thêm `@Valid` cho `ReqUpdateUserDTO` + chỉ set password khi field không rỗng + hash lại bằng `passwordEncoder.encode()`** mới xử lý tận gốc được |
+| **⚠️ Nghiêm trọng — `DELETE /hotels/{id}` trả 403 "Access Denied" ngay cả với tài khoản `admin@gmail.com` (ROLE_ADMIN đầy đủ quyền).** Khách sạn một khi tạo xong không xoá được qua API/UI nữa trong mọi trường hợp — không phải thiếu quyền của riêng 1 tài khoản, mà có vẻ như thiếu hẳn cấu hình `@PreAuthorize` đúng cho action xoá hotel (hoặc quyền `HOTEL_DELETE` chưa được gán cho ROLE_ADMIN lúc seed). Hệ quả trực tiếp: đã tạo dư 1 khách sạn test (`__probe_ward_1`, id=5, ward "Thanh My Tay") lúc dò `wardId` cho việc seed dữ liệu thật — **không xoá được, cần bạn tự `DELETE FROM hotels WHERE id = 5;` thẳng qua MySQL** | Test thật: `DELETE /hotels/{id}` bằng curl VÀ bằng nút "Xoá" ở giao diện admin thật (cùng tài khoản `admin@gmail.com`) đều trả 403 như nhau | Chưa seed thêm dữ liệu hotel/room thật nào cho tới khi bug này được sửa — mọi lần tạo sai sẽ không xoá lại được qua API, chỉ có thể sửa qua DB trực tiếp. Cần kiểm tra lại `@PreAuthorize` trên `HotelController.delete` và quyền `HOTEL_DELETE` (hoặc tên tương đương) đã thật sự gán cho ROLE_ADMIN chưa |
 | **⚠️ Nghiêm trọng — role có 0 quyền biến mất khỏi API và không thể sửa/xoá lại được nữa.** `RoleRepository.findAllRoles()` và `findRoleById()` dùng `join fetch r.permissions` (**inner join**, không phải `left join fetch`) — role nào có 0 permission bị loại thẳng khỏi kết quả. Vì `DELETE /roles/{id}` và `PUT /roles/{id}/permissions` đều gọi `findRoleById()` trước khi thao tác, nên 1 role rơi vào trạng thái 0 quyền sẽ: biến mất khỏi bảng ở trang Phân quyền, `DELETE` trả 404 "Role not found", và **`PUT .../permissions` cũng không gán lại quyền được nữa** (cùng lỗi lookup) — tức là kẹt vĩnh viễn, chỉ gỡ được bằng cách connect thẳng DB (`DELETE FROM roles WHERE ...`). Tình huống này xảy ra tự nhiên chỉ bằng cách: tạo role mới mà không tick quyền nào, HOẶC vào "Sửa quyền" một role đang có sẵn rồi bấm "Bỏ chọn tất cả" → Lưu | Test thật: tạo role qua UI không chọn quyền nào → API trả 200 tạo thành công (role thật sự có trong DB, verify bằng `SELECT * FROM roles`) nhưng biến mất khỏi bảng ngay khi list lại; gọi `DELETE`/`PUT permissions` cho role đó đều trả lỗi | Không có cách né an toàn 100% từ FE (không có role để hiển thị nghĩa là không cản được thao tác) — cách giảm thiểu: **luôn chọn ít nhất 1 quyền khi tạo role**, và cẩn thận khi bấm "Bỏ chọn tất cả" trong lúc sửa quyền 1 role đang dùng thật. Cần sửa backend: đổi `join fetch r.permissions` thành `left join fetch r.permissions` ở cả `findAllRoles()` và `findRoleById()` |
+
+**Seed dữ liệu thật đầy đủ từ mock frontend** (không phải bug — ghi lại cách đã làm, để tham khảo/bảo trì sau này):
+
+Backend seed qua API (dùng 1 tài khoản admin) không khả thi cho việc này — **đính chính**: từng nghi ngờ lỗi "Hotel already exists" (409) do trùng `latitude`+`longitude`, SAI; đọc thẳng source (`HotelService.create`) mới xác nhận thật ra là `hotelRepository.existsByUserId(user_id)` — **1 user chỉ tạo được đúng 1 hotel** (`@OneToOne` giữa `Hotel.user`/`User.hotel`). Cộng thêm bug `DELETE /hotels` 403 (mục 6) khiến sai sót không sửa lại được. Vì vậy chuyển hẳn sang seed trực tiếp trong `StartupRunner.java` (`seedHotelsAndRooms()`), không qua API:
+
+- Sinh dữ liệu bằng script Node (`generate-seed-full.ts`, không còn trong repo — chạy 1 lần rồi bỏ) dùng ĐÚNG logic sinh phòng deterministic của frontend (`generateRoomsForHotel`, mulberry32) + ward/tỉnh lấy tên thật từ `vn-provinces-wards.json` (5 ward đầu mỗi tỉnh) → ghi ra `src/main/resources/seed/hotels-rooms.json`.
+- Seed đầy đủ: **TOÀN BỘ 34 tỉnh** (không giới hạn chỉ tỉnh có khách sạn — để sau này tạo khách sạn mới/lọc theo địa điểm ở bất kỳ đâu tại VN đều có dữ liệu chọn) × TOÀN BỘ ward mỗi tỉnh = **3321 ward**, **6 RoomType**, **12 Amenity** (kèm icon slug tự đặt), **2 View** ("View biển"/"View thành phố" — tách riêng khỏi Amenity cho đúng model backend), **100 khách sạn**, **1300 phòng**.
+- **Tên ward KHÔNG duy nhất toàn quốc** (245/2994 tên bị trùng giữa các tỉnh, vd. nhiều tỉnh cùng có "Phường Việt Hưng") — tra ward phải khoá theo cặp **(tên tỉnh, tên ward)**, không phải chỉ theo tên ward, nếu không sẽ gán nhầm sang ward của tỉnh khác. Idempotent-check cũng đối chiếu cả số ward lẫn số phòng (khác 1 trong 2 thì wipe+seed lại).
+- Mỗi khách sạn seed kèm 1 user "owner" tổng hợp riêng (`seed.ownerN@miniota.local`, role `ROLE_OWNER`) — vì `Hotel.user` là quan hệ 1-1 bắt buộc về mặt truy vấn (`RoomRepository.findDetail` dùng `JOIN FETCH hotel.user`, hotel không có user sẽ làm phòng của nó không tra được).
+- Cơ chế idempotent: so khớp **số phòng hiện có** với số phòng trong JSON — khớp thì bỏ qua (đã seed đúng bộ này), khác 0 thì `wipeSeedData()` xoá sạch (hotel/room/roomtype/amenity/view/ward/province + user "owner", KHÔNG đụng `admin@gmail.com`/`utkim113@gmail.com`) rồi seed lại từ đầu, bằng 0 thì seed mới. Tự "nâng cấp" nếu sau này cập nhật JSON với phạm vi rộng hơn, không cần sửa code lần nữa.
+- Bọc `@Transactional` toàn bộ (kể cả bước xoá) — lỗi giữa chừng rollback sạch, không để lại dữ liệu dở dang.
+- Ward gán cho từng khách sạn: đối chiếu tên ward xuất hiện trong `address` mock (bỏ dấu, so khớp chuỗi con), không khớp thì round-robin trong các ward của đúng tỉnh đó — không phải khớp chính xác 100% với vị trí thật (vd. khách sạn ở Phú Quốc có thể rơi vào 1 ward không phải Phú Quốc trong tỉnh An Giang sau sáp nhập), chấp nhận được cho mục đích seed demo.
 
 ---
 
@@ -147,6 +160,34 @@ Không đổi cấu trúc so với bản đầu (`AdminShell`, `adminPage.module
 
 ## 9. Hướng nâng cấp nếu cần sau này
 
+- **Cần thêm cột `hotelId` vào bảng User** (đã thống nhất trước, sẽ tự thêm) —
+  `null`/không có = tài khoản không thuộc khách sạn cụ thể (Admin toàn hệ
+  thống), có giá trị = tài khoản Manager/Staff/Reception phụ trách đúng
+  khách sạn đó. FE đã chuẩn bị sẵn ở trang `/admin/users`: form Thêm/Sửa có
+  dropdown "Khách sạn phụ trách" (gửi `hotelId` trong `UserInput`), bảng
+  danh sách có thêm cột "Khách sạn". Đã test với DB rỗng (0 khách sạn) —
+  dropdown chỉ còn tuỳ chọn mặc định, tạo user với `hotelId: null` chạy
+  đúng; **chưa test được trường hợp chọn 1 khách sạn thật** vì DB test hiện
+  không có khách sạn nào và việc tự tạo 1 khách sạn mới bị vướng đúng gotcha
+  "Ward ID phải nhập tay" đã ghi ở mục 7 (không có hàng nào sẵn để tra ward
+  id). Nên tự test lại bước chọn khách sạn thật sau khi có dữ liệu.
+- **Cần thêm `GET /auth/me`** — trả về danh tính + role thật (dùng lại đúng
+  `Role`/`Permission` đã có) của CHÍNH user đang đăng nhập (suy theo user.id
+  trong JWT, cùng cơ chế đã dùng cho `@PreAuthorize`), bọc trong envelope
+  chuẩn như mọi endpoint khác. Đây là bước chuẩn bị cho việc thêm role
+  Manager/Staff (quản lý trong phạm vi 1 khách sạn, quyền hẹp hơn Admin) —
+  FE đã có sẵn `AdminAccessProvider` (`src/components/admin/`) đọc endpoint
+  này để ẩn/hiện nav (`AdminShell.tsx`) và nút hành động (mẫu ở
+  `/admin/hotels`) theo quyền thật, nhưng **hiện fail-open hoàn toàn** (hiện
+  tất cả) vì endpoint chưa tồn tại — đã tự kiểm chứng bằng đăng nhập thật:
+  `/auth/me` trả 400. `probeAdminAccess` (cổng đăng nhập) CỐ Ý không đổi
+  sang endpoint này — vẫn dùng `GET /roles` như cũ, vì đổi sẽ khoá mọi tài
+  khoản khỏi `/admin` (kể cả admin thật) cho tới khi endpoint tồn tại. Sau
+  khi thêm endpoint: đổi `probeAdminAccess` trong `session.ts` sang gọi
+  `fetchMe()` + kiểm tra `roles.length > 0` (đã viết sẵn, đang bị comment
+  giải thích tại sao chưa dùng), và xác nhận lại các chuỗi `module` đang suy
+  đoán trong `AdminShell.tsx`/`hotels/page.tsx` khớp với dữ liệu `Permission`
+  thật (xem qua trang `/admin/roles`).
 - **Ưu tiên cao nhất**: thêm `@Valid` vào `UserController.update`, và sửa `UserService.update` chỉ gọi `passwordEncoder.encode()` + `setPassword()` khi `req.getPassword()` khác rỗng/null — hiện tại field này ghi đè trực tiếp, không hash, không kiểm tra, có thể khoá tài khoản bất kỳ lúc nào chỉ bằng 1 request `PUT /users` thiếu password (mục 6).
 - **Ưu tiên cao**: đổi `join fetch r.permissions` → `left join fetch r.permissions` trong `RoleRepository.findAllRoles()` và `findRoleById()` — hiện tại role 0 quyền bị kẹt vĩnh viễn (không list, không sửa, không xoá được qua API) (mục 6).
 - Sửa `RoomService.create_room` để kiểm tra `discount_id != null` trước khi gọi `findAllById` (bug mục 6, đang phải né bằng cách luôn gửi `[]` từ FE).

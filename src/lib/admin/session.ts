@@ -1,3 +1,5 @@
+import type { CurrentAdmin } from "./types";
+
 export const ACCESS_COOKIE = "mota_admin_at";
 export const REFRESH_COOKIE = "mota_admin_rt";
 const BACKEND_REFRESH_COOKIE_NAME = "refresh-token-Mini";
@@ -107,12 +109,43 @@ export async function refreshBackendSession(refreshToken: string): Promise<Refre
   };
 }
 
+// GET /auth/me — ĐANG GIẢ ĐỊNH endpoint này sẽ được backend thêm (xem
+// CurrentAdmin trong types.ts), trả về danh tính + role thật đã gán của
+// chính user đang đăng nhập. Hiện CHỈ dùng cho AdminAccessProvider (ẩn/hiện
+// nav và nút trong dashboard theo quyền thật) — KHÔNG dùng để gác cổng đăng
+// nhập (xem probeAdminAccess bên dưới), vì endpoint chưa tồn tại thật: đã
+// tự kiểm chứng bằng cách đăng nhập thật với tài khoản admin@gmail.com (có
+// ROLE_ADMIN đầy đủ quyền, xem ADMIN.md mục 8) — /auth/me trả 404, và nếu để
+// probeAdminAccess phụ thuộc vào nó thì sẽ khoá luôn mọi tài khoản khỏi
+// /admin, kể cả admin thật, cho tới khi endpoint này được thêm. Trả null nếu
+// request lỗi/hết hạn/chưa tồn tại — AdminAccessProvider tự fail-open trong
+// lúc chờ.
+export async function fetchMe(accessToken: string): Promise<CurrentAdmin | null> {
+  const res = await fetch(`${getAdminApiBaseUrl()}/auth/me`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${accessToken}` },
+    cache: "no-store",
+  });
+  if (!res.ok) return null;
+
+  const envelope = await res.json().catch(() => null);
+  const data = envelope?.data as CurrentAdmin | undefined;
+  if (!data || !Array.isArray(data.roles)) return null;
+  return data;
+}
+
 // Không còn cách nào đọc "user này có phải admin không" từ JWT — quyền thật
 // nằm trong bảng Role/Permission phía backend, tự tra theo user.id ở mỗi
 // request. Cách duy nhất để biết chắc là THỬ gọi 1 endpoint chỉ role admin
 // mới có quyền (GET /roles cần authority ROLE_READ, hiện chỉ ROLE_ADMIN có
 // sẵn quyền này) — 200 nghĩa là tài khoản có quyền quản trị thật, 403 nghĩa
 // là không (đăng nhập đúng mật khẩu nhưng không đủ quyền vào admin).
+//
+// Vẫn cứng vào ROLE_READ dù chưa lý tưởng cho vai trò thấp hơn admin (vd.
+// Manager không có ROLE_READ sẽ bị chặn ở đây) — đã thử đổi sang fetchMe()
+// nhưng /auth/me chưa tồn tại thật (xem ghi chú ở fetchMe), nên tạm giữ
+// nguyên cơ chế cũ, ĐÃ XÁC NHẬN hoạt động đúng qua đăng nhập thật với tài
+// khoản admin@gmail.com. Cần đổi lại thành fetchMe() sau khi có endpoint đó.
 export async function probeAdminAccess(accessToken: string): Promise<boolean> {
   const res = await fetch(`${getAdminApiBaseUrl()}/roles`, {
     method: "GET",

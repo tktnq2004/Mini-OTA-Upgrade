@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import controls from "@/styles/controls.module.css";
 import styles from "@/components/admin/adminPage.module.css";
+import ChipPicker from "@/components/admin/ChipPicker";
 import { AdminApiError } from "@/lib/admin/apiClient";
 import { createRole, deleteRole, derivePermissionCatalog, listRoles, replaceRolePermissions } from "@/lib/admin/resources";
 import type { Permission, Role } from "@/lib/admin/types";
@@ -19,10 +20,10 @@ function PermissionCheckboxGrid({ catalog, selectedIds, onChange }: PermissionCh
     const selected = new Set(selectedIds);
     const modules = Array.from(new Set(catalog.map((p) => p.module))).sort();
 
-    const toggle = (id: number, checked: boolean) => {
+    const toggle = (id: number) => {
         const next = new Set(selected);
-        if (checked) next.add(id);
-        else next.delete(id);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
         onChange(Array.from(next));
     };
 
@@ -39,7 +40,8 @@ function PermissionCheckboxGrid({ catalog, selectedIds, onChange }: PermissionCh
     return (
         <div className={styles.stack}>
             {modules.map((module) => {
-                const idsInModule = catalog.filter((p) => p.module === module).map((p) => p.id);
+                const permissionsInModule = catalog.filter((p) => p.module === module);
+                const idsInModule = permissionsInModule.map((p) => p.id);
                 const allSelected = idsInModule.length > 0 && idsInModule.every((id) => selected.has(id));
                 return (
                     <div key={module}>
@@ -62,26 +64,15 @@ function PermissionCheckboxGrid({ catalog, selectedIds, onChange }: PermissionCh
                             <input type="checkbox" checked={allSelected} onChange={(e) => toggleModule(module, e.target.checked)} />
                             {module} — chọn tất cả
                         </label>
-                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 6 }}>
-                            {catalog
-                                .filter((p) => p.module === module)
-                                .map((p) => (
-                                    <label key={p.id} className={styles.checkRow}>
-                                        <input
-                                            type="checkbox"
-                                            checked={selected.has(p.id)}
-                                            onChange={(e) => toggle(p.id, e.target.checked)}
-                                        />
-                                        {p.permissionName}
-                                    </label>
-                                ))}
-                        </div>
+                        <ChipPicker
+                            items={permissionsInModule.map((p) => ({ id: p.id, name: p.permissionName }))}
+                            selectedIds={selectedIds}
+                            onToggle={toggle}
+                        />
                     </div>
                 );
             })}
-            {catalog.length === 0 && (
-                <span style={{ fontSize: 12, color: "var(--color-text-faint)" }}>Chưa có quyền nào để chọn.</span>
-            )}
+            {catalog.length === 0 && <p className={styles.pickerEmpty}>Chưa có quyền nào để chọn.</p>}
         </div>
     );
 }

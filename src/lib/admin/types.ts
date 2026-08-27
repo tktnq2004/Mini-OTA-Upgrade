@@ -150,6 +150,12 @@ export interface RoomUpdateInput {
 // cho các field này trong một số trường hợp (xem ADMIN.md mục 6 — GET /users
 // danh sách luôn trả id: null; fullName/username/phone cũng có thể null với
 // tài khoản seed/tạo qua đường khác).
+// hotelId: ĐANG GIẢ ĐỊNH — cột chưa tồn tại thật ở backend (bạn sẽ thêm sau,
+// xem trao đổi lúc thiết kế). null = không thuộc khách sạn cụ thể (Admin
+// toàn hệ thống); có giá trị = tài khoản Manager/Staff/Reception phụ trách
+// đúng khách sạn đó. Optional (?) chứ không phải null bắt buộc, vì GET
+// /users hiện tại (trước khi có cột này) sẽ không trả field này ở tất cả —
+// code phải tự coi "undefined" và "null" là cùng một nghĩa "chưa gán hotel".
 export interface AppUser {
   id: number | null;
   email: string;
@@ -157,6 +163,7 @@ export interface AppUser {
   username: string | null;
   phone: string | null;
   role: LegacyRole;
+  hotelId?: number | null;
   createdAt?: string;
   updatedAt?: string;
   createdBy?: string;
@@ -172,6 +179,9 @@ export interface UserInput {
   email: string;
   password: string;
   phone: string;
+  // Xem ghi chú hotelId ở AppUser — cùng giả định, gửi null tường minh khi
+  // không chọn khách sạn thay vì bỏ qua field.
+  hotelId: number | null;
 }
 
 export type DiscountUnit = "PERCENT" | "FIXED_AMOUNT";
@@ -207,4 +217,17 @@ export interface RoleInput {
   description: string;
   level: number;
   permissionIds: number[];
+}
+
+// Hợp đồng ĐANG GIẢ ĐỊNH cho GET /auth/me — endpoint này chưa tồn tại ở
+// backend (xem session.ts:fetchMe + ADMIN.md mục "Hướng nâng cấp"), cần bên
+// backend thêm: trả về danh tính + role thật đã gán của CHÍNH user đang đăng
+// nhập (suy theo user.id trong JWT, cùng cơ chế @PreAuthorize đã dùng), bọc
+// trong envelope chuẩn như mọi endpoint khác. Tái dùng Role/Permission đã có
+// sẵn ở trên, không định nghĩa type quyền mới.
+export interface CurrentAdmin {
+  id: number;
+  email: string;
+  name: string;
+  roles: Role[];
 }
