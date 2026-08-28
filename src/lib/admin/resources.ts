@@ -42,14 +42,17 @@ export interface HotelListParams extends ListParams {
   // dùng turkraft/spring-filter nên field lồng nhau lọc được thẳng qua dấu
   // chấm, không cần endpoint riêng. wardId ưu tiên hơn provinceId (chọn ward
   // rồi thì không cần gửi cả hai — ward id đã tự suy ra đúng tỉnh).
-  provinceId?: number | null;
-  wardId?: number | null;
+  // string vì id giờ là mã hành chính VN thật, không còn số tự tăng.
+  provinceId?: string | null;
+  wardId?: string | null;
 }
 export const listHotels = ({ page = 1, size = 10, query, provinceId, wardId }: HotelListParams = {}) => {
   const clauses: string[] = [];
   if (query?.trim()) clauses.push(`name~'*${query.trim()}*'`);
-  if (wardId) clauses.push(`ward.id : ${wardId}`);
-  else if (provinceId) clauses.push(`ward.province.id : ${provinceId}`);
+  // id giờ là string — phải bọc nháy đơn trong cú pháp filter (turkraft coi
+  // giá trị không nháy là số/enum, id dạng "00070" sẽ lỗi parse nếu không bọc).
+  if (wardId) clauses.push(`ward.id : '${wardId}'`);
+  else if (provinceId) clauses.push(`ward.province.id : '${provinceId}'`);
   const params = new URLSearchParams();
   params.set("page", String(page));
   params.set("size", String(size));

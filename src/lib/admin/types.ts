@@ -30,13 +30,16 @@ export interface AdminSessionUser {
   name: string;
 }
 
+// id giờ là mã hành chính VN thật (string, vd. "01"/"00070") — KHÔNG còn id
+// tự tăng nữa, khớp thẳng với src/data/vn-provinces-wards.json ở frontend
+// (cùng 1 nguồn id dùng chung cho cả FE lẫn BE, xem ProvinceWardSelect.tsx).
 export interface Province {
-  id: number;
+  id: string;
   name: string;
 }
 
 export interface Ward {
-  id: number;
+  id: string;
   name: string;
   province: Province;
 }
@@ -65,7 +68,7 @@ export interface HotelInput {
   image: string;
   latitude: string;
   longitude: string;
-  wardId: number;
+  wardId: string;
 }
 
 export interface RoomImage {

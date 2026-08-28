@@ -24,8 +24,8 @@ export default function HotelsPage() {
     const [query, setQuery] = useState("");
     // Lọc theo tỉnh/phường-xã tái dùng ProvinceWardSelect (đã có sẵn ở form
     // tạo/sửa khách sạn) — chọn xong áp dụng ngay, không cần bấm "Tìm".
-    const [provinceId, setProvinceId] = useState<number | null>(null);
-    const [wardId, setWardId] = useState(0);
+    const [provinceId, setProvinceId] = useState<string | null>(null);
+    const [wardId, setWardId] = useState("");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 

@@ -6,6 +6,7 @@ import "./globals.css";
 import { ThemeProvider, themeInitScript } from "@/components/theme/ThemeProvider";
 import { LanguageProvider } from "@/components/i18n/LanguageProvider";
 import { CartProvider } from "@/components/cart/CartProvider";
+import { AccountProvider } from "@/components/auth/AccountProvider";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -32,7 +33,9 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         <ThemeProvider>
           <LanguageProvider>
-            <CartProvider>{children}</CartProvider>
+            <AccountProvider>
+              <CartProvider>{children}</CartProvider>
+            </AccountProvider>
           </LanguageProvider>
         </ThemeProvider>
       </body>

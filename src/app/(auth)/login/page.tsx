@@ -2,19 +2,24 @@
 
 import { useState, type SubmitEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import AuthShell from "@/components/auth/AuthShell";
 import { SocialLoginButtons } from "@/components/auth/social";
+import { useAccount } from "@/components/auth/AccountProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import controls from "@/styles/controls.module.css";
 import form from "@/components/auth/AuthForm.module.css";
 
 export default function LoginPage() {
     const { t } = useLanguage();
+    const { login } = useAccount();
+    const router = useRouter();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const [submitting, setSubmitting] = useState(false);
 
-    const handleSubmit = (e: SubmitEvent<HTMLFormElement>) => {
+    const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError("");
 
@@ -23,10 +28,14 @@ export default function LoginPage() {
             return;
         }
 
-        console.log("Login with email:", { email, password });
-        // TODO(backend): sau khi xác thực thành công thật sự, gọi
-        // mergeCartOnLogin(cart.items) từ "@/components/cart/cartStorage" để gộp
-        // giỏ phòng đang lưu tạm (localStorage) vào tài khoản vừa đăng nhập.
+        setSubmitting(true);
+        const result = await login({ email, password });
+        setSubmitting(false);
+        if (!result.ok) {
+            setError(result.message ?? t("auth.loginErrorRequired"));
+            return;
+        }
+        router.push("/account");
     };
 
     return (
@@ -70,8 +79,8 @@ export default function LoginPage() {
 
                 {error && <p className={controls.error}>{error}</p>}
 
-                <button type="submit" className={controls.button}>
-                    {t("nav.login")}
+                <button type="submit" className={controls.button} disabled={submitting}>
+                    {submitting ? t("auth.submitting") : t("nav.login")}
                 </button>
             </form>
 

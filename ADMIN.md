@@ -120,9 +120,12 @@ Không đổi cấu trúc so với bản đầu (`AdminShell`, `adminPage.module
 | `Room.views` bị `@JsonIgnore` — API không bao giờ trả lại hướng nhìn hiện tại của 1 phòng | Đọc code backend, khớp với hành vi thật quan sát được | `RoomCard` không hiển thị được hướng nhìn hiện tại; chỉ có ô "thêm" (chọn mù) và ô "gỡ" (chọn theo tên, không theo trạng thái hiện tại) |
 | `POST /users/{userId}/roles` trả về **entity `User` thô**, lộ cả `password` (hash bcrypt) và `refreshToken` trong JSON | Quan sát response thật lúc test | FE không đọc/hiển thị response này (chỉ quan tâm thành công hay lỗi) nên không lộ ra giao diện, nhưng đáng lưu ý nếu sau này có ai log response này ra |
 | `DELETE /roles/{id}` trả lỗi thô HTTP 500 (không qua envelope, không thông báo rõ ràng) nếu role đó đang được gán cho user nào đó | Test xoá role thật khi còn user gán role đó | Không xử lý đặc biệt — người dùng sẽ thấy thông báo lỗi chung, cần tự gỡ role khỏi user trước khi xoá |
-| **⚠️ Nghiêm trọng — `PUT /users` (update) không có `@Valid`, và `UserService.update` ghi `user.setPassword(req.getPassword())` thẳng không hash lại, không kiểm tra rỗng.** Để trống ô mật khẩu lúc Sửa (như UI cũ từng gợi ý "để trống nếu không đổi") sẽ ghi đè password của user đó thành chuỗi rỗng — **tài khoản mất khả năng đăng nhập ngay lập tức, không cách nào tự sửa lại qua API** (mọi lần gọi `PUT /users` sau đó cũng ghi đè kiểu tương tự, không có cách "giữ nguyên"). Đã tự tay gây ra sự cố này với chính tài khoản `admin@gmail.com` lúc test, phải khôi phục bằng cách connect thẳng MySQL (`INSERT INTO user_roles...`) sau khi tạo lại tài khoản qua `POST /users` (đường tạo mới thì hash đúng) | Test thật: gọi `PUT /users` với `password:""` bằng token còn hạn → login lại bằng mật khẩu cũ thất bại ngay | FE **bắt buộc nhập mật khẩu ở cả Sửa lẫn Tạo**, không cho để trống nữa — kèm cảnh báo đỏ ngay tại field. Đây là hướng né duy nhất phía FE; **cần backend thêm `@Valid` cho `ReqUpdateUserDTO` + chỉ set password khi field không rỗng + hash lại bằng `passwordEncoder.encode()`** mới xử lý tận gốc được |
+| ~~⚠️ Nghiêm trọng — `PUT /users` (update) không có `@Valid`, và `UserService.update` ghi `user.setPassword(req.getPassword())` thẳng không hash lại~~ **ĐÃ SỬA** (lúc làm flow đăng ký/đăng nhập/cập nhật hồ sơ công khai — xem mục 10). `UserService.update` giờ chỉ hash+lưu password khi field không rỗng (`passwordEncoder.encode(...)`), để trống nghĩa là giữ nguyên password cũ, không còn ghi đè bằng chuỗi rỗng nữa. `ReqUpdateUserDTO.password` cũng bỏ `@NotBlank`. Trang Users của admin **không còn bắt buộc phải luôn nhập lại password mỗi lần Sửa** nữa (workaround cũ ở `handleSubmit` vẫn còn bắt nhập — có thể nới ra sau, không cấp thiết) | Test thật: `PUT /users` không gửi field `password` → login lại bằng password cũ vẫn được; gửi password mới → login bằng password mới được, password cũ bị từ chối | — |
 | **⚠️ Nghiêm trọng — `DELETE /hotels/{id}` trả 403 "Access Denied" ngay cả với tài khoản `admin@gmail.com` (ROLE_ADMIN đầy đủ quyền).** Khách sạn một khi tạo xong không xoá được qua API/UI nữa trong mọi trường hợp — không phải thiếu quyền của riêng 1 tài khoản, mà có vẻ như thiếu hẳn cấu hình `@PreAuthorize` đúng cho action xoá hotel (hoặc quyền `HOTEL_DELETE` chưa được gán cho ROLE_ADMIN lúc seed). Hệ quả trực tiếp: đã tạo dư 1 khách sạn test (`__probe_ward_1`, id=5, ward "Thanh My Tay") lúc dò `wardId` cho việc seed dữ liệu thật — **không xoá được, cần bạn tự `DELETE FROM hotels WHERE id = 5;` thẳng qua MySQL** | Test thật: `DELETE /hotels/{id}` bằng curl VÀ bằng nút "Xoá" ở giao diện admin thật (cùng tài khoản `admin@gmail.com`) đều trả 403 như nhau | Chưa seed thêm dữ liệu hotel/room thật nào cho tới khi bug này được sửa — mọi lần tạo sai sẽ không xoá lại được qua API, chỉ có thể sửa qua DB trực tiếp. Cần kiểm tra lại `@PreAuthorize` trên `HotelController.delete` và quyền `HOTEL_DELETE` (hoặc tên tương đương) đã thật sự gán cho ROLE_ADMIN chưa |
 | **⚠️ Nghiêm trọng — role có 0 quyền biến mất khỏi API và không thể sửa/xoá lại được nữa.** `RoleRepository.findAllRoles()` và `findRoleById()` dùng `join fetch r.permissions` (**inner join**, không phải `left join fetch`) — role nào có 0 permission bị loại thẳng khỏi kết quả. Vì `DELETE /roles/{id}` và `PUT /roles/{id}/permissions` đều gọi `findRoleById()` trước khi thao tác, nên 1 role rơi vào trạng thái 0 quyền sẽ: biến mất khỏi bảng ở trang Phân quyền, `DELETE` trả 404 "Role not found", và **`PUT .../permissions` cũng không gán lại quyền được nữa** (cùng lỗi lookup) — tức là kẹt vĩnh viễn, chỉ gỡ được bằng cách connect thẳng DB (`DELETE FROM roles WHERE ...`). Tình huống này xảy ra tự nhiên chỉ bằng cách: tạo role mới mà không tick quyền nào, HOẶC vào "Sửa quyền" một role đang có sẵn rồi bấm "Bỏ chọn tất cả" → Lưu | Test thật: tạo role qua UI không chọn quyền nào → API trả 200 tạo thành công (role thật sự có trong DB, verify bằng `SELECT * FROM roles`) nhưng biến mất khỏi bảng ngay khi list lại; gọi `DELETE`/`PUT permissions` cho role đó đều trả lỗi | Không có cách né an toàn 100% từ FE (không có role để hiển thị nghĩa là không cản được thao tác) — cách giảm thiểu: **luôn chọn ít nhất 1 quyền khi tạo role**, và cẩn thận khi bấm "Bỏ chọn tất cả" trong lúc sửa quyền 1 role đang dùng thật. Cần sửa backend: đổi `join fetch r.permissions` thành `left join fetch r.permissions` ở cả `findAllRoles()` và `findRoleById()` |
+| ~~**⚠️ Nghiêm trọng — khách tự đăng ký (`POST /users` không gửi `role`) thì `role` = null trong DB, và lần đăng nhập đầu tiên crash cứng**~~ **ĐÃ SỬA**. `JwtUtils.createRefToken` gọi `.claim("role", userDetailloading.getRole())` — `JwtClaimsSet.Builder.claim()` ném `IllegalArgumentException("value cannot be null")` khi value null, exception này lọt qua `ExceptionTranslationFilter` nên trả về y hệt lỗi JWT sai (401, `message:"Token incorrect"`, `error:"Access Denied"`) dù email/password đúng 100% — cực khó debug từ phía FE vì trông y hệt lỗi token. Xác nhận nguyên nhân thật bằng 1 JUnit test tạm gọi thẳng `AuthenticationManager`/`JwtUtils` (không phải đoán từ đọc code). Sửa tại gốc: `UserService.create_user` mặc định `role = RoleEnum.CUSTOMER` khi request không gửi field này | JUnit test tạm gọi `authenticationManager.authenticate()` rồi `jwtUtils.createRefToken()` từng bước → bắt được đúng dòng ném `IllegalArgumentException` | — |
+| ~~**⚠️ Nghiêm trọng — khách thường không có cách nào tự đọc/sửa hồ sơ của chính mình.**~~ **ĐÃ SỬA**. `GET /users/{id}` và `PUT /users` yêu cầu cứng quyền `USER_READ`/`USER_UPDATE` (quyền admin, cấp qua bảng Role/Permission) — 1 khách tự đăng ký không có Role nào nên luôn bị 403, kể cả khi tự đọc/sửa đúng hồ sơ của chính mình. Đã nới: cả 2 endpoint đổi `@PreAuthorize` thành `isAuthenticated()`, rồi tự kiểm tra "id trong request có trùng id lấy từ JWT của người gọi không" (self) HOẶC có quyền `USER_READ`/`USER_UPDATE` thật (admin sửa user khác) mới cho qua — đối chiếu id lấy từ JWT (`JwtUtils.getIdUserLogin()`), không tin `req.getId()`/path param mù quáng. Tự sửa hồ sơ mình (không có quyền admin) thì **không được đổi field `role`** — chặn đường tự nâng quyền lên ADMIN qua chính API sửa hồ sơ | Test thật bằng curl: khách tự đăng ký gọi `PUT /users` với chính id của mình → trước 403, sau 200; thử gửi kèm `role:"ADMIN"` trong lúc tự sửa → role vẫn giữ nguyên `CUSTOMER` (không escalate được); admin có `USER_UPDATE` vẫn sửa/đổi role user khác bình thường (backward-compat) | — |
+| ~~**⚠️ `GET /users/{id}` crash 500 "Unable to connect to Redis" nếu Redis không chạy**~~ **ĐÃ SỬA**. `UserService.fetch_id` có `@Cacheable(value="users", key="#id")` dùng Redis làm cache — Redis không phải lúc nào cũng có sẵn ở máy dev (không cài, không chạy Docker), nên method này (giờ được gọi liên tục bởi trang `/account`) **crash cứng** thay vì chỉ chậm hơn vì mất cache. Đã bỏ `@Cacheable` khỏi `fetch_id` — tra theo id đã có primary key index, không cần cache thêm | Test thật `curl GET /users/{id}` khi Redis không chạy → 500 kèm stack trace `RedisConnectionFailureException` | — |
 
 **Seed dữ liệu thật đầy đủ từ mock frontend** (không phải bug — ghi lại cách đã làm, để tham khảo/bảo trì sau này):
 
@@ -188,7 +191,7 @@ Backend seed qua API (dùng 1 tài khoản admin) không khả thi cho việc n�
   giải thích tại sao chưa dùng), và xác nhận lại các chuỗi `module` đang suy
   đoán trong `AdminShell.tsx`/`hotels/page.tsx` khớp với dữ liệu `Permission`
   thật (xem qua trang `/admin/roles`).
-- **Ưu tiên cao nhất**: thêm `@Valid` vào `UserController.update`, và sửa `UserService.update` chỉ gọi `passwordEncoder.encode()` + `setPassword()` khi `req.getPassword()` khác rỗng/null — hiện tại field này ghi đè trực tiếp, không hash, không kiểm tra, có thể khoá tài khoản bất kỳ lúc nào chỉ bằng 1 request `PUT /users` thiếu password (mục 6).
+- ~~**Ưu tiên cao nhất**: thêm `@Valid` vào `UserController.update`, và sửa `UserService.update` chỉ gọi `passwordEncoder.encode()` + `setPassword()` khi `req.getPassword()` khác rỗng/null~~ **ĐÃ SỬA** (mục 6, mục 10).
 - **Ưu tiên cao**: đổi `join fetch r.permissions` → `left join fetch r.permissions` trong `RoleRepository.findAllRoles()` và `findRoleById()` — hiện tại role 0 quyền bị kẹt vĩnh viễn (không list, không sửa, không xoá được qua API) (mục 6).
 - Sửa `RoomService.create_room` để kiểm tra `discount_id != null` trước khi gọi `findAllById` (bug mục 6, đang phải né bằng cách luôn gửi `[]` từ FE).
 - Sửa mapping `id` trong `UserService.fetch_all` (danh sách user) để khớp với `fetch_id` (đơn lẻ) — hiện danh sách luôn trả `id: null`.
@@ -197,3 +200,288 @@ Backend seed qua API (dùng 1 tài khoản admin) không khả thi cho việc n�
 - Bỏ `@JsonIgnore` trên `Room.views` (hoặc thêm field riêng trả về danh sách view hiện tại) để hiển thị được trên `RoomCard`.
 - Thêm endpoint trả `{id, name}` cho provinces/wards (thay vì chỉ tên) để bỏ được ô nhập Ward ID thủ công.
 - Nếu deploy thật: đổi `ADMIN_API_BASE_URL` sang domain backend thật; CORS không cần cấu hình gì thêm vì kiến trúc vẫn qua proxy.
+
+---
+
+## 10. Luồng đăng ký / đăng nhập / cập nhật hồ sơ công khai (khách hàng, không phải admin)
+
+Kiến trúc **giống hệt** admin (mục 4 + 5.1/5.2) — cùng backend, cùng cơ chế
+BFF proxy (cookie httpOnly, tự refresh token) — chỉ tách riêng cookie/route
+để 2 phiên (admin, khách) không đá nhau. Đây là nơi phát hiện + sửa 3 bug
+backend thật ở mục 6 (role null crash login, self-read/self-update bị chặn
+quyền admin, `GET /users/{id}` crash nếu thiếu Redis).
+
+**File mới**:
+- `src/lib/auth/{types,session,apiClient,resources}.ts` — bản song song của
+  `src/lib/admin/*` cho khách, gọi qua `/api/account/*`. Cookie riêng
+  `mota_acc_at`/`mota_acc_rt`.
+- `src/app/api/account/auth/{login,register,logout}/route.ts` +
+  `src/app/api/account/[...path]/route.ts` (proxy chung đã đăng nhập) +
+  `src/app/api/account/session/route.ts` (đọc cookie httpOnly server-side,
+  trả `{user}` cho client hydrate — access token không lộ ra JS được).
+  `register` gọi `POST /users` (public thật) rồi **tự đăng nhập luôn** bằng
+  đúng email/password vừa tạo, để khách không phải tự bấm đăng nhập lần nữa
+  sau khi đăng ký.
+- `src/components/auth/AccountProvider.tsx` — Context toàn site (mount ở
+  `src/app/layout.tsx`), expose `user/ready/login/register/logout/patchUser`.
+  `SiteHeader.tsx` đọc context này để đổi "Đăng nhập/Đăng ký" ⇄ "Xin chào X /
+  Đăng xuất". `patchUser()` chỉ đồng bộ tên hiển thị phía client ngay sau khi
+  sửa hồ sơ — KHÔNG cập nhật lại claim trong JWT (tên trong token chỉ đúng
+  lại sau lần đăng nhập/refresh kế tiếp, không ảnh hưởng gì vì token không
+  dùng tên để quyết định quyền).
+- `src/app/account/{page.tsx,AccountView.tsx,account.module.css}` — trang
+  hồ sơ, tự tải qua `GET /users/{id}` (self), sửa qua `PUT /users`. Mật khẩu
+  mới để trống = giữ nguyên (đúng hành vi backend đã sửa ở mục 6).
+- Trang `/signup`, `/login` (đã có sẵn từ trước, trước đây chỉ `console.log`)
+  — nối vào `useAccount().login/register` thật.
+
+**Quyết định kiến trúc đã hỏi ý kiến trước khi làm** (khách tự sửa hồ sơ
+mình cần quyền gì): chọn nới `@PreAuthorize` của `GET/PUT /users` thành
+`isAuthenticated()` rồi tự so khớp id trong JWT (self) hoặc quyền admin thật
+trong `UserService`/`UserController`, thay vì cấp sẵn 1 Role "Khách hàng"
+có `USER_UPDATE` cho mọi user mới (phương án còn lại được đưa ra) — tránh
+phải tạo thêm Role/Permission mới trong hệ thống chỉ để có tác dụng tương
+đương "sửa hồ sơ mình", và không có nguy cơ tự nâng quyền qua field `role`
+nếu lỡ quên chặn ở đâu đó.
+
+`usernameFromEmail()` trong `signup/page.tsx` tự sinh `username` từ email
+(backend bắt buộc field này, form không có ô riêng — OTA thật thường ẩn
+khái niệm username, chỉ cần email+password).
+
+---
+
+## 11. Mở API xem/wishlist/đặt phòng cho khách chưa đăng nhập + audit quyền CUSTOMER
+
+Yêu cầu gốc: khách chưa đăng nhập vẫn xem được hotel/room, add wishlist, và
+đặt phòng — chỉ bước "book" mới thật sự cần lưu DB (không cần tài khoản).
+Kèm theo: rà lại xem Role "CUSTOMER" (tự tạo tay ở trang Phân quyền) đã đủ
+quyền chưa, và quyết định wishlist lưu DB hay session.
+
+### 11.1. Public GET — xem hotel/room không cần đăng nhập
+
+**Cơ chế 2 lớp phải sửa ĐỦ CẢ HAI, thiếu 1 lớp vẫn bị chặn**: (1)
+`SecurityConfig.authorizeHttpRequests` (filter chain — chặn trước khi vào
+tới controller) và (2) `@PreAuthorize` ở method (chặn sau, dù filter đã cho
+qua). Đã tự tay xác nhận: gỡ `@PreAuthorize` mà không sửa filter chain vẫn
+401; thêm path vào filter chain mà không gỡ `@PreAuthorize` vẫn 403.
+
+Thêm `PUBLIC_GET_ENDPOINTS` (chỉ áp dụng cho **GET**, dùng
+`requestMatchers(HttpMethod.GET, ...)` — KHÔNG dùng chung `PUBLIC_ENDPOINTS`
+cũ vì đó permitAll theo path bất kể method, sẽ lỡ mở luôn cả tạo/sửa/xoá):
+`GET /hotels`, `/hotels/{id}`, `/rooms/{id}`, `/amenity`, `/view`,
+`/roomtype/{id}`, `/hotels/{id}/reviews`, `/rooms/{id}/reviews`,
+`/reviews/{id}`, `/provinces`, `/wards/provinces/{id}`. Gỡ `@PreAuthorize`
+tương ứng ở `HotelController` (`getById`, `hotelPaginate`),
+`RoomController.fetch_room`, `AmenityController.get`, `ViewController.getAll`,
+`RoomTypeController.fetch_id`, `ReviewController` (3 hàm GET). Đã test thật:
+GET không token → 200; POST/PUT/DELETE cùng path không token → vẫn 401 như
+cũ (không bị lỡ mở).
+
+Không có endpoint "GET all rooms" phẳng nào cả — duyệt phòng luôn qua
+`rooms` lồng trong response `GET /hotels/{id}`, hoặc `GET /rooms/{id}` cho 1
+phòng cụ thể. `GET /rooms/me` KHÔNG phải "xem phòng công khai" dù tên gây
+hiểu lầm — đây là API cho chủ khách sạn xem phòng của hotel mình
+(`RoomService.show_available_room` → `findAllRoomByUser`), giữ nguyên yêu
+cầu đăng nhập.
+
+### 11.2. 🔴 Lỗ hổng bảo mật thật phát hiện khi mở review công khai — đã vá
+
+Mở `GET /hotels/{id}/reviews` v.v. công khai (11.1) làm lộ ra 1 bug rò rỉ dữ
+liệu **nghiêm trọng có sẵn từ trước**, giờ mới thật sự khai thác được bởi
+BẤT KỲ ai (kể cả chưa đăng nhập): `Review.user` không có `@JsonIgnore`, nên
+mọi response review trả thẳng **toàn bộ entity `User`** của người viết —
+gồm cả `password` (hash bcrypt) và **`refreshToken` — 1 token còn hiệu lực,
+dùng lại được để mạo danh đăng nhập người đó** (giống hệt bug đã biết từ
+trước ở `POST /users/{userId}/roles`, xem mục 6, nhưng bug đó chưa từng bị
+khai thác được vì cần đăng nhập trước; bug này thì không).
+
+Đã vá theo 2 lớp:
+1. `User.password` và `User.refreshToken` thêm `@JsonIgnore` thẳng ở entity
+   — 2 field này không có lý do gì để lộ ra JSON dù ở bất cứ endpoint nào,
+   sửa 1 lần chặn được ở MỌI chỗ (kể cả bug cũ ở mục 6).
+2. `Review.user` thêm `@JsonIgnoreProperties({"email","phone","role","roles",
+   "createdBy","updatedBy","discounts","hotel","wishlist"})` — response
+   review giờ chỉ còn `id/fullName/userName/createdAt/updatedAt` của người
+   viết, đủ để hiển thị "reviewed by X" mà không lộ PII (email/sđt) hay cấu
+   trúc quyền nội bộ cho khách vãng lai xem review công khai.
+
+Test thật xác nhận trước/sau: gọi `GET /hotels/{id}/reviews` không token,
+so sánh field `user` trong response.
+
+### 11.3. Audit quyền Role "CUSTOMER" — tìm thấy 3 vấn đề thật, đã sửa cả 3
+
+Role "CUSTOMER" (roleid=12, tự tạo tay ở trang Phân quyền) lúc kiểm tra có:
+
+| Vấn đề | Chi tiết | Đã sửa |
+|---|---|---|
+| 🔴 **`USER_UPDATE` — nguy hiểm, cấp quyền admin-cấp cho MỌI customer** | `UserService.update` coi có `USER_UPDATE` là "admin sửa user khác" (bỏ qua self-check, CHO đổi cả `role`) — gán permission này cho CUSTOMER nghĩa là **mọi khách hàng sửa/đổi role được BẤT KỲ user nào** qua `PUT /users`, không chỉ hồ sơ chính mình. Tự sửa hồ sơ mình không cần permission này (đã có self-id check ở mục 10) | Gỡ khỏi CUSTOMER trong DB (`role_permissions`) |
+| Tên permission SAI/chết: `BOOKING_VIEW_OWN`, `BOOKING_CANCEL` | Không khớp tên thật `@PreAuthorize` đang check (`BOOKING_READ_OWN`, `BOOKING_CANCEL_OWN`) — permission catalog có cả tên cũ (chết) lẫn tên mới đang dùng thật, không dọn sau refactor. Hệ quả: CUSTOMER tưởng có quyền xem/huỷ booking của mình nhưng thật ra `GET /bookings/me` và `PATCH /bookings/{id}/cancel` đều 403 | Thay bằng đúng tên `BOOKING_READ_OWN`/`BOOKING_CANCEL_OWN` |
+| Thiếu quyền viết review | Không có `REVIEW_CREATE`/`REVIEW_UPDATE`/`REVIEW_DELETE` — khách hàng không viết/sửa/xoá được review của chính mình (đã xác nhận `ReviewService.update`/`delete_review` tự kiểm tra đúng chủ sở hữu ở tầng service, an toàn khi cấp quyền này, khác hẳn tình huống `USER_UPDATE` ở trên) | Thêm cả 3 |
+
+Quyền cuối cùng của CUSTOMER: `WISHLIST_CREATE/READ/DELETE`, `BOOKING_CREATE/
+READ_OWN/CANCEL_OWN`, `REVIEW_CREATE/UPDATE/DELETE`, `HOTEL_READ`, `ROOM_READ`
+(2 cái cuối giờ dư do đã public ở mục 11.1, giữ lại cũng không hại gì).
+
+Test thật đủ vòng: đăng ký → đăng nhập → `GET /bookings/me` (200, trước đó
+403) → đặt phòng có JWT → huỷ đặt phòng tự huỷ → thêm/xem/xoá wishlist →
+viết review — tất cả 200.
+
+### 11.4. Tất cả user đăng ký đều tự động có Role "CUSTOMER" thật (không chỉ field hiển thị)
+
+Bug thật phát hiện lúc audit: `UserService.create_user` trước đây CHỈ set
+field `role` (enum hiển thị, không cấp quyền gì — xem mục "Roles" ở trên)
+thành `CUSTOMER`, nhưng **không hề gán Role thật** (`user.roles`, quan hệ
+nhiều-nhiều qua `user_roles`) — nghĩa là mọi khách tự đăng ký có 0 quyền
+thật dù role hiển thị đúng "CUSTOMER". Xác nhận qua test: đăng ký xong gọi
+`GET /bookings/me` luôn 403 dù CUSTOMER đã có đủ `BOOKING_READ_OWN`.
+
+Đã sửa: `create_user` tự `roleRepository.findByRoleName("CUSTOMER")` rồi gán
+vào `user.roles` nếu tìm thấy — không thấy thì bỏ qua (không chặn đăng ký,
+role chỉ là bonus quyền). Phụ thuộc vào việc Role tên đúng "CUSTOMER" đã tồn
+tại (tự tạo tay, không phải `StartupRunner` seed) — nếu sau này đổi tên role
+đó thì phải sửa lại chuỗi `"CUSTOMER"` này theo.
+
+### 11.5. Đặt phòng không cần tài khoản (guest booking) — thay đổi schema
+
+Theo đúng mô tả: *"user và customer chỉ khác nhau ở chỗ thanh toán tự điền
+form + có history — quản lý chủ yếu bằng email, sđt, booking id"*. Trước đây
+`Booking.user` là `nullable=false` và `BookingService.create()` luôn
+`userRepository.findByEmail(...).get()` — **crash `NoSuchElementException`**
+với request không có JWT (đã xác nhận: dù `@PreAuthorize` của `POST /bookings`
+đã comment sẵn từ trước, filter chain + `.get()` này vẫn chặn/crash 2 lớp).
+
+Đã sửa:
+- `Booking` thêm `guestFullName`/`guestEmail`/`guestPhone` (nullable), `user`
+  đổi `nullable=true`. **Lưu ý quan trọng**: `spring.jpa.hibernate.ddl-auto=
+  update` chỉ CỘNG THÊM cột/bảng mới, KHÔNG tự nới lỏng constraint cột đã có
+  sẵn — đổi `@JoinColumn(nullable=true)` ở Java không tự đổi `userid` trong
+  MySQL từ `NOT NULL` thành nullable, phải tự `ALTER TABLE bookings MODIFY
+  userid BIGINT NULL` thủ công 1 lần (đã làm). Cần nhớ áp dụng lại nếu seed
+  lại bảng `bookings` từ đầu ở môi trường khác.
+- `BookingService.create()`: có JWT hợp lệ thì gắn `user` như cũ; không có
+  JWT thì bắt buộc đủ `guestFullName/guestEmail/guestPhone`, lưu vào 3 field
+  guest* thay vì `user`.
+- `fetch_id`/`cancel` (nhánh `BOOKING_CANCEL_OWN`): thêm null-check
+  `booking.getUser()` trước khi so `.getId()` — tránh NPE khi ai đó (vd.
+  ADMIN) xem/thao tác 1 booking khách vãng lai (user null).
+- Thêm `GET /bookings/lookup?id=&email=` — **public, không cần đăng nhập**,
+  tra theo booking id + email, khớp CẢ booking khách vãng lai (`guestEmail`)
+  LẪN booking tài khoản thật (`user.email`) — đúng model "quản lý bằng
+  email + booking id" cho cả 2 loại khách. Bug JPQL đã tự vấp phải lúc viết
+  query này: `b.user.email` (implicit join qua path nested) bị Hibernate
+  dịch thành **INNER JOIN**, loại thẳng mọi booking khách vãng lai (user
+  null) ra khỏi kết quả dù nhánh OR có `guestEmail` khớp — phải viết tường
+  minh `left join b.user u ... u.email` mới đúng. Đã test thật cả 2 đường
+  (guest lookup đúng/sai email, account-holder booking vẫn hoạt động bình
+  thường qua JWT như cũ).
+- `SecurityConfig`: thêm `PUBLIC_POST_ENDPOINTS` riêng (chỉ `POST /bookings`)
+  — không dùng chung `PUBLIC_ENDPOINTS`/`PUBLIC_GET_ENDPOINTS` vì sẽ lỡ mở
+  `GET /bookings` (list tất cả, admin) hoặc `PATCH .../cancel`.
+
+### 11.6. Quyết định kiến trúc Wishlist — đã hỏi ý kiến trước khi làm
+
+2 câu hỏi đã hỏi + quyết định:
+1. **Wishlist**: chọn **session/localStorage cho khách, merge vào DB khi
+   đăng nhập** (giống hệt Cart đã có — `cartStorage.ts` +
+   `mergeCartOnLogin`) thay vì bắt buộc đăng nhập mới thêm được. Backend
+   KHÔNG cần đổi gì (`Wishlist.user` vẫn `nullable=false`, chỉ áp dụng cho
+   customer thật — 3 API `WISHLIST_CREATE/READ/DELETE` đã hoạt động đúng
+   sau khi sửa mục 11.3/11.4). Phần frontend (storage cục bộ + provider +
+   merge-on-login, mirror `CartProvider`) **CHƯA làm** trong lượt này — hợp
+   lý nhất khi làm cùng lúc với việc nối trang công khai (hotel/room list)
+   sang gọi API thật, vì hiện tại `src/data/hotels.data.ts`/`rooms.data.ts`
+   (mock) dùng id KHÔNG khớp với id thật ở backend, nối wishlist thật vào
+   trang đang hiển thị mock data sẽ vô nghĩa.
+2. **Guest booking**: chọn làm đầy đủ ngay (mục 11.5) thay vì hoãn lại.
+
+### 11.7. Test thật đã chạy qua trước khi báo hoàn thành
+
+curl trực tiếp backend (không qua FE, vì FE chưa nối API thật cho trang công
+khai): GET public (hotel/room/amenity/view/roomtype/review/province/ward)
+không token → 200; POST/PUT/DELETE cùng path không token → vẫn 401; đăng ký
+→ `GET /bookings/me` 200 (trước 403); đặt phòng có JWT + tự huỷ + wishlist
+CRUD + viết review — tất cả đúng quyền; đặt phòng KHÔNG JWT (guest, đủ
+guest*) → 201, thiếu field → báo lỗi rõ ràng; tra cứu booking bằng
+id+email đúng/sai; admin vẫn sửa được user khác + đổi role như cũ (backward-
+compat mục 10 không bị ảnh hưởng). Đã dọn toàn bộ user/booking/review test
+tạo ra trong lúc test khỏi DB thật sau khi xong.
+
+---
+
+## 12. Province/Ward đổi từ id tự tăng sang mã hành chính VN thật (dùng chung 1 id cho cả FE/BE)
+
+**Yêu cầu**: dùng thẳng `vn-provinces-wards.json` (đã có sẵn ở FE) cho cả
+frontend lẫn backend, bỏ hẳn id tự tăng (`AUTO_INCREMENT`) của
+`provinces`/`wards` — lý do bắt nguồn từ câu hỏi "sao không tái dùng file có
+sẵn thay vì tự export `admin-locations.json` từ DB" (mục 11 cũ dùng snapshot
+DB vì lúc đó id 2 bên lệch nhau, không map được).
+
+**Thay đổi cốt lõi**: `Province.id`/`Ward.id` đổi từ `Long`
+(`@GeneratedValue(IDENTITY)`) sang `String` (assigned identifier — không
+`@GeneratedValue` nữa), gán trực tiếp = **mã hành chính VN thật** (`Code`
+trong `vn-provinces-wards.json`, vd. `"01"` = Hà Nội, `"00070"` = Hoàn Kiếm).
+`Hotel.ward_id` (FK) đổi theo tương ứng (`VARCHAR` thay vì `BIGINT`).
+
+**File backend đổi**:
+- `Province.java`, `Ward.java` — `@Id private String id;`
+- `ProvinceRepository`, `WardRepository` — `JpaRepository<Province/Ward, String>`
+- `ReqCreateHotelDTO.wardId`, `ReqUpdateHotelDTO.wardId` — `Long` → `String`
+- `WardController.getWardsFromProvince` — `@PathVariable String id`
+- `StartupRunner.java` — `SeedProvince` thêm field `code`, `wards` đổi từ
+  `List<String>` sang `List<SeedWard>` (record `{code, name}`); vòng lặp seed
+  gọi `province.setId(p.code)` / `ward.setId(w.code)` thay vì để DB tự sinh.
+- `src/main/resources/seed/hotels-rooms.json` — ghi thêm field `code` cho
+  từng tỉnh/ward, cross-reference từ `vn-provinces-wards.json` bằng cách so
+  khớp TÊN đã bỏ tiền tố ("Thành phố "/"Tỉnh "/"Phường "/"Xã "/"Thị trấn
+  "/"Đặc khu ") — đúng logic `stripPrefix` mà `locations.data.ts` (frontend)
+  đã dùng, để đảm bảo khớp 100% (đã chạy: 34/34 tỉnh, 3321/3321 ward khớp
+  được code, không thiếu cái nào).
+
+**File frontend đổi**:
+- `src/lib/admin/types.ts` — `Province.id`, `Ward.id`, `HotelInput.wardId`:
+  `number` → `string`.
+- `src/lib/admin/resources.ts` — `listHotels`: filter turkraft giờ phải bọc
+  nháy đơn quanh id (`ward.id : '00070'` thay vì `ward.id : 00070` — id giờ
+  là string, không bọc nháy sẽ lỗi parse phía backend).
+- **`src/components/admin/ProvinceWardSelect.tsx`** — đổi nguồn dữ liệu từ
+  `@/lib/admin/adminLocations` (snapshot DB, đã xoá) sang **thẳng
+  `@/data/locations.data`** (bọc `vn-provinces-wards.json`, dùng chung với
+  trang Map) — vì giờ id 2 bên đã khớp nhau, không còn lý do gì phải giữ
+  snapshot DB riêng nữa. **Đã xoá hẳn** `src/data/admin-locations.json` và
+  `src/lib/admin/adminLocations.ts`.
+- `src/app/admin/(dashboard)/hotels/{new,[id],page}.tsx` — `wardId`/
+  `provinceId` state đổi `number`/`0` → `string`/`""`.
+
+**⚠️ Migrate dữ liệu (thao tác tay, không phải code)**: `spring.jpa.hibernate.
+ddl-auto=update` KHÔNG tự đổi type cột đã tồn tại (`BIGINT` → `VARCHAR`) —
+đã tự DROP hẳn (không chỉ xoá dữ liệu) các bảng phụ thuộc trực tiếp/gián tiếp
+vào `provinces`/`wards`/`hotels`/`rooms` (`amenities_rooms`,
+`discount_details`, `reviews`, `room_images`, `room_views`, `wishlists`,
+`bookings`, `rooms`, `hotels`, `wards`, `provinces` — theo đúng thứ tự FK,
+tắt `FOREIGN_KEY_CHECKS` lúc drop), TRUNCATE 3 bảng catalog seed lại
+unconditional mỗi lần (`amenities`, `views`, `room_types` — StartupRunner
+seed lại các bảng này không kiểm tra "đã có chưa" nên phải xoá trước, nếu
+không insert trùng unique key sẽ crash cả app lúc khởi động — **đã tự vấp
+lỗi này lúc migrate thật**, sửa bằng cách TRUNCATE trước khi restart), xoá
+tay user "owner" tổng hợp (`seed.owner*`, vì bypass `wipeSeedData()` ở tầng
+app nên phần dọn user đó không tự chạy). Không đụng bảng `users` thật
+(`admin@gmail.com`, `utkim113@gmail.com`, hay tài khoản khách thật nào khác)
+— chỉ xoá đúng user `seed.owner*` sinh tự động lúc seed. Restart app —
+Hibernate tự tạo lại `provinces`/`wards`/`hotels`/`rooms`/... với đúng type
+cột mới, `StartupRunner` seed lại toàn bộ (34 tỉnh/3321 ward/100 khách sạn/
+1300 phòng) từ đầu.
+
+**Nếu cần lặp lại thao tác này ở môi trường khác** (deploy, máy khác...):
+chạy đúng thứ tự — (1) drop các bảng liệt kê trên (tắt FK checks), (2)
+truncate `amenities`/`views`/`room_types`, (3) xoá `users` có email bắt đầu
+`seed.owner`, (4) khởi động lại app.
+
+**Test thật đã chạy qua**: `GET /provinces`, `GET /wards/provinces/01` (mã
+mới) → đúng; `GET /wards/provinces/1` (id số kiểu cũ) → rỗng, không lỗi;
+tạo hotel qua API với `wardId: "00070"` → 201, `ward.id`/`ward.province.id`
+trả về đúng string; filter `GET /hotels?filter=ward.id : '00070'` và
+`ward.province.id : '01'` → đúng số lượng. **QA qua trình duyệt thật** (không
+chỉ curl): tạo khách sạn qua dropdown Tỉnh→Phường ở `/admin/hotels/new` →
+thành công, reload trang sửa → 2 dropdown pre-select đúng tỉnh/phường vừa
+chọn; trang danh sách lọc theo tỉnh rồi theo phường → đúng số khách sạn hiện
+ra. Đã dọn khách sạn/dữ liệu test tạo ra trong lúc QA.

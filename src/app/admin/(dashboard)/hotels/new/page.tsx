@@ -10,7 +10,7 @@ import { AdminApiError } from "@/lib/admin/apiClient";
 import { createHotel } from "@/lib/admin/resources";
 import type { HotelInput } from "@/lib/admin/types";
 
-const EMPTY: HotelInput = { name: "", address: "", image: "", latitude: "", longitude: "", wardId: 0 };
+const EMPTY: HotelInput = { name: "", address: "", image: "", latitude: "", longitude: "", wardId: "" };
 
 export default function NewHotelPage() {
     const router = useRouter();

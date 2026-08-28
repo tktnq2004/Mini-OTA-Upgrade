@@ -142,7 +142,11 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 6px;
     white-space: nowrap;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
     transition: background 0.15s ease, border-color 0.15s ease;
 }
 

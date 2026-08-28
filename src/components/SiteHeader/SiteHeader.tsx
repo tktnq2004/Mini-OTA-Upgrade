@@ -1,16 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { CompassIcon, SunIcon, MoonIcon, ShoppingBagIcon } from "@phosphor-icons/react";
+import { useRouter } from "next/navigation";
+import { CompassIcon, SunIcon, MoonIcon, ShoppingBagIcon, UserCircleIcon } from "@phosphor-icons/react";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { useCart } from "@/components/cart/CartProvider";
+import { useAccount } from "@/components/auth/AccountProvider";
 import styles from "./SiteHeader.module.css";
 
 export default function SiteHeader() {
     const { theme, toggleTheme } = useTheme();
     const { language, toggleLanguage, t } = useLanguage();
     const { totalCount } = useCart();
+    const { user, ready, logout } = useAccount();
+    const router = useRouter();
+
+    const handleLogout = async () => {
+        await logout();
+        router.push("/");
+        router.refresh();
+    };
 
     return (
         <header className={styles.header}>
@@ -63,12 +73,26 @@ export default function SiteHeader() {
                         )}
                     </button>
 
-                    <Link href="/login" className={styles.ghostButton}>
-                        {t("nav.login")}
-                    </Link>
-                    <Link href="/signup" className={styles.solidButton}>
-                        {t("nav.signup")}
-                    </Link>
+                    {ready && user ? (
+                        <>
+                            <Link href="/account" className={styles.ghostButton}>
+                                <UserCircleIcon size={16} weight="bold" />
+                                {user.name}
+                            </Link>
+                            <button type="button" className={styles.solidButton} onClick={handleLogout}>
+                                {t("nav.logout")}
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <Link href="/login" className={styles.ghostButton}>
+                                {t("nav.login")}
+                            </Link>
+                            <Link href="/signup" className={styles.solidButton}>
+                                {t("nav.signup")}
+                            </Link>
+                        </>
+                    )}
                 </div>
             </div>
         </header>

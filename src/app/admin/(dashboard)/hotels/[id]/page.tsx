@@ -60,7 +60,7 @@ export default function HotelDetailPage({ params }: { params: Promise<{ id: stri
                     image: h.image,
                     latitude: h.latitude,
                     longitude: h.longitude,
-                    wardId: h.ward?.id ?? 0,
+                    wardId: h.ward?.id ?? "",
                 });
             })
             .catch((e) => setLoadError(e instanceof AdminApiError ? e.message : "Không tải được khách sạn"))
