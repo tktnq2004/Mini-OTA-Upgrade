@@ -1,8 +1,8 @@
 # Backend Changes — Mini-OTA
 
-Changelog kỹ thuật cho các thay đổi ở backend (`D:\Mini-OTA`, repo `kyss18/Mini-OTA`) thực hiện trong phiên làm việc gần đây: mở API xem công khai, audit + sửa quyền Role "CUSTOMER", cho phép đặt phòng không cần tài khoản, và 1 lỗ hổng bảo mật phát hiện dọc đường. Mỗi mục ghi rõ **file**, **code trước → sau**, **lý do**, **kết quả** (đã test thật bằng curl, không chỉ đọc code).
+Changelog kỹ thuật cho các thay đổi ở backend (`D:\Mini-OTA`, repo `kyss18/Mini-OTA`): mở API xem công khai, audit + sửa quyền Role "CUSTOMER", đặt phòng không cần tài khoản, migrate Province/Ward sang mã hành chính thật, refactor quan hệ Hotel↔User, seed dữ liệu test, và sửa contract `/users/me`. Mỗi mục ghi rõ **file**, **code trước → sau**, **lý do**, **kết quả** (đã test thật bằng curl/browser, không chỉ đọc code). Mục 1–7, 12 làm trong phiên chat này; mục 8–11 làm ở phiên khác nhưng ghi chung vào đây cho có 1 nguồn duy nhất.
 
-> Không gồm `StartupRunner.java` / `application.properties` (thay đổi từ việc seed dữ liệu thật ở phiên trước, đã ghi trong `ADMIN.md`). Bản tóm tắt gọn hơn, theo hướng kể chuyện, nằm ở `ADMIN.md` mục 10–11 — file này là bản chi tiết đối chiếu code.
+> Bản tóm tắt gọn hơn, theo hướng kể chuyện, nằm ở `ADMIN.md` mục 10–11 — file này là bản chi tiết đối chiếu code.
 
 ---
 
@@ -613,6 +613,99 @@ idempotent (không tạo thêm dòng nào).
 
 ---
 
+## 12. Sửa contract `/users/me` mới — 3 bug chặn hoàn toàn tính năng xem/sửa hồ sơ
+
+Bạn tự viết sẵn `ReqUpdateMeLocal`, `UserService.update_own()`, và các endpoint
+`/users/me`, `/users/me/local` (kèm 1 test `UserUpdateOwnLocalTest`) — nhưng
+khi nối FE vào (trang `/account`) thì không chạy được, vì 3 bug thật:
+
+**Bug 1 — `GET /users/me` chưa từng chạy đúng.** Path không có `{id}` nhưng
+method vẫn khai báo `@PathVariable Long id` — `id` luôn `null`.
+
+File: `UserController.java`
+```diff
+-    @GetMapping("/users/me")
+-    @PreAuthorize("hasAuthority('USER_READ_OWN')")
+-    public ResponseEntity<ResUser> users(@PathVariable Long id) throws ExceptMessage {
+-        boolean isSelf = id.equals(JwtUtils.getIdUserLogin());
+-        ...
+-        return ResponseEntity.ok(this.userService.fetch_id(id));
+-    }
++    @GetMapping("/users/me")
++    @PreAuthorize("hasAuthority('USER_READ_OWN')")
++    public ResponseEntity<ResUser> getMe() throws ExceptMessage {
++        Long id = JwtUtils.getIdUserLogin();
++        return ResponseEntity.ok(this.userService.fetch_id(id));
++    }
+```
+Đã tự đọc hồ sơ CHÍNH MÌNH (id lấy từ JWT, không nhận từ client) nên bỏ luôn
+check `isSelf` thừa — chỉ cần đăng nhập (`USER_READ_OWN`) là đủ.
+
+**Bug 2 — `PUT /users/me/local` gọi nhầm method cũ.** Vẫn dùng
+`userService.update(ReqUpdateUserDTO)` (method cho admin sửa user khác — bắt
+buộc `id`, không xác thực lại password) thay vì `update_own(ReqUpdateMeLocal)`
+đã viết sẵn nhưng chưa từng được gọi tới.
+
+File: `UserController.java`
+```diff
+-    public ResponseEntity<ResUser> updateOwnUser(@Valid @RequestBody ReqUpdateUserDTO reqUpdateUserDTO) throws ExceptMessage {
+-        return ResponseEntity.ok(this.userService.update(reqUpdateUserDTO));
++    public ResponseEntity<User> updateOwnUser(@Valid @RequestBody ReqUpdateMeLocal reqUpdateMeLocal) throws ExceptMessage, NotFound {
++        return ResponseEntity.ok(this.userService.update_own(reqUpdateMeLocal));
+     }
+```
+Đổi kiểu trả về `ResUser`→`User` vì `update_own()` trả `User` thô (đã an toàn
+từ mục 5 — `password`/`refreshToken` đã `@JsonIgnore` ở entity gốc).
+
+**Bug 3 — `ReqUpdateMeLocal` không deserialize được, crash 500.** `@Builder`
+một mình che mất constructor không tham số mặc định — Jackson cần constructor
+đó để parse JSON thành object, thiếu thì ném `Type definition error` ngay khi
+gọi API (test bằng curl JSON hợp lệ vẫn 500, không phải lỗi client).
+
+File: `ReqUpdateMeLocal.java`
+```diff
++@NoArgsConstructor
++@AllArgsConstructor
+ @Data
+ @Builder
+ public class ReqUpdateMeLocal { ... }
+```
+
+**Bug phụ (logic) phát hiện khi đọc kỹ `update_own()`**: check "field rỗng =
+không đổi" (`noChanges`) nhưng sau đó vẫn **ghi đè field đó bằng chuỗi rỗng**
+— mâu thuẫn với chính logic vừa kiểm tra, sẽ xoá mất fullName/email/phone
+nếu để trống.
+
+File: `UserService.java`
+```diff
+-            user.setEmail(reqUpdateMeLocal.getEmail());
+-            user.setFullName(reqUpdateMeLocal.getFullName());
+-            user.setPhone(reqUpdateMeLocal.getPhone());
+-            user.setUserName(reqUpdateMeLocal.getUsername());
++            if (reqUpdateMeLocal.getEmail() != null && !reqUpdateMeLocal.getEmail().isBlank()) {
++                user.setEmail(reqUpdateMeLocal.getEmail());
++            }
++            // ...tương tự cho fullName, phone, username
+```
+
+**Database**: gán thêm 2 quyền mới (`USER_READ_OWN` id=64, `USER_UPDATE_OWN`
+id=62 — bạn đã tạo trong bảng `permissions` nhưng chưa gán cho role nào) cho
+Role "CUSTOMER" (`roleid=12`) — thiếu thì mọi request tới `/users/me`*
+đều 403 dù code đã đúng.
+
+**Kết quả** (curl + browser thật): `GET /users/me` trả đúng hồ sơ; `PUT
+/users/me/local` sai mật khẩu hiện tại → 400 rõ ràng (không 500); đúng mật
+khẩu, chỉ đổi `fullName` → 200, `phone`/`email`/`username` không đổi vẫn giữ
+nguyên (không bị xoá); reload trang `/account` sau khi lưu vẫn thấy dữ liệu
+mới (xác nhận lưu thật vào DB).
+
+**Frontend liên quan** (`src/lib/auth/resources.ts`, `types.ts`,
+`src/app/account/AccountView.tsx`): đổi từ gọi `/users/{id}` sang `/users/me`
+(không cần biết id), bỏ hẳn field "mật khẩu mới" (endpoint này không đổi được
+mật khẩu, chỉ dùng để xác thực lại), thêm field bắt buộc "Mật khẩu hiện tại".
+
+---
+
 ## Tổng hợp file đã đổi
 
 ```
@@ -626,7 +719,7 @@ D:\Mini-OTA\src\main\java\com\Mini_OTA\rebuild\
 │   ├── Review\ReviewController.java                    (mục 1)
 │   ├── Rooms\RoomController.java                       (mục 1)
 │   ├── Rooms\RoomTypeController.java                   (mục 1)
-│   ├── Users\UserController.java                       (mục 6)
+│   ├── Users\UserController.java                       (mục 6, 12)
 │   └── Views\ViewController.java                       (mục 1)
 ├── domain\
 │   ├── Booking.java                                    (mục 2)
@@ -635,7 +728,8 @@ D:\Mini-OTA\src\main\java\com\Mini_OTA\rebuild\
 │   ├── User.java                                       (mục 5, 10)
 │   └── request\
 │       ├── Booking\ReqCreateBookingDTO.java             (mục 2)
-│       └── Users\ReqUpdateUserDTO.java                  (mục 7)
+│       ├── Users\ReqUpdateUserDTO.java                  (mục 7)
+│       └── Users\ReqUpdateMeLocal.java                  (mục 12)
 ├── repository\
 │   ├── BookingRepository.java                          (mục 2, 10)
 │   ├── HotelRepository.java                            (mục 9, 10, 11)
@@ -645,12 +739,12 @@ D:\Mini-OTA\src\main\java\com\Mini_OTA\rebuild\
     ├── DiscountService.java                              (mục 10)
     ├── HotelService.java                                (mục 10)
     ├── RoomService.java                                  (mục 10)
-    └── UserService.java                                 (mục 3, 6, 7)
+    └── UserService.java                                 (mục 3, 6, 7, 12)
 ```
 
 Database (không phải code, chạy tay qua MySQL client):
 - `ALTER TABLE bookings MODIFY userid BIGINT NULL;` (mục 2)
-- `role_permissions` cho `roleid=12` ("CUSTOMER"): gỡ `USER_UPDATE`/`BOOKING_VIEW_OWN`/`BOOKING_CANCEL`, thêm `BOOKING_READ_OWN`/`BOOKING_CANCEL_OWN`/`REVIEW_CREATE`/`REVIEW_UPDATE`/`REVIEW_DELETE` (mục 4)
+- `role_permissions` cho `roleid=12` ("CUSTOMER"): gỡ `USER_UPDATE`/`BOOKING_VIEW_OWN`/`BOOKING_CANCEL`, thêm `BOOKING_READ_OWN`/`BOOKING_CANCEL_OWN`/`REVIEW_CREATE`/`REVIEW_UPDATE`/`REVIEW_DELETE` (mục 4), thêm `USER_READ_OWN`/`USER_UPDATE_OWN` (mục 12)
 - `UPDATE users u JOIN hotels h ON h.user_id=u.id SET u.hotel_id=h.id;` rồi
   `ALTER TABLE hotels DROP FOREIGN KEY ...; DROP KEY ...; DROP COLUMN user_id;`
   (mục 10)

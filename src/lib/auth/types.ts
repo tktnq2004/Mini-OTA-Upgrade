@@ -7,7 +7,7 @@
 // user object trong JWT chỉ có id/email/name (xem RestLoginDTO.UserLogin ở
 // backend) — không có phone/username/role, nên SessionUser chỉ nên dùng để
 // hiển thị nhanh (header, "Xin chào X"). Muốn đầy đủ hồ sơ (phone, username)
-// phải gọi getMyProfile() (GET /users/{id}) riêng.
+// phải gọi getMyProfile() (GET /users/me) riêng.
 export interface SessionUser {
   id: number;
   email: string;
@@ -39,13 +39,15 @@ export interface LoginInput {
   password: string;
 }
 
-// password để trống = giữ nguyên mật khẩu cũ (xem ghi chú ở
-// ReqUpdateUserDTO/UserService.update bên backend — trước đây bug ghi đè
-// password rỗng, đã sửa).
+// PUT /users/me/local — backend (UserService.update_own) yêu cầu đúng
+// MẬT KHẨU HIỆN TẠI để xác thực lại trước khi cho sửa (không phải để đổi
+// mật khẩu mới — đổi mật khẩu là API khác, /users/me/password, chưa nối FE).
+// fullName/username/email/phone để trống (hoặc không đổi so với hiện tại)
+// thì giữ nguyên — không bắt buộc phải điền đủ 4 field mỗi lần lưu.
 export interface UpdateProfileInput {
-  fullName: string;
-  username: string;
-  email: string;
-  phone: string;
-  password?: string;
+  fullName?: string;
+  username?: string;
+  email?: string;
+  phone?: string;
+  password: string;
 }

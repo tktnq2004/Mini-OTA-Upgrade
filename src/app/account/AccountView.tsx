@@ -25,8 +25,10 @@ export default function AccountView() {
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
     const [phone, setPhone] = useState("");
-    const [newPassword, setNewPassword] = useState("");
-    const [confirmNewPassword, setConfirmNewPassword] = useState("");
+    // Không phải mật khẩu MỚI — backend (UserService.update_own) dùng field
+    // này để xác thực lại đúng mật khẩu HIỆN TẠI trước khi cho sửa bất kỳ
+    // field nào. Đổi mật khẩu là API khác (/users/me/password), chưa nối FE.
+    const [currentPassword, setCurrentPassword] = useState("");
 
     const [formError, setFormError] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
@@ -39,7 +41,7 @@ export default function AccountView() {
             return;
         }
         setLoading(true);
-        getMyProfile(user.id)
+        getMyProfile()
             .then((p) => {
                 setProfile(p);
                 setFullName(p.fullName);
@@ -66,31 +68,26 @@ export default function AccountView() {
             setFormError(t("auth.signupErrorPhone"));
             return;
         }
-        if (newPassword && newPassword.length < 6) {
-            setFormError(t("auth.signupErrorMinLength"));
-            return;
-        }
-        if (newPassword && newPassword !== confirmNewPassword) {
-            setFormError(t("auth.signupErrorMismatch"));
+        if (!currentPassword) {
+            setFormError(t("account.errorCurrentPasswordRequired"));
             return;
         }
         if (!user || !profile) return;
 
         setSaving(true);
         try {
-            const updated = await updateMyProfile(user.id, {
-                fullName,
-                username,
-                email,
-                phone,
-                // Để trống thì KHÔNG gửi field password luôn (thay vì gửi
-                // chuỗi rỗng) — khớp đúng "undefined = giữ nguyên" ở backend.
-                ...(newPassword ? { password: newPassword } : {}),
-            });
-            setProfile(updated);
-            setNewPassword("");
-            setConfirmNewPassword("");
-            patchUser({ name: updated.fullName, email: updated.email });
+            await updateMyProfile({ fullName, username, email, phone, password: currentPassword });
+            // PUT /users/me/local trả về entity User thô (shape khác ResUser
+            // của GET /users/me — xem ghi chú ở resources.ts) — gọi lại
+            // getMyProfile() để đồng bộ đúng shape thay vì tin response PUT.
+            const refreshed = await getMyProfile();
+            setProfile(refreshed);
+            setFullName(refreshed.fullName);
+            setUsername(refreshed.username);
+            setEmail(refreshed.email);
+            setPhone(refreshed.phone);
+            setCurrentPassword("");
+            patchUser({ name: refreshed.fullName, email: refreshed.email });
             setSuccessMessage(t("account.saveSuccess"));
         } catch (e) {
             setFormError(e instanceof AccountApiError ? e.message : t("account.saveError"));
@@ -191,38 +188,20 @@ export default function AccountView() {
 
                     <div className={styles.divider} />
 
-                    <p className={styles.sectionLabel}>{t("account.passwordSection")}</p>
-                    <div className={styles.grid}>
-                        <div className={controls.field}>
-                            <label className={controls.label} htmlFor="newPassword">
-                                {t("account.newPasswordLabel")}
-                            </label>
-                            <input
-                                id="newPassword"
-                                type="password"
-                                className={controls.input}
-                                placeholder={t("account.newPasswordPlaceholder")}
-                                value={newPassword}
-                                onChange={(e) => setNewPassword(e.target.value)}
-                                autoComplete="new-password"
-                            />
-                        </div>
-
-                        <div className={controls.field}>
-                            <label className={controls.label} htmlFor="confirmNewPassword">
-                                {t("auth.confirmPasswordLabel")}
-                            </label>
-                            <input
-                                id="confirmNewPassword"
-                                type="password"
-                                className={controls.input}
-                                placeholder="••••••••"
-                                value={confirmNewPassword}
-                                onChange={(e) => setConfirmNewPassword(e.target.value)}
-                                autoComplete="new-password"
-                                disabled={!newPassword}
-                            />
-                        </div>
+                    <div className={controls.field}>
+                        <label className={controls.label} htmlFor="currentPassword">
+                            {t("account.currentPasswordLabel")}
+                        </label>
+                        <input
+                            id="currentPassword"
+                            type="password"
+                            className={controls.input}
+                            placeholder="••••••••"
+                            value={currentPassword}
+                            onChange={(e) => setCurrentPassword(e.target.value)}
+                            autoComplete="current-password"
+                        />
+                        <span className={styles.hint}>{t("account.currentPasswordHint")}</span>
                     </div>
 
                     {formError && <p className={controls.error}>{formError}</p>}
