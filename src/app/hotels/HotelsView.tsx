@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
     MagnifyingGlassIcon,
@@ -32,16 +32,32 @@ export default function HotelsView() {
     const { t } = useLanguage();
     const searchParams = useSearchParams();
 
+    const [searchQuery, setSearchQuery] = useState("");
+    // Debounce ô tìm theo tên trước khi truyền xuống hook — tên gõ được
+    // chuyển thẳng xuống backend (filter `name~'*...*'`) nên gõ tới đâu gọi
+    // API tới đó sẽ rất tốn, đợi người dùng ngừng gõ ~350ms mới fetch.
+    const [debouncedQuery, setDebouncedQuery] = useState("");
+    useEffect(() => {
+        const id = setTimeout(() => setDebouncedQuery(searchQuery.trim()), 350);
+        return () => clearTimeout(id);
+    }, [searchQuery]);
+
     const {
         filters,
         viewMode,
         setViewMode,
         selectedProvince,
         filteredHotels,
+        loading,
         handleFilterSubmit,
         clearProvince,
         bookHotel,
-    } = useHotelFilters(searchParams, "/hotels");
+        isRemotePaginated,
+        remotePage,
+        remoteTotalPages,
+        remoteTotal,
+        setRemotePage,
+    } = useHotelFilters(searchParams, "/hotels", { serverPaginate: true, query: debouncedQuery });
 
     const { isLocating, geoError, findNearby } = useGeolocation({
         t,
@@ -49,26 +65,32 @@ export default function HotelsView() {
         flyTo: () => {},
     });
 
-    const [searchQuery, setSearchQuery] = useState("");
-    const [page, setPage] = useState(1);
+    // Ở chế độ phân trang server (duyệt toàn quốc, không tìm quanh đây),
+    // filteredHotels từ hook ĐÃ ĐÚNG LÀ trang hiện tại (backend trả sẵn),
+    // không cần cắt lại; các trường hợp còn lại (đã chọn tỉnh, đang tìm
+    // quanh đây) filteredHotels là TOÀN BỘ kết quả khớp, tự cắt trang ở đây
+    // như trước — vì tập đó thường nhỏ (vài chục), không cần gọi lại API.
+    const [localPage, setLocalPage] = useState(1);
+    const localTotalPages = Math.max(1, Math.ceil(filteredHotels.length / PAGE_SIZE));
+    const currentLocalPage = Math.min(localPage, localTotalPages);
 
-    const visibleHotels = (() => {
-        const q = searchQuery.trim().toLowerCase();
-        if (!q) return filteredHotels;
-        return filteredHotels.filter((h) => h.name.toLowerCase().includes(q));
-    })();
-
-    const totalPages = Math.max(1, Math.ceil(visibleHotels.length / PAGE_SIZE));
-    const currentPage = Math.min(page, totalPages);
-    const pageHotels = visibleHotels.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+    const currentPage = isRemotePaginated ? remotePage : currentLocalPage;
+    const totalPages = isRemotePaginated ? remoteTotalPages : localTotalPages;
+    const totalResultCount = isRemotePaginated ? remoteTotal : filteredHotels.length;
+    const pageHotels = isRemotePaginated
+        ? filteredHotels
+        : filteredHotels.slice((currentLocalPage - 1) * PAGE_SIZE, currentLocalPage * PAGE_SIZE);
+    const onPageChange = isRemotePaginated ? setRemotePage : setLocalPage;
 
     // Về trang 1 mỗi khi bộ lọc đổi — chỉnh state ngay trong lúc render (theo
-    // khuyến nghị của React, giống HotelDetail) thay vì dùng effect.
-    const filterSignature = [filters.provinceId, filters.wardId, viewMode.type, searchQuery].join("|");
+    // khuyến nghị của React, giống HotelDetail) thay vì dùng effect. Trang
+    // của chế độ phân trang server tự reset bên trong hook (theo cùng phạm
+    // vi lọc), chỉ cần lo trang cục bộ ở đây.
+    const filterSignature = [filters.provinceId, filters.wardId, viewMode.type, debouncedQuery].join("|");
     const [lastFilterSignature, setLastFilterSignature] = useState(filterSignature);
     if (filterSignature !== lastFilterSignature) {
         setLastFilterSignature(filterSignature);
-        setPage(1);
+        setLocalPage(1);
     }
 
     const resultLabel = (() => {
@@ -139,7 +161,7 @@ export default function HotelsView() {
 
                 <div className={styles.resultBar}>
                     <span>
-                        <strong>{visibleHotels.length}</strong> {t("map.hotelsSuffix")}
+                        <strong>{totalResultCount}</strong> {t("map.hotelsSuffix")}
                         {resultLabel}
                     </span>
                     {canClear && (
@@ -149,7 +171,11 @@ export default function HotelsView() {
                     )}
                 </div>
 
-                {pageHotels.length > 0 ? (
+                {loading ? (
+                    <div className={styles.emptyState}>
+                        <p>{t("hotels.loading")}</p>
+                    </div>
+                ) : pageHotels.length > 0 ? (
                     <div className={styles.grid}>
                         {pageHotels.map((hotel) => (
                             <HotelCard
@@ -157,7 +183,12 @@ export default function HotelsView() {
                                 hotel={hotel}
                                 distanceKm={
                                     viewMode.type === "radius"
-                                        ? haversineDistanceKm(viewMode.lat, viewMode.lng, hotel.lat, hotel.lng)
+                                        ? haversineDistanceKm(
+                                              viewMode.lat,
+                                              viewMode.lng,
+                                              Number(hotel.latitude),
+                                              Number(hotel.longitude)
+                                          )
                                         : null
                                 }
                                 onBook={() => bookHotel(hotel.id)}
@@ -171,7 +202,7 @@ export default function HotelsView() {
                     </div>
                 )}
 
-                <Pagination page={currentPage} totalPages={totalPages} onChange={setPage} />
+                <Pagination page={currentPage} totalPages={totalPages} onChange={onPageChange} />
             </div>
         </div>
     );

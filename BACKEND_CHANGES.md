@@ -426,10 +426,198 @@ Sau đó restart app — Hibernate tự tạo lại các bảng đã drop với 
 
 ---
 
+## 9. Seed thêm 400 khách sạn ngẫu nhiên (chỉ để test `GET /hotels`)
+
+**File: `StartupRunner.java`** — thêm `seedRandomTestHotels()`, gọi sau
+`seedHotelsAndRooms()` trong `run()`. Theo đúng yêu cầu: **không owner**
+(`hotel.setUser(null)` — đã xác nhận cột `hotels.user_id` nullable thật
+trong DB trước khi làm), **không phòng** nào.
+
+Toạ độ: port nguyên bộ `PROVINCE_CENTERS` (34 mã tỉnh, đã phủ đủ Bắc-Trung-
+Nam) từ `src/data/locations.data.ts` bên frontend sang Java, mỗi hotel random
+1 trong 34 tỉnh + random 1 ward thật trong đúng tỉnh đó + jitter toạ độ
+±0.15° quanh tâm tỉnh (~15km) để không dồn hết 1 điểm.
+
+**File: `HotelRepository.java`** — thêm `countByUserIsNull()`/
+`findByUserIsNull()`, dùng làm khoá idempotent riêng cho nhóm hotel test này
+(tách biệt hoàn toàn khỏi cơ chế đếm phòng/ward của `seedHotelsAndRooms()`)
+— đúng 400 thì bỏ qua, khác thì xoá nhóm này rồi seed lại, không đụng hotel
+thật (luôn có owner).
+
+> ⚠️ **Đã lỗi thời hoàn toàn — xem mục 11**: toàn bộ cách tiếp cận ở mục này
+> (400 hotel RANDOM sinh trong code, tên dạng "Test Hotel N - Ward",
+> `PROVINCE_CENTERS`, `hotel.setUser(null)`, `countByUserIsNull`/
+> `findByUserIsNull`) đã bị THAY THẾ hoàn toàn — không chỉ đổi tên hàm do
+> mục 10 (Hotel.user), mà đổi cả cách sinh dữ liệu. Giữ lại đoạn này chỉ để
+> làm lịch sử.
+
+**Kết quả**: tổng 500 hotel (100 thật + 400 test). Test `GET /hotels`:
+`meta.total = 500`, `totalPages = 50` (size=10); trang cuối trả đúng "Test
+Hotel 391..400"; 1 hotel test bất kỳ có `rooms: []`, phân bố đều khắp 34
+tỉnh (7-17 hotel/tỉnh), toạ độ đúng vùng địa lý thật (vd. Lạng Sơn ở Bắc,
+Cà Mau ở Nam).
+
+---
+
+## 10. Bỏ hẳn `Hotel.user`, chuyển khoá ngoại sở hữu sang `User.hotel`
+
+**Câu hỏi đúng của người dùng làm lộ ra thiết kế sai**: "1 hotel có nhiều
+owner/staff, 1 owner chỉ thuộc 1 hotel — vậy khoá ngoại phải nằm ở bảng
+`users` trỏ về `hotels`, sao lại để `user_id` ở bảng `hotels`?". Đúng: quan
+hệ 1-hotel-nhiều-nhân-viên thì FK phải nằm ở phía "nhiều" (`User`), không
+phải phía "1" (`Hotel`). Thiết kế cũ (`Hotel.user` `@OneToOne`) chỉ cho phép
+đúng 1 user/hotel, sai với thực tế (Manager/Staff/Reception nhiều người
+cùng thuộc 1 hotel), và có `UNIQUE KEY` trên `hotels.user_id` để ép điều đó.
+Đã chọn phương án dứt khoát: **xoá hẳn `Hotel.user`**, mọi nơi (kể cả người
+tạo hotel/owner) đều xác định qua `User.hotel`.
+
+**`Hotel.java`**: xoá hẳn field `@OneToOne @JoinColumn(name="user_id")
+private User user;`.
+
+**`User.java`**: đổi field `hotel` từ phía phản chiếu
+(`@OneToOne(mappedBy="user")`, không có cột thật) sang phía sở hữu thật:
+```java
+@ManyToOne(fetch = FetchType.LAZY)
+@JoinColumn(name = "hotel_id")
+@JsonIgnore
+private Hotel hotel;
+```
+(`@JsonIgnore` để không lộ toàn bộ hotel — kể cả `rooms[]` — qua mọi response
+có `User`, ví dụ review/booking).
+
+**Đảo chiều toàn bộ logic "user này có quản lý hotel X không"** — trước đây
+`targetEntity.getHotel().getUser().getId().equals(callerId)`, giờ
+`callerUser.getHotel() != null && callerUser.getHotel().getId().equals(targetEntity.getHotel().getId())`,
+áp dụng đúng 1 khuôn mẫu cho tất cả các chỗ vốn dựa vào `Hotel.user`:
+
+- **`HotelService.java`**: `create()` — check "user đã có hotel chưa" đổi từ
+  `existsByUserId` sang `user.getHotel() != null`; sau khi `save(hotel)` xong
+  thì `user.setHotel(created); userRepository.save(user)` (giữ đúng hành vi
+  cũ: ai tạo hotel thì tự động gắn với hotel đó). `delete_hotel()`,
+  `update_hotel()` — check quyền `_OWN` đổi sang so `caller.getHotel().getId()`.
+- **`RoomService.java`**: thêm dependency `UserRepository`; `create_room()`,
+  `delete_room()`, `update_room()` đổi theo cùng khuôn mẫu.
+- **`DiscountService.java`**: `delete_arr_room()`, `add_discount_in_room()`
+  đổi theo cùng khuôn mẫu (đã sẵn có `UserRepository`).
+- **`BookingService.java`**: nhánh quyền `BOOKING_CANCEL_ROOM` trong
+  `cancel()` đổi theo cùng khuôn mẫu.
+- **`RoomRepository.java`**: `findDetail`, `findAllRoomByUser`,
+  `findRoomByUser_Authorize` — JPQL đổi từ join `r.hotel.user` sang subquery
+  `hotel.id = (select u.hotel.id from User u where u.id = :id)`.
+- **`BookingRepository.java`**: 3 query tương tự, đổi cùng khuôn mẫu subquery
+  qua `User.hotel`; `findBookingByUser_Authorize` bỏ `join fetch hotel.user`.
+- **`HotelRepository.java`**: xoá `existsByUserId`/`countByUserIsNull`/
+  `findByUserIsNull` (không còn `Hotel.user` để query); thêm
+  `countByNameStartingWith`/`findByNameStartingWith` làm khoá idempotent mới
+  cho seed 400 hotel test (xem ghi chú lỗi thời ở mục 9).
+- **`StartupRunner.java`**: `seedHotelsAndRooms()` — gán owner đổi từ
+  `hotel.setUser(owner)` sang `owner.setHotel(hotel); userRepository.save(owner)`
+  (chạy SAU khi hotel đã có id, vì FK giờ nằm ở `users`).
+  `seedRandomTestHotels()` — đổi khoá idempotent sang
+  `countByNameStartingWith`/`findByNameStartingWith("Test Hotel ")`, bỏ dòng
+  `hotel.setUser(null)` (không còn ý nghĩa, hotel test vốn dĩ không gán field
+  nào liên quan user nữa).
+
+**Migrate schema + dữ liệu thật trên MySQL** (`ddl-auto=update` chỉ tự thêm
+cột `users.hotel_id` mới, KHÔNG tự xoá cột `hotels.user_id` cũ hay tự chuyển
+dữ liệu — phải làm tay, theo đúng tiền lệ mục 8):
+```sql
+-- 1. Chuyển dữ liệu sở hữu cũ sang chiều mới trước khi xoá cột cũ
+UPDATE users u JOIN hotels h ON h.user_id = u.id SET u.hotel_id = h.id;
+-- 2. Xoá FK + unique key + cột user_id cũ khỏi hotels
+ALTER TABLE hotels DROP FOREIGN KEY FKbmtnc1ekbiwke2dfj0p64h4d3;
+ALTER TABLE hotels DROP KEY UKedof2un7abelc56v6tarsdx25;
+ALTER TABLE hotels DROP COLUMN user_id;
+```
+Xác nhận: 100/100 owner thật (seed.owner1..100) migrate đúng
+(`users.hotel_id` khớp `hotels.id` cũ), không mất dữ liệu nào — không cần
+xoá/reseed lại toàn bộ bảng như mục 8 (chỉ là xoá 1 cột, không đổi kiểu dữ
+liệu).
+
+**Đã test thật, không chỉ compile**: `./gradlew compileJava` sạch; viết test
+tạm (`HotelUserRefactorTest`, xoá ngay sau khi verify) gọi thẳng
+`RoomService.create_room()` qua `@SpringBootTest` + `@Transactional` (tự
+rollback) trên DB thật — xác nhận **owner tạo được room trong đúng hotel
+mình quản lý** và **bị `Forbidden` khi cố tạo room ở hotel người khác quản
+lý**; cả 2 case pass. Backend restart qua `bootRun` thật, curl
+`GET /api/v1/hotels` xác nhận `meta.total = 500` (không mất dữ liệu), filter
+`name~'Test Hotel *'` vẫn ra đúng 400 kết quả.
+
+---
+
+## 11. Đổi 400 hotel test từ RANDOM sinh trong code sang dữ liệu THẬT viết cứng trong seed JSON
+
+Theo yêu cầu tiếp theo: không random hoá trong code Java nữa, mà tra cứu
+thật (tên khách sạn, địa chỉ, toạ độ) rồi viết thẳng vào
+`resources/seed/hotels-rooms.json`, tự gắn đúng ward cho từng cái — giữ
+nguyên 100 hotel thật ban đầu, **thêm** 400 hotel thật (không phải random)
+mới, vẫn không owner/không phòng như yêu cầu gốc ở mục 9.
+
+**Nguồn dữ liệu 400 hotel**: tra cứu tay theo kiến thức thật về các chuỗi
+khách sạn có thật ở Việt Nam (Mường Thanh Grand/Luxury/Holiday — có chi
+nhánh ở gần như mọi tỉnh; Sài Gòn Tourist — nhượng quyền "Sài Gòn + tên
+tỉnh" ở nhiều tỉnh nhỏ; Vinpearl, Novotel, Pullman, Sheraton, InterContinental,
+JW Marriott... ở các đô thị lớn) + tên/địa chỉ thật của các khách sạn độc
+lập tại từng thành phố, phân bổ theo mức độ du lịch/dân số (Hà Nội 30, TP.HCM
+35, Đà Nẵng 25, Khánh Hoà 20, Lâm Đồng 20... tới các tỉnh nhỏ 5-6/tỉnh),
+trải đủ **34/34 tỉnh** (post-sáp nhập 2025) — đã xác nhận qua DB thật.
+
+**Cách gắn đúng ward**: vì tên phường/xã cũ (trước sáp nhập) phần lớn vẫn
+tồn tại dưới dạng tên ward mới trong `vn-provinces-wards.json` (ví dụ "Nha
+Trang" vẫn là 1 ward trong tỉnh "Khánh Hoà" dù Nha Trang không còn là thành
+phố riêng), viết 1 script Node (`gen-test-hotels.js`, chạy 1 lần, không phải
+code production) nhận vào danh sách khách sạn kèm "gợi ý ward" (tên thành
+phố/khu vực, ví dụ `"Nha Trang"`, `"Hoàn Kiếm"`), rồi tự đối chiếu với đúng
+danh sách ward thật của tỉnh đó (khớp chính xác trước, khớp chứa sau) —
+script BÁO LỖI ngay nếu có gợi ý nào không khớp được, đã bắt và sửa đúng 2
+trường hợp lệch tên do sáp nhập ("Ninh Bình" → ward thật là "Hoa Lư",
+"Bắc Ninh" → ward thật là "Kinh Bắc") trước khi ghi ra JSON — không có
+khách sạn nào bị gán nhầm tỉnh/ward.
+
+**File: `resources/seed/hotels-rooms.json`** — thêm mảng top-level mới
+`testHotels` (400 phần tử, field: `name, address, image, latitude,
+longitude, provinceName, wardName`, KHÔNG có `rooms`) — tách hẳn khỏi mảng
+`hotels` (100 hotel thật đầy đủ, có `rooms`) để `seedHotelsAndRooms()` không
+vô tình tạo owner+phòng cho nhóm test này.
+
+**File: `StartupRunner.java`**:
+- Xoá hẳn `PROVINCE_CENTERS` (34 toạ độ tâm tỉnh dùng để random offset) và
+  toàn bộ logic random (`Random`, `nextInt`, `nextDouble`) — không còn cần
+  vì toạ độ giờ lấy thẳng từ JSON.
+- Đổi `seedRandomTestHotels()` → `seedTestHotelsFromJson()`: đọc
+  `data.testHotels`, tra `Ward` qua khoá `(provinceName, wardName)` (cùng
+  cách `seedHotelsAndRooms()` đang dùng cho 100 hotel thật), tạo `Hotel`
+  không gán owner/phòng.
+- Thêm class `SeedTestHotel` (giống `SeedHotel` nhưng không có `rooms`) và
+  field `testHotels` trên `SeedData`.
+
+**File: `HotelRepository.java`** — đổi khoá idempotent: `name` giờ là tên
+khách sạn THẬT nên không còn tiền tố chung để nhận diện nhóm test
+(`countByNameStartingWith("Test Hotel ")` hết tác dụng) → đổi sang tiền tố
+URL ảnh riêng biệt không hotel thật nào dùng chung:
+`countByImageStartingWith`/`findByImageStartingWith("https://picsum.photos/seed/wengo-testhotel-")`.
+
+**Dọn dữ liệu cũ trên DB thật**: 400 hotel test RANDOM cũ (tên "Test Hotel
+N - Ward") không được khoá idempotent MỚI nhận diện (tiền tố ảnh khác), nên
+phải xoá tay 1 lần trước khi seed lại:
+`DELETE FROM hotels WHERE name LIKE 'Test Hotel %';` — xoá đúng 400 dòng,
+không đụng 100 hotel thật.
+
+**Đã test qua DB + API thật**: restart backend, xác nhận `GET
+/api/v1/hotels` trả `meta.total = 500`; 1 hotel test tra theo tên chính xác
+(`Công Đoàn Cầu Giấy`) trả đúng UTF-8, đúng ward "Cầu Giấy"/tỉnh "Hà Nội",
+`rooms: []`; group-by tỉnh trên DB xác nhận đủ **34/34 tỉnh**, tổng đúng
+400, không hotel test nào có `users.hotel_id` trỏ tới (không owner); tên
+không trùng lặp (400 tên khác nhau); chạy lại `bootRun` lần 2 xác nhận
+idempotent (không tạo thêm dòng nào).
+
+---
+
 ## Tổng hợp file đã đổi
 
 ```
 D:\Mini-OTA\src\main\java\com\Mini_OTA\rebuild\
+├── component\StartupRunner.java                        (mục 8, 9, 10, 11)
 ├── config\SecurityConfig.java                          (mục 1, 2)
 ├── controller\
 │   ├── Amenity\AmenityController.java                  (mục 1)
@@ -442,19 +630,32 @@ D:\Mini-OTA\src\main\java\com\Mini_OTA\rebuild\
 │   └── Views\ViewController.java                       (mục 1)
 ├── domain\
 │   ├── Booking.java                                    (mục 2)
+│   ├── Hotel.java                                       (mục 10)
 │   ├── Review.java                                     (mục 5)
-│   ├── User.java                                       (mục 5)
+│   ├── User.java                                       (mục 5, 10)
 │   └── request\
 │       ├── Booking\ReqCreateBookingDTO.java             (mục 2)
 │       └── Users\ReqUpdateUserDTO.java                  (mục 7)
-├── repository\BookingRepository.java                   (mục 2)
+├── repository\
+│   ├── BookingRepository.java                          (mục 2, 10)
+│   ├── HotelRepository.java                            (mục 9, 10, 11)
+│   └── RoomRepository.java                              (mục 10)
 └── service\
-    ├── BookingService.java                              (mục 2)
+    ├── BookingService.java                              (mục 2, 10)
+    ├── DiscountService.java                              (mục 10)
+    ├── HotelService.java                                (mục 10)
+    ├── RoomService.java                                  (mục 10)
     └── UserService.java                                 (mục 3, 6, 7)
 ```
 
 Database (không phải code, chạy tay qua MySQL client):
 - `ALTER TABLE bookings MODIFY userid BIGINT NULL;` (mục 2)
 - `role_permissions` cho `roleid=12` ("CUSTOMER"): gỡ `USER_UPDATE`/`BOOKING_VIEW_OWN`/`BOOKING_CANCEL`, thêm `BOOKING_READ_OWN`/`BOOKING_CANCEL_OWN`/`REVIEW_CREATE`/`REVIEW_UPDATE`/`REVIEW_DELETE` (mục 4)
+- `UPDATE users u JOIN hotels h ON h.user_id=u.id SET u.hotel_id=h.id;` rồi
+  `ALTER TABLE hotels DROP FOREIGN KEY ...; DROP KEY ...; DROP COLUMN user_id;`
+  (mục 10)
+- `DELETE FROM hotels WHERE name LIKE 'Test Hotel %';` — xoá 400 hotel test
+  RANDOM cũ (không còn được khoá idempotent mới nhận diện) trước khi seed
+  lại 400 hotel test THẬT mới (mục 11)
 
 Toàn bộ đã `./gradlew compileJava` sạch, restart backend thật, test qua curl (không phải chỉ đọc code), và dọn sạch dữ liệu test khỏi DB sau khi xong.

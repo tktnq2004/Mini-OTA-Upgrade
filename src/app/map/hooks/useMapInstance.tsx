@@ -5,7 +5,7 @@ import * as maplibregl from "maplibre-gl";
 import { Map as MapLibreMap, type MapLibreEvent, type Marker, type Popup } from "maplibre-gl";
 import { createRoot, type Root } from "react-dom/client";
 import "maplibre-gl/dist/maplibre-gl.css";
-import type { Hotel } from "@/data/hotels.data";
+import type { Hotel } from "@/lib/hotels/types";
 import { getProvinceById } from "@/data/locations.data";
 import type { BoundsBox } from "@/lib/geo";
 import HotelPopupCard from "../HotelPopupCard";
@@ -126,7 +126,7 @@ export function useMapInstance({
             );
 
             const marker = new maplibregl.Marker({ color: "#2563eb" })
-                .setLngLat([hotel.lng, hotel.lat])
+                .setLngLat([Number(hotel.longitude), Number(hotel.latitude)])
                 .setPopup(popup)
                 .addTo(map);
 

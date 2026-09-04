@@ -15,10 +15,6 @@ interface AccountContextValue {
     login: (input: LoginInput) => Promise<AuthResult>;
     register: (input: RegisterInput) => Promise<AuthResult>;
     logout: () => Promise<void>;
-    // Trang /account gọi sau khi sửa hồ sơ thành công, để header đổi tên
-    // hiển thị ngay — KHÔNG có nghĩa cookie/JWT đã cập nhật theo (claim
-    // "user" trong access token vẫn giữ tên cũ tới lần đăng nhập/refresh kế
-    // tiếp), chỉ đồng bộ phần hiển thị phía client cho khỏi lệch mắt.
     patchUser: (patch: Partial<SessionUser>) => void;
 }
 

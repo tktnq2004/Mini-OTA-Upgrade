@@ -141,6 +141,7 @@
 
     "cart.title": "Selected rooms",
     "cart.subtitle": "Review the rooms you picked before booking",
+    "cart.loading": "Loading your cart...",
     "cart.empty": "No rooms selected yet.",
     "cart.emptyCta": "Explore hotels",
     "cart.remove": "Remove",
@@ -174,6 +175,7 @@
 
     "hotels.title": "All hotels",
     "hotels.subtitle": "Filter by area, dates, or your location to find the right hotel",
+    "hotels.loading": "Loading hotels...",
     "hotels.emptyState": "No hotels match the current filters.",
     "hotels.distanceAway": "{distance} km away",
     "hotels.clearSearchText": "Clear search text",

@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { hotels } from "@/data/hotels.data";
+import { getHotelServer } from "@/lib/hotels/server";
 import HotelDetail from "./HotelDetail";
 
 interface HotelPageProps {
@@ -10,13 +10,13 @@ interface HotelPageProps {
 
 export async function generateMetadata({ params }: HotelPageProps): Promise<Metadata> {
     const { id } = await params;
-    const hotel = hotels.find((h) => h.id === Number(id));
+    const hotel = await getHotelServer(Number(id));
     return { title: hotel ? `${hotel.name} — WenGo` : "Không tìm thấy khách sạn — WenGo" };
 }
 
 export default async function HotelPage({ params }: HotelPageProps) {
     const { id } = await params;
-    const hotel = hotels.find((h) => h.id === Number(id));
+    const hotel = await getHotelServer(Number(id));
 
     if (!hotel) {
         notFound();

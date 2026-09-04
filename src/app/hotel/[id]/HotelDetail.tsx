@@ -12,14 +12,8 @@ import {
     SmileyMehIcon,
     ArrowsClockwiseIcon,
 } from "@phosphor-icons/react";
-import type { Hotel } from "@/data/hotels.data";
-import {
-    ROOM_TYPES,
-    ROOM_TYPE_LABELS,
-    formatVnd,
-    generateRoomsForHotel,
-    type RoomType,
-} from "@/data/rooms.data";
+import type { Hotel } from "@/lib/hotels/types";
+import { formatVnd } from "@/lib/format";
 import {
     addDaysIso,
     defaultFilters,
@@ -55,12 +49,23 @@ export default function HotelDetail({ hotel }: HotelDetailProps) {
     const initial = useMemo(() => parseFilters(searchParams), []);
     const backHref = `/map?${searchParams.toString()}`;
 
-    const rooms = useMemo(() => generateRoomsForHotel(hotel.id), [hotel.id]);
+    const rooms = useMemo(() => hotel.rooms ?? [], [hotel.rooms]);
+
+    // Loại phòng giờ là dữ liệu thật do admin đặt tên (Room.roomType.roomTypeName),
+    // không còn là enum cố định — tự rút ra danh sách loại đang thật sự có ở
+    // khách sạn này thay vì 1 danh sách cứng dùng chung cho mọi khách sạn.
+    const roomTypeOptions = useMemo(() => {
+        const names = new Set<string>();
+        for (const room of rooms) {
+            if (room.roomType) names.add(room.roomType.roomTypeName);
+        }
+        return Array.from(names).sort();
+    }, [rooms]);
 
     const [checkin, setCheckin] = useState(initial.checkin);
     const [checkout, setCheckout] = useState(initial.checkout);
     const [guests, setGuests] = useState(initial.guests);
-    const [roomType, setRoomType] = useState<"all" | RoomType>("all");
+    const [roomType, setRoomType] = useState<string>("all");
     const [maxPrice, setMaxPrice] = useState(PRICE_CEILING);
     const [page, setPage] = useState(1);
     const [showPanorama, setShowPanorama] = useState(false);
@@ -82,7 +87,7 @@ export default function HotelDetail({ hotel }: HotelDetailProps) {
 
     const filteredRooms = useMemo(() => {
         return rooms.filter((room) => {
-            if (roomType !== "all" && room.roomType !== roomType) return false;
+            if (roomType !== "all" && room.roomType?.roomTypeName !== roomType) return false;
             if (maxPrice < PRICE_CEILING && room.price > maxPrice) return false;
             if (room.capacity < guests) return false;
             return true;
@@ -128,7 +133,7 @@ export default function HotelDetail({ hotel }: HotelDetailProps) {
 
                     <div className={styles.thumbWrap}>
                         <ImageWithFallback
-                            src={hotel.thumbnail}
+                            src={hotel.image}
                             alt={hotel.name}
                             className={styles.thumb}
                             fallbackClassName={styles.thumbFallback}
@@ -197,12 +202,12 @@ export default function HotelDetail({ hotel }: HotelDetailProps) {
                                 id="hd-roomtype"
                                 className={controls.select}
                                 value={roomType}
-                                onChange={(e) => setRoomType(e.target.value as "all" | RoomType)}
+                                onChange={(e) => setRoomType(e.target.value)}
                             >
                                 <option value="all">{t("hotel.roomTypeAllOption")}</option>
-                                {ROOM_TYPES.map((type) => (
-                                    <option key={type} value={type}>
-                                        {ROOM_TYPE_LABELS[type]}
+                                {roomTypeOptions.map((name) => (
+                                    <option key={name} value={name}>
+                                        {name}
                                     </option>
                                 ))}
                             </select>
@@ -266,6 +271,7 @@ export default function HotelDetail({ hotel }: HotelDetailProps) {
                             {pageRooms.map((room) => (
                                 <RoomCard
                                     key={room.id}
+                                    hotelId={hotel.id}
                                     room={room}
                                     nights={nights}
                                     checkin={checkin}

@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BedIcon, UsersIcon, ArrowsOutIcon, CheckIcon } from "@phosphor-icons/react";
-import { ROOM_TYPE_LABELS, formatVnd, type Room } from "@/data/rooms.data";
+import { BedIcon, UsersIcon, CheckIcon } from "@phosphor-icons/react";
+import type { Room } from "@/lib/hotels/types";
+import { formatVnd } from "@/lib/format";
 import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { useCart } from "@/components/cart/CartProvider";
@@ -12,6 +13,7 @@ import styles from "./RoomCard.module.css";
 const VISIBLE_AMENITIES = 4;
 
 interface RoomCardProps {
+    hotelId: number;
     room: Room;
     nights: number;
     checkin: string;
@@ -19,15 +21,15 @@ interface RoomCardProps {
     guests: number;
 }
 
-export default function RoomCard({ room, nights, checkin, checkout, guests }: RoomCardProps) {
+export default function RoomCard({ hotelId, room, nights, checkin, checkout, guests }: RoomCardProps) {
     const { t } = useLanguage();
     const router = useRouter();
     const { isInCart, addItem, removeItem } = useCart();
-    const selected = isInCart(room.hotelId, room.id);
+    const selected = isInCart(hotelId, room.id);
     const visibleAmenities = room.amenities.slice(0, VISIBLE_AMENITIES);
     const extraCount = room.amenities.length - visibleAmenities.length;
     const total = room.price * nights;
-    const detailHref = `/hotel/${room.hotelId}/room/${room.id}?${new URLSearchParams({
+    const detailHref = `/hotel/${hotelId}/room/${room.id}?${new URLSearchParams({
         checkin,
         checkout,
         guests: String(guests),
@@ -35,16 +37,16 @@ export default function RoomCard({ room, nights, checkin, checkout, guests }: Ro
 
     const toggleCart = () => {
         if (selected) {
-            removeItem(room.hotelId, room.id);
+            removeItem(hotelId, room.id);
         } else {
-            addItem(room.hotelId, room.id, { checkin, checkout, guests });
+            addItem(hotelId, room.id, { checkin, checkout, guests });
         }
     };
 
     const bookNow = () => {
         const params = new URLSearchParams({
-            hotelId: String(room.hotelId),
-            roomId: room.id,
+            hotelId: String(hotelId),
+            roomId: String(room.id),
             checkin,
             checkout,
             guests: String(guests),
@@ -62,7 +64,7 @@ export default function RoomCard({ room, nights, checkin, checkout, guests }: Ro
                     fallbackClassName={styles.thumbFallback}
                     fallback={<BedIcon size={22} weight="light" />}
                 />
-                <span className={styles.typeBadge}>{ROOM_TYPE_LABELS[room.roomType]}</span>
+                {room.roomType && <span className={styles.typeBadge}>{room.roomType.roomTypeName}</span>}
             </Link>
 
             <div className={styles.body}>
@@ -74,16 +76,13 @@ export default function RoomCard({ room, nights, checkin, checkout, guests }: Ro
                     <span className={styles.metaItem}>
                         <UsersIcon size={14} /> {t("room.maxGuests", { count: room.capacity })}
                     </span>
-                    <span className={styles.metaItem}>
-                        <ArrowsOutIcon size={14} /> {room.sizeSqm} m²
-                    </span>
                 </div>
 
                 <ul className={styles.amenities}>
                     {visibleAmenities.map((a) => (
-                        <li key={a} className={styles.amenity}>
+                        <li key={a.id} className={styles.amenity}>
                             <CheckIcon size={12} weight="bold" />
-                            {a}
+                            {a.name}
                         </li>
                     ))}
                     {extraCount > 0 && (

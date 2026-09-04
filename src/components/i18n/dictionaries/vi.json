@@ -141,6 +141,7 @@
 
     "cart.title": "Giỏ phòng đã chọn",
     "cart.subtitle": "Xem lại các phòng đã chọn trước khi đặt",
+    "cart.loading": "Đang tải giỏ phòng...",
     "cart.empty": "Chưa có phòng nào được chọn.",
     "cart.emptyCta": "Khám phá khách sạn",
     "cart.remove": "Xoá",
@@ -174,6 +175,7 @@
 
     "hotels.title": "Danh sách khách sạn",
     "hotels.subtitle": "Lọc theo khu vực, ngày ở hoặc vị trí của bạn để tìm khách sạn phù hợp",
+    "hotels.loading": "Đang tải khách sạn...",
     "hotels.emptyState": "Không có khách sạn nào khớp với bộ lọc hiện tại.",
     "hotels.distanceAway": "Cách {distance} km",
     "hotels.clearSearchText": "Xoá từ khoá tìm kiếm",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { BuildingsIcon } from "@phosphor-icons/react";
@@ -8,29 +8,46 @@ import SiteHeader from "@/components/SiteHeader/SiteHeader";
 import SearchWidget from "@/components/SearchWidget/SearchWidget";
 import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
-import { hotels } from "@/data/hotels.data";
+import { listHotels } from "@/lib/hotels/client";
 import { provinces } from "@/data/locations.data";
 import { locationSearchParams, type SearchFilters } from "@/lib/searchFilters";
 import styles from "./page.module.css";
+
+interface Destination {
+    id: string;
+    name: string;
+    hotelCount: number;
+}
 
 export default function Home() {
     const router = useRouter();
     const { t } = useLanguage();
 
-    const destinations = useMemo(() => {
-        const counts = new Map<string, number>();
-        for (const hotel of hotels) {
-            counts.set(hotel.provinceId, (counts.get(hotel.provinceId) ?? 0) + 1);
-        }
-        return provinces
-            .map((province) => ({ ...province, hotelCount: counts.get(province.id) ?? 0 }))
-            .sort((a, b) => b.hotelCount - a.hotelCount)
-            .slice(0, 6);
+    // Không có endpoint "đếm khách sạn theo tỉnh" — tải 1 trang khách sạn đủ
+    // lớn (size cố định, KHÔNG phải "tải hết toàn quốc" vô hạn) rồi tự đếm ở
+    // client cho mục hero này. Chấp nhận số liệu gần đúng nếu tổng khách sạn
+    // vượt size — trang chủ chỉ cần top 6 tỉnh nổi bật, không cần chính xác
+    // tuyệt đối như trang danh sách/bộ lọc thật.
+    const [destinations, setDestinations] = useState<Destination[]>([]);
+
+    useEffect(() => {
+        listHotels({ page: 1, size: 100 })
+            .then((res) => {
+                const counts = new Map<string, number>();
+                for (const hotel of res.result) {
+                    const provinceId = hotel.ward.province.id;
+                    counts.set(provinceId, (counts.get(provinceId) ?? 0) + 1);
+                }
+                const top = provinces
+                    .map((province) => ({ ...province, hotelCount: counts.get(province.id) ?? 0 }))
+                    .sort((a, b) => b.hotelCount - a.hotelCount)
+                    .slice(0, 6);
+                setDestinations(top);
+            })
+            .catch(() => setDestinations([]));
     }, []);
 
     const handleSearch = (filters: SearchFilters) => {
-        // Chỉ tỉnh/xã mới là tham số tìm kiếm — ngày nhận/trả và số khách
-        // không mang sang Map, chỉ cần khi đặt một khách sạn cụ thể.
         const params = locationSearchParams(filters);
         router.push(`/map?${params.toString()}`);
     };

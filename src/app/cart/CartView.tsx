@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -14,9 +15,16 @@ import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback"
 import Stepper from "@/components/Stepper/Stepper";
 import { useCart } from "@/components/cart/CartProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
-import { ROOM_TYPE_LABELS, formatVnd } from "@/data/rooms.data";
+import { formatVnd } from "@/lib/format";
 import { formatDateVn, nightsBetween } from "@/lib/searchFilters";
-import { cartGrandTotal, findRoomForItem, groupCartItemsByHotel, cartLineTotal } from "@/components/cart/cartUtils";
+import type { Hotel } from "@/lib/hotels/types";
+import {
+    cartGrandTotal,
+    findRoomForItem,
+    groupCartItemsByHotel,
+    cartLineTotal,
+    loadHotelsForCart,
+} from "@/components/cart/cartUtils";
 import controls from "@/styles/controls.module.css";
 import styles from "./cart.module.css";
 
@@ -25,8 +33,20 @@ export default function CartView() {
     const router = useRouter();
     const { items, removeItem, setQuantity } = useCart();
 
-    const groups = groupCartItemsByHotel(items);
-    const grandTotal = cartGrandTotal(items);
+    const [hotelsById, setHotelsById] = useState<Map<number, Hotel>>(new Map());
+    const [loading, setLoading] = useState(true);
+
+    const loadHotels = () => {
+        setLoading(true);
+        loadHotelsForCart(items)
+            .then(setHotelsById)
+            .finally(() => setLoading(false));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useEffect(loadHotels, [items.map((i) => `${i.hotelId}:${i.roomId}`).join(",")]); // eslint-disable-line react-hooks/set-state-in-effect -- tải hotel/room từ API theo giỏ hàng hiện tại, một external system
+
+    const groups = groupCartItemsByHotel(items, hotelsById);
+    const grandTotal = cartGrandTotal(items, hotelsById);
 
     return (
         <div className={styles.page}>
@@ -38,7 +58,9 @@ export default function CartView() {
                     <p>{t("cart.subtitle")}</p>
                 </div>
 
-                {groups.length === 0 ? (
+                {loading ? (
+                    <p className={styles.emptyState}>{t("cart.loading")}</p>
+                ) : groups.length === 0 ? (
                     <div className={styles.emptyState}>
                         <ShoppingBagIcon size={32} weight="light" />
                         <p>{t("cart.empty")}</p>
@@ -53,7 +75,7 @@ export default function CartView() {
                                 <section key={hotel.id} className={styles.hotelGroup}>
                                     <div className={styles.hotelHead}>
                                         <ImageWithFallback
-                                            src={hotel.thumbnail}
+                                            src={hotel.image}
                                             alt={hotel.name}
                                             className={styles.hotelThumb}
                                             fallbackClassName={styles.hotelThumbFallback}
@@ -73,7 +95,7 @@ export default function CartView() {
 
                                     <ul className={styles.roomList}>
                                         {hotelItems.map((item) => {
-                                            const room = findRoomForItem(item);
+                                            const room = findRoomForItem(item, hotelsById);
                                             if (!room) return null;
                                             const nights = nightsBetween(item.checkin, item.checkout);
 
@@ -88,9 +110,11 @@ export default function CartView() {
                                                     />
 
                                                     <div className={styles.roomInfo}>
-                                                        <span className={styles.roomType}>
-                                                            {ROOM_TYPE_LABELS[room.roomType]}
-                                                        </span>
+                                                        {room.roomType && (
+                                                            <span className={styles.roomType}>
+                                                                {room.roomType.roomTypeName}
+                                                            </span>
+                                                        )}
                                                         <span className={styles.roomName}>{room.name}</span>
                                                         <span className={styles.roomDates}>
                                                             {formatDateVn(item.checkin, language)} –{" "}

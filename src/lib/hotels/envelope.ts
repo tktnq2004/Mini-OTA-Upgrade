@@ -1,11 +1,12 @@
-export class AccountApiError extends Error {
-  status: number;
-  payload: unknown;
+// Bóc envelope { statuscode, error, message, data } mà backend bọc quanh mọi
+// response — dùng chung cho cả client.ts (fetch qua proxy) và server.ts
+// (fetch thẳng backend), khác input là 1 Response đã có sẵn.
 
-  constructor(message: string, status: number, payload: unknown) {
+export class PublicApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
     super(message);
     this.status = status;
-    this.payload = payload;
   }
 }
 
@@ -22,20 +23,14 @@ function errorMessageFrom(payload: unknown, fallback: string): string {
   return fallback;
 }
 
-export async function accountFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`/api/account/${path}`, {
-    ...init,
-    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
-    credentials: "same-origin",
-  });
-
+export async function unwrapResponse<T>(res: Response): Promise<T> {
   if (res.status === 204) return undefined as T;
 
   const contentType = res.headers.get("content-type") ?? "";
   const payload = contentType.includes("application/json") ? await res.json().catch(() => null) : null;
 
   if (!res.ok) {
-    throw new AccountApiError(errorMessageFrom(payload, res.statusText), res.status, payload);
+    throw new PublicApiError(errorMessageFrom(payload, res.statusText), res.status);
   }
 
   if (payload && typeof payload === "object" && "data" in payload && "statuscode" in payload) {
@@ -43,9 +38,3 @@ export async function accountFetch<T>(path: string, init?: RequestInit): Promise
   }
   return payload as T;
 }
-
-export const accountGet = <T>(path: string) => accountFetch<T>(path, { method: "GET" });
-export const accountPost = <T>(path: string, body: unknown) =>
-  accountFetch<T>(path, { method: "POST", body: JSON.stringify(body) });
-export const accountPut = <T>(path: string, body: unknown) =>
-  accountFetch<T>(path, { method: "PUT", body: JSON.stringify(body) });

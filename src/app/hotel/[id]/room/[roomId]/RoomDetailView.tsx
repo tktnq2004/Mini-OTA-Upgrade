@@ -7,7 +7,6 @@ import {
     ArrowLeftIcon,
     MapPinIcon,
     UsersIcon,
-    ArrowsOutIcon,
     CheckIcon,
     ClockIcon,
     ShieldCheckIcon,
@@ -18,15 +17,8 @@ import {
     BedIcon,
     ArrowsClockwiseIcon,
 } from "@phosphor-icons/react";
-import type { Hotel } from "@/data/hotels.data";
-import {
-    ROOM_TYPE_LABELS,
-    formatVnd,
-    generateRoomsForHotel,
-    getRoomGallery,
-    getRoomDescription,
-    type Room,
-} from "@/data/rooms.data";
+import type { Hotel, Room } from "@/lib/hotels/types";
+import { formatVnd } from "@/lib/format";
 import { addDaysIso, nightsBetween, parseFilters, todayIso } from "@/lib/searchFilters";
 import SiteHeader from "@/components/SiteHeader/SiteHeader";
 import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
@@ -65,18 +57,23 @@ export default function RoomDetailView({ hotel, room }: RoomDetailViewProps) {
     // 2D mock khác) nên nút "Xem Panorama 360°" chỉ hiện đúng ở đó.
     const panoramaTour = getPanoramaTourForHotel(hotel.id);
 
-    const gallery = useMemo(() => getRoomGallery(room), [room]);
-    const description = useMemo(() => getRoomDescription(room), [room]);
+    // Room chỉ có 1 thumbnail + images (hiện luôn rỗng, chưa có tính năng
+    // thêm ảnh phòng ở admin) — không còn sinh thêm ảnh giả deterministic
+    // như mock cũ, hiển thị đúng số ảnh thật đang có.
+    const gallery = useMemo(
+        () => (room.images.length > 0 ? [room.thumbnail, ...room.images.map((img) => img.image)] : [room.thumbnail]),
+        [room]
+    );
     const otherRooms = useMemo(
-        () => generateRoomsForHotel(hotel.id).filter((r) => r.id !== room.id).slice(0, 4),
-        [hotel.id, room.id]
+        () => (hotel.rooms ?? []).filter((r) => r.id !== room.id).slice(0, 4),
+        [hotel.rooms, room.id]
     );
 
     const nights = nightsBetween(checkin, checkout);
     const total = room.price * nights;
     const minCheckin = todayIso();
     const minCheckout = addDaysIso(checkin || minCheckin, 1);
-    const selected = isInCart(room.hotelId, room.id);
+    const selected = isInCart(hotel.id, room.id);
     const hotelHref = `/hotel/${hotel.id}?${searchParams.toString()}`;
 
     const handleCheckinChange = (value: string) => {
@@ -88,16 +85,16 @@ export default function RoomDetailView({ hotel, room }: RoomDetailViewProps) {
 
     const toggleCart = () => {
         if (selected) {
-            removeItem(room.hotelId, room.id);
+            removeItem(hotel.id, room.id);
         } else {
-            addItem(room.hotelId, room.id, { checkin, checkout, guests });
+            addItem(hotel.id, room.id, { checkin, checkout, guests });
         }
     };
 
     const bookNow = () => {
         const params = new URLSearchParams({
-            hotelId: String(room.hotelId),
-            roomId: room.id,
+            hotelId: String(hotel.id),
+            roomId: String(room.id),
             checkin,
             checkout,
             guests: String(guests),
@@ -160,7 +157,7 @@ export default function RoomDetailView({ hotel, room }: RoomDetailViewProps) {
                     </div>
 
                     <div className={styles.titleBlock}>
-                        <span className={styles.typeBadge}>{ROOM_TYPE_LABELS[room.roomType]}</span>
+                        {room.roomType && <span className={styles.typeBadge}>{room.roomType.roomTypeName}</span>}
                         <h1 className={styles.title}>{room.name}</h1>
                         <Link href={hotelHref} className={styles.hotelLink}>
                             <BuildingsIcon size={14} /> {hotel.name}
@@ -173,24 +170,21 @@ export default function RoomDetailView({ hotel, room }: RoomDetailViewProps) {
                             <span className={styles.metaItem}>
                                 <UsersIcon size={15} /> {t("room.maxGuests", { count: room.capacity })}
                             </span>
-                            <span className={styles.metaItem}>
-                                <ArrowsOutIcon size={15} /> {room.sizeSqm} m²
-                            </span>
                         </div>
                     </div>
 
                     <section className={styles.section}>
                         <h2>{t("room.detail.descriptionTitle")}</h2>
-                        <p className={styles.description}>{description}</p>
+                        <p className={styles.description}>{room.description}</p>
                     </section>
 
                     <section className={styles.section}>
                         <h2>{t("room.detail.amenitiesTitle")}</h2>
                         <div className={styles.amenitiesGrid}>
                             {room.amenities.map((a) => (
-                                <span key={a} className={styles.amenityItem}>
+                                <span key={a.id} className={styles.amenityItem}>
                                     <CheckIcon size={13} weight="bold" />
-                                    {a}
+                                    {a.name}
                                 </span>
                             ))}
                         </div>
@@ -224,6 +218,7 @@ export default function RoomDetailView({ hotel, room }: RoomDetailViewProps) {
                                 {otherRooms.map((r) => (
                                     <RoomCard
                                         key={r.id}
+                                        hotelId={hotel.id}
                                         room={r}
                                         nights={nights}
                                         checkin={checkin}

@@ -9,7 +9,7 @@
 
 export interface CartItem {
     hotelId: number;
-    roomId: string;
+    roomId: number;
     quantity: number;
     checkin: string; // yyyy-mm-dd, chụp lại tại thời điểm thêm vào giỏ
     checkout: string;

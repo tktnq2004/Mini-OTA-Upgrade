@@ -2,7 +2,7 @@
 
 import { MapPinIcon, BuildingsIcon } from "@phosphor-icons/react";
 import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
-import type { Hotel } from "@/data/hotels.data";
+import type { Hotel } from "@/lib/hotels/types";
 import styles from "./HotelPopupCard.module.css";
 
 interface HotelPopupCardProps {
@@ -18,7 +18,7 @@ export default function HotelPopupCard({ hotel, onBook, bookLabel }: HotelPopupC
     return (
         <div className={styles.card}>
             <ImageWithFallback
-                src={hotel.thumbnail}
+                src={hotel.image}
                 alt={hotel.name}
                 className={styles.thumb}
                 fallbackClassName={styles.thumbFallback}

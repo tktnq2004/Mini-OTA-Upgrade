@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type SubmitEvent } from "react";
+import { useEffect, useState, type SubmitEvent } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -17,7 +17,8 @@ import SiteHeader from "@/components/SiteHeader/SiteHeader";
 import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
 import { useCart } from "@/components/cart/CartProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
-import { ROOM_TYPE_LABELS, formatVnd } from "@/data/rooms.data";
+import { formatVnd } from "@/lib/format";
+import type { Hotel } from "@/lib/hotels/types";
 import { addDaysIso, formatDateVn, nightsBetween, todayIso } from "@/lib/searchFilters";
 import {
     cartGrandTotal,
@@ -25,6 +26,7 @@ import {
     cartTotalRooms,
     findRoomForItem,
     groupCartItemsByHotel,
+    loadHotelsForCart,
 } from "@/components/cart/cartUtils";
 import type { CartItem } from "@/components/cart/cartStorage";
 import controls from "@/styles/controls.module.css";
@@ -48,7 +50,7 @@ export default function CheckoutView() {
         ? [
               {
                   hotelId: Number(directHotelId),
-                  roomId: directRoomId as string,
+                  roomId: Number(directRoomId),
                   quantity: 1,
                   checkin: searchParams.get("checkin") || todayIso(),
                   checkout: searchParams.get("checkout") || addDaysIso(todayIso(), 1),
@@ -58,8 +60,20 @@ export default function CheckoutView() {
           ]
         : cartItems;
 
-    const groups = groupCartItemsByHotel(orderItems);
-    const grandTotal = cartGrandTotal(orderItems);
+    const [hotelsById, setHotelsById] = useState<Map<number, Hotel>>(new Map());
+    const [loadingHotels, setLoadingHotels] = useState(true);
+
+    const loadHotels = () => {
+        setLoadingHotels(true);
+        loadHotelsForCart(orderItems)
+            .then(setHotelsById)
+            .finally(() => setLoadingHotels(false));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useEffect(loadHotels, [orderItems.map((i) => `${i.hotelId}:${i.roomId}`).join(",")]); // eslint-disable-line react-hooks/set-state-in-effect -- tải hotel/room từ API theo đơn hàng hiện tại, một external system
+
+    const groups = groupCartItemsByHotel(orderItems, hotelsById);
+    const grandTotal = cartGrandTotal(orderItems, hotelsById);
     const totalRooms = cartTotalRooms(orderItems);
     const backHref = isDirectMode ? `/hotel/${directHotelId}` : "/cart";
 
@@ -133,6 +147,17 @@ export default function CheckoutView() {
                             {t("checkout.backHome")}
                         </Link>
                     </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (loadingHotels) {
+        return (
+            <div className={styles.page}>
+                <SiteHeader />
+                <div className={styles.layout}>
+                    <p className={styles.emptyState}>{t("cart.loading")}</p>
                 </div>
             </div>
         );
@@ -339,7 +364,7 @@ export default function CheckoutView() {
                                 <div key={hotel.id} className={styles.summaryHotelGroup}>
                                     <div className={styles.summaryHotelHead}>
                                         <ImageWithFallback
-                                            src={hotel.thumbnail}
+                                            src={hotel.image}
                                             alt={hotel.name}
                                             className={styles.summaryHotelThumb}
                                             fallbackClassName={styles.summaryHotelThumbFallback}
@@ -355,7 +380,7 @@ export default function CheckoutView() {
                                     </div>
 
                                     {hotelItems.map((item) => {
-                                        const room = findRoomForItem(item);
+                                        const room = findRoomForItem(item, hotelsById);
                                         if (!room) return null;
                                         const nights = nightsBetween(item.checkin, item.checkout);
                                         return (
@@ -369,7 +394,8 @@ export default function CheckoutView() {
                                                 />
                                                 <div className={styles.summaryRoomInfo}>
                                                     <span className={styles.summaryRoomName}>
-                                                        {ROOM_TYPE_LABELS[room.roomType]} · {room.name}
+                                                        {room.roomType ? `${room.roomType.roomTypeName} · ` : ""}
+                                                        {room.name}
                                                     </span>
                                                     <span className={styles.summaryRoomMeta}>
                                                         {formatDateVn(item.checkin, language)} –{" "}

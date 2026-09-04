@@ -485,3 +485,125 @@ chỉ curl): tạo khách sạn qua dropdown Tỉnh→Phường ở `/admin/hote
 thành công, reload trang sửa → 2 dropdown pre-select đúng tỉnh/phường vừa
 chọn; trang danh sách lọc theo tỉnh rồi theo phường → đúng số khách sạn hiện
 ra. Đã dọn khách sạn/dữ liệu test tạo ra trong lúc QA.
+
+---
+
+## 13. Trang công khai nối API thật — xoá hẳn mock data
+
+Xoá `src/data/hotels.data.ts`/`rooms.data.ts`, toàn bộ trang công khai (trang
+chủ, `/hotels`, `/hotel/[id]`, `/hotel/[id]/room/[roomId]`, `/map`, `/cart`,
+`/checkout`) giờ gọi thẳng backend thật.
+
+**Lớp dữ liệu mới** (`src/lib/hotels/`): `types.ts` (khớp response thật),
+`config.ts` (`getApiBaseUrl`, chỉ dùng server), `envelope.ts` (bóc envelope
+dùng chung), `server.ts` (`getHotelServer`/`getRoomServer` — gọi THẲNG backend,
+dùng trong Server Component `hotel/[id]/page.tsx` và `room/[roomId]/page.tsx`,
+không qua proxy vì server-to-server không có CORS), `client.ts`
+(`listHotels`/`getHotel`/`getRoom`/`listAmenities`/`listViews`/reviews — gọi
+qua `src/app/api/public/[...path]/route.ts`, proxy GET-only KHÔNG cần cookie,
+dùng trong mọi client component: Map, `/hotels`, Cart, Checkout, trang chủ).
+
+**Backend sửa thêm 1 chỗ** (`Room.java`/`RoomType.java`): `Room.roomType` bỏ
+`@JsonIgnore` (trang công khai cần hiển thị/lọc theo loại phòng) — kèm theo
+**bắt buộc** phải thêm `@JsonIgnore` vào `RoomType.rooms` (chiều ngược lại),
+nếu không Jackson serialize vòng lặp vô hạn Room→RoomType→rooms→Room→...
+(StackOverflowError ngay request đầu, đã tự phát hiện trước khi ship nhờ đọc
+kỹ quan hệ 2 chiều, không phải từ crash thật).
+
+**Model dữ liệu thật khác mock ở vài điểm — đã điều chỉnh UI cho khớp**:
+`Room` không có `sizeSqm` (bỏ hiển thị m²), `roomType` là quan hệ thật
+`{id, roomTypeName}` thay vì enum cứng (dropdown lọc loại phòng giờ tự rút
+ra từ chính các phòng của khách sạn đó, không dùng danh sách cố định chung
+cho mọi khách sạn nữa), `amenities` là mảng object `{id,name,icon}` thay vì
+string[], `images` hiện luôn rỗng (chưa có tính năng thêm ảnh phòng ở admin)
+nên gallery phòng chỉ còn đúng 1 ảnh (thumbnail) thay vì 5 ảnh sinh giả như
+mock cũ, `Room` không mang `hotelId` (`hotel` bị `@JsonIgnore`) nên mọi nơi
+cần hotelId phải lấy từ context (route param hoặc `Hotel.rooms[]`).
+
+**Giỏ hàng (Cart) đổi cách hoạt động**: trước đây `CartItem`/`findRoomForItem`
+tra cứu đồng bộ trong mảng mock có sẵn trong bộ nhớ; giờ giỏ chỉ lưu
+`hotelId`+`roomId` (localStorage, không đổi), còn tên/giá/ảnh phòng phải tải
+lại từ backend mỗi lần vào `/cart` hoặc `/checkout` — `cartUtils.ts` thêm
+`loadHotelsForCart(items)` (gọi `getHotel()` 1 lần cho mỗi hotelId DUY NHẤT
+trong giỏ, không phải 1 lần/phòng, vì response hotel đã kèm sẵn toàn bộ
+`rooms`), `CartView`/`CheckoutView` thêm state loading trong lúc tải.
+`CartItem.roomId` đổi từ `string` (id giả `${hotelId}-r${i}` của mock) sang
+`number` (khớp id thật của Room).
+
+**Giải quyết đúng lo ngại "kéo/zoom map gọi API liên tục"** (câu hỏi trước
+đó): `useHotelFilters` giờ fetch hotel theo TỈNH đang chọn qua backend thật
+(1 lần khi đổi tỉnh/xã, size đủ lớn để lấy hết — không phải tải "hết cả
+nước"), rồi lọc tiếp bbox (kéo map)/bán kính (tìm quanh đây) ở CLIENT trên
+tập đã tải, không gọi lại API. Lý do không lọc bbox thật ở backend: cột
+`Hotel.latitude`/`longitude` là kiểu `String`, không so sánh khoảng số đúng
+được qua turkraft filter — cần đổi kiểu cột (không làm trong lượt này). Đã
+đo bằng Playwright thật: 6 lần kéo + 8 nấc zoom liên tiếp trong cùng 1 tỉnh
+→ **0 lần gọi `/api/public/*`**; đổi tỉnh → đúng **1 lần**.
+
+**Đã test qua trình duyệt thật đủ vòng**: trang chủ (6 destination card từ
+dữ liệu thật) → `/hotels` (danh sách + phân trang) → chi tiết khách sạn (13
+phòng thật, đúng tên/giá/loại/tiện nghi) → chi tiết phòng → thêm giỏ → xem
+giỏ → qua checkout (đúng tên khách sạn/phòng/tổng tiền) → `/map` (37 marker
+thật ở HCM, đổi tỉnh sang Đà Nẵng đúng). `tsc --noEmit` và `eslint` sạch
+(chỉ còn 4 warning không liên quan đã có từ trước).
+
+---
+
+## 14. Backend: bỏ hẳn `Hotel.user`, chuyển khoá ngoại sở hữu hotel sang `User.hotel`
+
+Không phải thay đổi ở frontend, nhưng ghi lại ở đây vì ảnh hưởng trực tiếp
+đến mọi trang admin liên quan tới "hotel của tôi" (Rooms/Discounts theo
+hotel đang quản lý) — chi tiết đầy đủ (từng file, từng SQL, cách test) xem
+`BACKEND_CHANGES.md` mục 10.
+
+**Vấn đề phát hiện qua câu hỏi**: "1 hotel có nhiều owner/staff, 1 owner chỉ
+thuộc 1 hotel — vậy khoá ngoại phải nằm ở bảng `users`, sao lại để `user_id`
+ở bảng `hotels`?". Đúng — thiết kế cũ `Hotel.user` (`@OneToOne`, có
+`UNIQUE KEY` trên `hotels.user_id`) chỉ cho **đúng 1 user/hotel**, sai với
+mô hình 1 hotel nhiều nhân viên. Đã quyết định: bỏ hẳn `Hotel.user`, mọi nơi
+(kể cả owner) xác định qua `User.hotel` (`@ManyToOne`, khoá ngoại thật nằm ở
+`users.hotel_id`).
+
+**Ảnh hưởng tới admin dashboard**: toàn bộ authorization "chỉ được sửa/xoá
+hotel/room/discount/booking của **chính mình**" (các permission dạng
+`*_OWN`) vẫn hoạt động đúng như cũ về mặt hành vi — chỉ đổi cách backend tra
+cứu bên trong (từ `hotel.getUser()` sang `caller.getHotel()`), FE không cần
+đổi gì. Đã xác nhận bằng test thật trên DB thật (viết + chạy + xoá 1
+`@SpringBootTest` tạm gọi thẳng `RoomService.create_room()`): owner tạo được
+room trong đúng hotel mình quản lý, bị chặn (`Forbidden`) khi thử tạo room ở
+hotel người khác quản lý.
+
+**Migrate DB thật đã làm** (không mất dữ liệu, 100/100 hotel thật vẫn giữ
+đúng owner):
+```sql
+UPDATE users u JOIN hotels h ON h.user_id = u.id SET u.hotel_id = h.id;
+ALTER TABLE hotels DROP FOREIGN KEY FKbmtnc1ekbiwke2dfj0p64h4d3;
+ALTER TABLE hotels DROP KEY UKedof2un7abelc56v6tarsdx25;
+ALTER TABLE hotels DROP COLUMN user_id;
+```
+
+**Gợi ý còn bỏ ngỏ (chưa làm, chưa được yêu cầu)**: form Users trong admin
+(`src/app/admin/.../users/`) có sẵn dropdown "Khách sạn phụ trách" từ trước
+nhưng chưa nối được vào backend vì trước đây `User` không có field `hotel`
+lộ ra qua API (chỉ `Hotel.user` bị `@JsonIgnore` một chiều). Giờ `User.hotel`
+đã tồn tại thật ở DB nhưng đang bị `@JsonIgnore` (tránh lộ cả object
+`Hotel`/`rooms[]` qua mọi response `User`) — muốn nối dropdown đó vào thật
+thì cần thêm `hotelId` (kiểu `Long`, không phải cả object) vào
+`ReqCreateUserDTO`/`ReqUpdateUserDTO`/response user, việc này nằm ngoài yêu
+cầu gốc của đợt refactor này nên chưa làm.
+
+---
+
+## 15. 400 hotel test đổi từ RANDOM sinh trong code sang dữ liệu THẬT viết cứng trong seed JSON
+
+Cũng không phải thay đổi frontend, nhưng ghi lại vì liên quan trực tiếp tới
+dữ liệu demo hiển thị trên `/hotels`, `/map`: theo yêu cầu tiếp theo, 400
+hotel test (mục trước trong lịch sử dự án — xem `BACKEND_CHANGES.md` mục 9)
+không còn được random sinh trong code Java nữa, mà đã tra cứu tay 400 hotel
+**thật** (tên chuỗi/khách sạn có thật ở VN: Mường Thanh, Vinpearl, Sài Gòn
+Tourist, Novotel...) kèm địa chỉ/toạ độ/ward đúng, viết cứng vào
+`resources/seed/hotels-rooms.json`, trải đủ 34/34 tỉnh — vẫn giữ nguyên
+100 hotel thật ban đầu, vẫn không owner/không phòng (chi tiết đầy đủ xem
+`BACKEND_CHANGES.md` mục 11). Không cần đổi gì ở frontend — API
+`GET /api/v1/hotels` vẫn trả đúng hình dạng dữ liệu như trước, chỉ khác nội
+dung `name`/`address` (giờ là tên thật thay vì "Test Hotel N - Ward").

@@ -1,8 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { hotels } from "@/data/hotels.data";
-import { generateRoomsForHotel } from "@/data/rooms.data";
+import { getHotelServer, getRoomServer } from "@/lib/hotels/server";
 import RoomDetailView from "./RoomDetailView";
 
 interface RoomPageProps {
@@ -11,8 +10,7 @@ interface RoomPageProps {
 
 export async function generateMetadata({ params }: RoomPageProps): Promise<Metadata> {
     const { id, roomId } = await params;
-    const hotel = hotels.find((h) => h.id === Number(id));
-    const room = hotel ? generateRoomsForHotel(hotel.id).find((r) => r.id === roomId) : undefined;
+    const [hotel, room] = await Promise.all([getHotelServer(Number(id)), getRoomServer(Number(roomId))]);
     return {
         title: hotel && room ? `${room.name} — ${hotel.name} — WenGo` : "Không tìm thấy phòng — WenGo",
     };
@@ -20,13 +18,11 @@ export async function generateMetadata({ params }: RoomPageProps): Promise<Metad
 
 export default async function RoomPage({ params }: RoomPageProps) {
     const { id, roomId } = await params;
-    const hotel = hotels.find((h) => h.id === Number(id));
-    if (!hotel) {
-        notFound();
-    }
+    // Gọi song song — Room không mang theo hotelId (JsonIgnore ở backend)
+    // nên phải tự lấy hotel riêng từ route param, không suy ra được từ room.
+    const [hotel, room] = await Promise.all([getHotelServer(Number(id)), getRoomServer(Number(roomId))]);
 
-    const room = generateRoomsForHotel(hotel.id).find((r) => r.id === roomId);
-    if (!room) {
+    if (!hotel || !room) {
         notFound();
     }
 

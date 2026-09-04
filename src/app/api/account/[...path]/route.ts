@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ACCESS_COOKIE, REFRESH_COOKIE, getApiBaseUrl, refreshBackendSession } from "@/lib/auth/session";
 
-// Proxy chung cho request của KHÁCH (đã đăng nhập) -> backend Mini-OTA —
-// bản sao kiến trúc của src/app/api/admin/[...path]/route.ts, tách cookie
-// riêng (mota_acc_*) để không đụng phiên /admin. Lý do cần proxy: backend
-// chưa cấu hình CORS cho gọi thẳng từ trình duyệt, và access token nên nằm
-// trong cookie httpOnly thay vì lộ ra JS phía client.
 async function forward(req: NextRequest, path: string[], accessToken: string, bodyText: string | undefined) {
   const url = `${getApiBaseUrl()}/${path.join("/")}${req.nextUrl.search}`;
   const hasBody = bodyText !== undefined && req.method !== "GET" && req.method !== "HEAD";

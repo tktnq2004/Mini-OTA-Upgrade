@@ -17,16 +17,16 @@ interface AddItemMeta {
 interface CartContextValue {
     items: CartItem[];
     totalCount: number;
-    isInCart: (hotelId: number, roomId: string) => boolean;
-    addItem: (hotelId: number, roomId: string, meta: AddItemMeta) => void;
-    removeItem: (hotelId: number, roomId: string) => void;
-    setQuantity: (hotelId: number, roomId: string, quantity: number) => void;
+    isInCart: (hotelId: number, roomId: number) => boolean;
+    addItem: (hotelId: number, roomId: number, meta: AddItemMeta) => void;
+    removeItem: (hotelId: number, roomId: number) => void;
+    setQuantity: (hotelId: number, roomId: number, quantity: number) => void;
     clear: () => void;
 }
 
 const CartContext = createContext<CartContextValue | null>(null);
 
-function itemKey(hotelId: number, roomId: string): string {
+function itemKey(hotelId: number, roomId: number): string {
     return `${hotelId}:${roomId}`;
 }
 
@@ -49,10 +49,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
         saveCartToStorage(items);
     }, [items, hydrated]);
 
-    const isInCart = (hotelId: number, roomId: string) =>
+    const isInCart = (hotelId: number, roomId: number) =>
         items.some((it) => itemKey(it.hotelId, it.roomId) === itemKey(hotelId, roomId));
 
-    const addItem = (hotelId: number, roomId: string, meta: AddItemMeta) => {
+    const addItem = (hotelId: number, roomId: number, meta: AddItemMeta) => {
         setItems((current) => {
             if (current.some((it) => itemKey(it.hotelId, it.roomId) === itemKey(hotelId, roomId))) {
                 return current;
@@ -61,13 +61,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
         });
     };
 
-    const removeItem = (hotelId: number, roomId: string) => {
+    const removeItem = (hotelId: number, roomId: number) => {
         setItems((current) =>
             current.filter((it) => itemKey(it.hotelId, it.roomId) !== itemKey(hotelId, roomId))
         );
     };
 
-    const setQuantity = (hotelId: number, roomId: string, quantity: number) => {
+    const setQuantity = (hotelId: number, roomId: number, quantity: number) => {
         setItems((current) =>
             current.map((it) =>
                 itemKey(it.hotelId, it.roomId) === itemKey(hotelId, roomId)
