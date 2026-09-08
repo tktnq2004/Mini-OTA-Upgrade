@@ -11,13 +11,14 @@ import { deleteHotel, listHotels } from "@/lib/admin/resources";
 import type { Hotel } from "@/lib/admin/types";
 
 export default function HotelsPage() {
-    // Mẫu tham khảo cho việc ẩn/hiện NÚT theo quyền (khác với ẩn/hiện cả mục
-    // nav ở AdminShell) — hiện chỉ gate ở mức module (không phân biệt được
-    // quyền tạo/sửa/xoá riêng vì chưa xác nhận đúng tên quyền thật, xem ghi
-    // chú ở AdminShell.tsx). Khi có tên quyền thật (vd. "HOTEL_CREATE",
-    // "HOTEL_DELETE") thì đổi sang hasPermission(...) cho đúng từng nút.
-    const { hasModule } = useAdminAccess();
-    const canManageHotels = hasModule("HOTEL");
+    // Đã đối chiếu với catalog permission thật qua GET /auth/me — gate đúng
+    // từng nút theo permission thật thay vì cả module (trước đây hasModule
+    // ("HOTEL") cho qua bất kỳ ai có BẤT KỲ quyền HOTEL_* nào, kể cả chỉ có
+    // HOTEL_READ — nút "Thêm khách sạn"/"Xoá" vẫn hiện dù không được tạo/xoá,
+    // bấm vào thì backend mới chặn 403, trải nghiệm dở).
+    const { hasPermission } = useAdminAccess();
+    const canCreateHotel = hasPermission("HOTEL_CREATE");
+    const canDeleteHotel = hasPermission("HOTEL_DELETE_OWN") || hasPermission("HOTEL_DELETE_ALL");
     const [hotels, setHotels] = useState<Hotel[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -65,7 +66,7 @@ export default function HotelsPage() {
                     <h1 className={styles.pageTitle}>Khách sạn</h1>
                     <p className={styles.pageSubtitle}>Quản lý khách sạn — bấm vào một dòng để sửa và quản lý phòng.</p>
                 </div>
-                {canManageHotels && (
+                {canCreateHotel && (
                     <Link href="/admin/hotels/new" className={controls.button}>
                         Thêm khách sạn
                     </Link>
@@ -120,7 +121,7 @@ export default function HotelsPage() {
                                             <Link href={`/admin/hotels/${h.id}`} className={styles.linkButton}>
                                                 Sửa
                                             </Link>
-                                            {canManageHotels && (
+                                            {canDeleteHotel && (
                                                 <button type="button" className={styles.linkButtonDanger} onClick={() => handleDelete(h.id)}>
                                                     Xoá
                                                 </button>

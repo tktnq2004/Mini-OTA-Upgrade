@@ -109,17 +109,12 @@ export async function refreshBackendSession(refreshToken: string): Promise<Refre
   };
 }
 
-// GET /auth/me — ĐANG GIẢ ĐỊNH endpoint này sẽ được backend thêm (xem
-// CurrentAdmin trong types.ts), trả về danh tính + role thật đã gán của
-// chính user đang đăng nhập. Hiện CHỈ dùng cho AdminAccessProvider (ẩn/hiện
-// nav và nút trong dashboard theo quyền thật) — KHÔNG dùng để gác cổng đăng
-// nhập (xem probeAdminAccess bên dưới), vì endpoint chưa tồn tại thật: đã
-// tự kiểm chứng bằng cách đăng nhập thật với tài khoản admin@gmail.com (có
-// ROLE_ADMIN đầy đủ quyền, xem ADMIN.md mục 8) — /auth/me trả 404, và nếu để
-// probeAdminAccess phụ thuộc vào nó thì sẽ khoá luôn mọi tài khoản khỏi
-// /admin, kể cả admin thật, cho tới khi endpoint này được thêm. Trả null nếu
-// request lỗi/hết hạn/chưa tồn tại — AdminAccessProvider tự fail-open trong
-// lúc chờ.
+// GET /auth/me — danh tính + role/permission THẬT của chính user đang đăng
+// nhập (đã có thật ở backend — trả thêm hotelId + role kèm permission, test
+// qua curl với cả tài khoản admin lẫn customer thường). Dùng cho
+// AdminAccessProvider (ẩn/hiện nav + nút theo quyền thật) VÀ cho
+// probeAdminAccess bên dưới (gác cổng đăng nhập /admin). Trả null nếu
+// request lỗi/hết hạn — AdminAccessProvider tự fail-open trong lúc chờ tải.
 export async function fetchMe(accessToken: string): Promise<CurrentAdmin | null> {
   const res = await fetch(`${getAdminApiBaseUrl()}/auth/me`, {
     method: "GET",
@@ -130,27 +125,23 @@ export async function fetchMe(accessToken: string): Promise<CurrentAdmin | null>
 
   const envelope = await res.json().catch(() => null);
   const data = envelope?.data as CurrentAdmin | undefined;
-  if (!data || !Array.isArray(data.roles)) return null;
+  // Backend giờ trả "role" số ít (object | null), không còn "roles" mảng
+  // nữa (User↔Role đổi sang 1-nhiều thật) — validate theo id thay vì mảng
+  // roles cũ, kẻo mọi response hợp lệ đều bị coi là lỗi (role=null hợp lệ
+  // với owner/staff mới tạo chưa kịp gán role).
+  if (!data || typeof data.id !== "number") return null;
   return data;
 }
 
-// Không còn cách nào đọc "user này có phải admin không" từ JWT — quyền thật
-// nằm trong bảng Role/Permission phía backend, tự tra theo user.id ở mỗi
-// request. Cách duy nhất để biết chắc là THỬ gọi 1 endpoint chỉ role admin
-// mới có quyền (GET /roles cần authority ROLE_READ, hiện chỉ ROLE_ADMIN có
-// sẵn quyền này) — 200 nghĩa là tài khoản có quyền quản trị thật, 403 nghĩa
-// là không (đăng nhập đúng mật khẩu nhưng không đủ quyền vào admin).
-//
-// Vẫn cứng vào ROLE_READ dù chưa lý tưởng cho vai trò thấp hơn admin (vd.
-// Manager không có ROLE_READ sẽ bị chặn ở đây) — đã thử đổi sang fetchMe()
-// nhưng /auth/me chưa tồn tại thật (xem ghi chú ở fetchMe), nên tạm giữ
-// nguyên cơ chế cũ, ĐÃ XÁC NHẬN hoạt động đúng qua đăng nhập thật với tài
-// khoản admin@gmail.com. Cần đổi lại thành fetchMe() sau khi có endpoint đó.
+// Cổng đăng nhập /admin — dựa vào hotelId thật lấy từ /auth/me thay vì thăm
+// dò bằng cách gọi GET /roles (cơ chế cũ, chỉ ROLE_ADMIN mới qua được vì cần
+// authority ROLE_READ — chặn nhầm cả Manager/Staff/Owner hợp lệ không có
+// quyền đó). hotelId = 0 (admin toàn hệ thống) hoặc khác null (owner/staff
+// của 1 hotel cụ thể) đều được vào /admin; hotelId = null (customer, không
+// gán hotel lúc tạo tài khoản) thì không — 3 trạng thái này được gán THẲNG ở
+// backend (StartupRunner cho admin, tạo tài khoản nhân viên cho owner/staff,
+// đăng ký công khai cho customer), không phải suy luận từ permission.
 export async function probeAdminAccess(accessToken: string): Promise<boolean> {
-  const res = await fetch(`${getAdminApiBaseUrl()}/roles`, {
-    method: "GET",
-    headers: { Authorization: `Bearer ${accessToken}` },
-    cache: "no-store",
-  });
-  return res.ok;
+  const me = await fetchMe(accessToken);
+  return me !== null && me.hotelId !== null && me.hotelId !== undefined;
 }

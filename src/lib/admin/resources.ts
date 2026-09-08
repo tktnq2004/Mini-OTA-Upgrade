@@ -122,12 +122,31 @@ export const listUsers = (params: ListParams = {}) =>
   adminGet<Paginated<AppUser>>(`users?${buildListQuery(params, "email")}`);
 export const getUser = (id: number) => adminGet<AppUser>(`users/${id}`);
 export const createUser = (input: UserInput) => adminPost<AppUser>("users", input);
-export const updateUser = (id: number, input: UserInput) => adminPut<AppUser>("users", { id, ...input });
+// Endpoint cũ (PUT /users, body {id, ...}) đã bị backend xoá khỏi refactor
+// role/permission mới — giờ admin sửa người khác đi qua PUT
+// /admin/users/{userId} (USER_UPDATE_ALL, UserService.update_All).
+// hotelId: backend giờ ĐÃ nhận field này (ReqUpdateAllLocalDTO.hotelId) — 0
+// (hotel "Hệ thống") bị backend chặn tường minh nên không cần lọc ở đây;
+// null nghĩa là "giữ nguyên hotel hiện tại" (chưa hỗ trợ bỏ gán về customer
+// qua endpoint này, cùng quy ước với các field khác). password để trống
+// nghĩa là giữ nguyên, không bắt buộc như endpoint cũ.
+export const updateUser = (id: number, input: UserInput) =>
+  adminPut<AppUser>(`admin/users/${id}`, {
+    email: input.email,
+    password: input.password || undefined,
+    phone: input.phone,
+    fullName: input.fullName,
+    username: input.username,
+    hotelId: input.hotelId ?? undefined,
+  });
 export const deleteUser = (id: number) => adminDelete<void>(`users/${id}`);
 // Quyền THẬT của user nằm ở đây — role trong ReqCreateUserDTO/ReqUpdateUserDTO
 // ở trên chỉ là field trưng bày, không cấp quyền gì cả (xem ADMIN.md mục Roles).
-export const assignUserRoles = (userId: number, roleIds: number[]) =>
-  adminPost<unknown>(`users/${userId}/roles`, { roleIds });
+// User↔Role backend giờ là 1-nhiều thật (1 user chỉ 1 role) — trước đây nhận
+// mảng roleIds (gán nhiều role cùng lúc), giờ chỉ 1 roleId, THAY THẾ role
+// hiện tại (không cộng dồn).
+export const assignUserRole = (userId: number, roleId: number) =>
+  adminPost<unknown>(`users/${userId}/roles`, { roleId });
 
 // ---- Discounts ----
 // Discount giờ chỉ là "định nghĩa" (giá trị + đơn vị %/tiền cố định), KHÔNG
@@ -159,8 +178,6 @@ export const replaceRolePermissions = (id: number, permissionIds: number[]) =>
   adminPut<Role>(`roles/${id}/permissions`, { permissionIds });
 
 // ---- Danh tính + quyền của chính user đang đăng nhập ----
-// Xem CurrentAdmin trong types.ts — đang giả định endpoint này, chưa có
-// thật ở backend.
 export const getMyAccess = () => adminGet<CurrentAdmin>("auth/me");
 
 export function derivePermissionCatalog(roles: Role[]): Permission[] {

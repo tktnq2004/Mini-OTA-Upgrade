@@ -9,18 +9,24 @@ interface AdminAccessValue {
     me: CurrentAdmin | null;
     error: string | null;
     /**
-     * true khi đã tải xong THÀNH CÔNG dữ liệu quyền thật — chỉ khi cờ này
-     * true thì hasModule/hasPermission mới đáng tin. Trong lúc đang tải HOẶC
-     * nếu tải lỗi (vd. endpoint /auth/me chưa tồn tại ở backend — xem
-     * CurrentAdmin trong types.ts), cả 2 hàm đều mặc định trả true (fail-open
-     * ở tầng hiển thị) để không làm vỡ trải nghiệm admin hiện tại trong lúc
-     * chờ backend thêm endpoint. Đây CHỈ là UX — bảo mật thật luôn nằm ở
+     * true khi đã tải xong THÀNH CÔNG dữ liệu quyền thật (GET /auth/me, nay
+     * đã có thật ở backend) — chỉ khi cờ này true thì hasModule/hasPermission
+     * mới đáng tin. Trong lúc đang tải (khoảnh khắc đầu mỗi lần vào /admin)
+     * HOẶC nếu tải lỗi (mất mạng, backend tạm down...), cả 2 hàm đều mặc
+     * định trả true (fail-open ở tầng hiển thị) để không làm vỡ trải nghiệm
+     * admin vì 1 lỗi tạm thời. Đây CHỈ là UX — bảo mật thật luôn nằm ở
      * backend (@PreAuthorize), y hệt nguyên tắc đã áp dụng cho toàn bộ khu
      * vực /admin (xem ADMIN.md mục 4.2).
      */
     ready: boolean;
     hasModule: (module: string) => boolean;
     hasPermission: (permissionName: string) => boolean;
+    // Tiện lấy nhanh từ me.hotelId (xem CurrentAdmin) — 0 = admin toàn hệ
+    // thống, khác 0 = owner/staff của đúng hotel đó, null = customer (không
+    // lẽ ra không vào được tới đây, /admin/login đã chặn — undefined trong
+    // lúc chưa tải xong).
+    hotelId: number | null | undefined;
+    isSuperAdmin: boolean;
 }
 
 const AdminAccessContext = createContext<AdminAccessValue | null>(null);
@@ -50,8 +56,10 @@ export function AdminAccessProvider({ children }: { children: ReactNode }) {
         };
     }, []);
 
-    const permissionNames = new Set((me?.roles ?? []).flatMap((role) => role.permissions.map((p) => p.permissionName)));
-    const moduleNames = new Set((me?.roles ?? []).flatMap((role) => role.permissions.map((p) => p.module)));
+    // Backend giờ trả 1 role duy nhất (không phải mảng nữa — User↔Role là
+    // 1-nhiều thật), permission/module lấy thẳng từ role.permissions đó.
+    const permissionNames = new Set(me?.role?.permissions.map((p) => p.permissionName) ?? []);
+    const moduleNames = new Set(me?.role?.permissions.map((p) => p.module) ?? []);
 
     const value: AdminAccessValue = {
         me,
@@ -59,6 +67,8 @@ export function AdminAccessProvider({ children }: { children: ReactNode }) {
         ready,
         hasModule: (module) => !ready || moduleNames.has(module),
         hasPermission: (permissionName) => !ready || permissionNames.has(permissionName),
+        hotelId: me?.hotelId,
+        isSuperAdmin: me?.hotelId === 0,
     };
 
     return <AdminAccessContext.Provider value={value}>{children}</AdminAccessContext.Provider>;

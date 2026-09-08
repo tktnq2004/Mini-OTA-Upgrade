@@ -149,23 +149,26 @@ export interface RoomUpdateInput {
   viewIds: number[];
 }
 
-// id/fullName/username/phone khai báo nullable vì backend thật sự trả null
-// cho các field này trong một số trường hợp (xem ADMIN.md mục 6 — GET /users
-// danh sách luôn trả id: null; fullName/username/phone cũng có thể null với
-// tài khoản seed/tạo qua đường khác).
-// hotelId: ĐANG GIẢ ĐỊNH — cột chưa tồn tại thật ở backend (bạn sẽ thêm sau,
-// xem trao đổi lúc thiết kế). null = không thuộc khách sạn cụ thể (Admin
-// toàn hệ thống); có giá trị = tài khoản Manager/Staff/Reception phụ trách
-// đúng khách sạn đó. Optional (?) chứ không phải null bắt buộc, vì GET
-// /users hiện tại (trước khi có cột này) sẽ không trả field này ở tất cả —
-// code phải tự coi "undefined" và "null" là cùng một nghĩa "chưa gán hotel".
+// fullName/username/phone vẫn khai báo nullable vì tài khoản seed/tạo qua
+// đường khác (Google OAuth...) có thể thiếu các field này. id trước đây có
+// bug (GET /users danh sách luôn trả null) — đã xác nhận backend sửa xong
+// (UserService.fetch_all gọi resUser.setId(t.getId()) đầy đủ), nên hết
+// nullable. hotelId giờ là field thật (0 = admin toàn hệ thống, khác 0 =
+// owner/staff của đúng hotel đó, null = customer/chưa gán).
 export interface AppUser {
-  id: number | null;
+  id: number;
   email: string;
   fullName: string | null;
   username: string | null;
   phone: string | null;
   role: LegacyRole;
+  // Vai trò THẬT (khác field "role" ở trên — chỉ cosmetic, không cấp quyền
+  // gì). User↔Role giờ là 1-nhiều thật (1 user chỉ 1 role) — trả phẳng
+  // id+tên thay vì object Role lồng Permission, đủ để hiển thị cột "Vai trò"
+  // và preselect dropdown gán role. null = chưa được gán role nào (mọi
+  // customer thường, mặc định).
+  roleId?: number | null;
+  roleName?: string | null;
   hotelId?: number | null;
   createdAt?: string;
   updatedAt?: string;
@@ -176,14 +179,24 @@ export interface AppUser {
 // Không còn field "role" (LegacyRole) — field đó bên backend chỉ cosmetic,
 // không cấp quyền gì (xem ADMIN.md mục 6). Quyền thật gán qua danh sách Role
 // thật (roleIds) ở đây, cùng cơ chế với trang Phân quyền.
+//
+// password: bắt buộc lúc TẠO mới; lúc SỬA (updateUser -> PUT
+// /admin/users/{id}, UserService.update_All) để trống nghĩa là "giữ nguyên
+// mật khẩu cũ" — backend không còn bắt admin xác thực lại/nhập password để
+// sửa người khác (đó chỉ áp dụng cho USER tự sửa hồ sơ mình, USER_UPDATE_OWN).
 export interface UserInput {
   fullName: string;
   username: string;
   email: string;
   password: string;
   phone: string;
-  // Xem ghi chú hotelId ở AppUser — cùng giả định, gửi null tường minh khi
-  // không chọn khách sạn thay vì bỏ qua field.
+  // Backend giờ đã nhận field này ở cả POST /users (ReqCreateUserDTO) lẫn PUT
+  // /admin/users/{id} (ReqUpdateAllLocalDTO) — trước đây bị bỏ qua hoàn toàn,
+  // đã sửa. null = không gán khách sạn (customer). 0 (hotel "Hệ thống") bị
+  // backend chặn tường minh — chỉ StartupRunner được gán cho admin gốc, API
+  // này không cho gán 0 cho user khác. Lúc SỬA: null nghĩa là giữ nguyên hotel
+  // hiện tại, chưa hỗ trợ bỏ gán về customer qua form này (cùng quy ước với
+  // các field khác của ReqUpdateAllLocalDTO).
   hotelId: number | null;
 }
 
@@ -222,15 +235,16 @@ export interface RoleInput {
   permissionIds: number[];
 }
 
-// Hợp đồng ĐANG GIẢ ĐỊNH cho GET /auth/me — endpoint này chưa tồn tại ở
-// backend (xem session.ts:fetchMe + ADMIN.md mục "Hướng nâng cấp"), cần bên
-// backend thêm: trả về danh tính + role thật đã gán của CHÍNH user đang đăng
-// nhập (suy theo user.id trong JWT, cùng cơ chế @PreAuthorize đã dùng), bọc
-// trong envelope chuẩn như mọi endpoint khác. Tái dùng Role/Permission đã có
-// sẵn ở trên, không định nghĩa type quyền mới.
+// GET /auth/me — danh tính + role/permission THẬT của chính người đang đăng
+// nhập (đã có thật ở backend, xem session.ts:fetchMe). hotelId: 0 = admin
+// toàn hệ thống (quản lý tất cả hotel), khác 0 = owner/staff của đúng hotel
+// đó, null = customer (không được vào /admin — xem probeAdminAccess).
+// role: số ít (không phải mảng nữa) — User↔Role backend giờ là 1-nhiều thật,
+// 1 user chỉ 1 role; null = chưa được gán role nào.
 export interface CurrentAdmin {
   id: number;
   email: string;
   name: string;
-  roles: Role[];
+  hotelId: number | null;
+  role: Role | null;
 }
