@@ -177,8 +177,8 @@ export interface AppUser {
 }
 
 // Không còn field "role" (LegacyRole) — field đó bên backend chỉ cosmetic,
-// không cấp quyền gì (xem ADMIN.md mục 6). Quyền thật gán qua danh sách Role
-// thật (roleIds) ở đây, cùng cơ chế với trang Phân quyền.
+// không cấp quyền gì (xem ADMIN.md mục 6). Quyền thật gán qua field roleId
+// dưới đây, cùng cơ chế với trang Phân quyền.
 //
 // password: bắt buộc lúc TẠO mới; lúc SỬA (updateUser -> PUT
 // /admin/users/{id}, UserService.update_All) để trống nghĩa là "giữ nguyên
@@ -190,14 +190,24 @@ export interface UserInput {
   email: string;
   password: string;
   phone: string;
-  // Backend giờ đã nhận field này ở cả POST /users (ReqCreateUserDTO) lẫn PUT
-  // /admin/users/{id} (ReqUpdateAllLocalDTO) — trước đây bị bỏ qua hoàn toàn,
-  // đã sửa. null = không gán khách sạn (customer). 0 (hotel "Hệ thống") bị
-  // backend chặn tường minh — chỉ StartupRunner được gán cho admin gốc, API
-  // này không cho gán 0 cho user khác. Lúc SỬA: null nghĩa là giữ nguyên hotel
-  // hiện tại, chưa hỗ trợ bỏ gán về customer qua form này (cùng quy ước với
-  // các field khác của ReqUpdateAllLocalDTO).
+  // Backend nhận field này ở cả POST /users (ReqCreateUserDTO) lẫn PUT
+  // /admin/users/{id} (ReqUpdateAllLocalDTO). null = không gán khách sạn
+  // (customer). 0 (hotel "Hệ thống") bị backend chặn tường minh — chỉ
+  // StartupRunner được gán cho admin gốc, API này không cho gán 0 cho user
+  // khác. Lúc SỬA: null nghĩa là giữ nguyên hotel hiện tại, chưa hỗ trợ bỏ
+  // gán về customer qua form này (cùng quy ước với các field khác của
+  // ReqUpdateAllLocalDTO).
   hotelId: number | null;
+  // Role THẬT (khác field "role" ở trên). Lúc SỬA: gửi thẳng trong cùng
+  // request PUT /admin/users/{id} (ReqUpdateAllLocalDTO.roleId, gộp từ
+  // endpoint POST /users/{userId}/roles cũ đã xoá) — backend chặn gán role
+  // có level <= level người gọi. Lúc TẠO: KHÔNG được gửi qua POST /users
+  // (ReqCreateUserDTO không có field này) vì endpoint đó public/không xác
+  // thực — cho phép gán role tuỳ ý ở đây sẽ là lỗ hổng tự nâng quyền qua
+  // trang đăng ký công khai. Field này chỉ có ý nghĩa lúc SỬA; FE tự gọi
+  // thêm 1 lời gọi update ngay sau khi tạo nếu có chọn role (xem
+  // UsersPage.handleSubmit).
+  roleId: number | null;
 }
 
 export type DiscountUnit = "PERCENT" | "FIXED_AMOUNT";

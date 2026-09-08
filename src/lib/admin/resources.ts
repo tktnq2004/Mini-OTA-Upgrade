@@ -121,15 +121,22 @@ export const deleteView = (id: number) => adminDelete<unknown>(`view/${id}`).the
 export const listUsers = (params: ListParams = {}) =>
   adminGet<Paginated<AppUser>>(`users?${buildListQuery(params, "email")}`);
 export const getUser = (id: number) => adminGet<AppUser>(`users/${id}`);
-export const createUser = (input: UserInput) => adminPost<AppUser>("users", input);
-// Endpoint cũ (PUT /users, body {id, ...}) đã bị backend xoá khỏi refactor
-// role/permission mới — giờ admin sửa người khác đi qua PUT
-// /admin/users/{userId} (USER_UPDATE_ALL, UserService.update_All).
-// hotelId: backend giờ ĐÃ nhận field này (ReqUpdateAllLocalDTO.hotelId) — 0
-// (hotel "Hệ thống") bị backend chặn tường minh nên không cần lọc ở đây;
-// null nghĩa là "giữ nguyên hotel hiện tại" (chưa hỗ trợ bỏ gán về customer
-// qua endpoint này, cùng quy ước với các field khác). password để trống
-// nghĩa là giữ nguyên, không bắt buộc như endpoint cũ.
+// POST /users public/không xác thực (dùng chung với đăng ký công khai, xem
+// UserInput.roleId) — cố tình KHÔNG gửi roleId dù input có field này, để
+// không lỡ dựa vào việc backend "tình cờ" bỏ qua field lạ làm lưới an toàn.
+export const createUser = (input: UserInput) =>
+  adminPost<AppUser>("users", {
+    email: input.email,
+    password: input.password,
+    phone: input.phone,
+    fullName: input.fullName,
+    username: input.username,
+    hotelId: input.hotelId ?? undefined,
+  });
+
+// Gộp cả role vào cùng request PUT /admin/users/{id} (ReqUpdateAllLocalDTO.
+// roleId) — không còn endpoint POST /users/{userId}/roles riêng nữa, xem
+// UserInput.roleId.
 export const updateUser = (id: number, input: UserInput) =>
   adminPut<AppUser>(`admin/users/${id}`, {
     email: input.email,
@@ -138,21 +145,10 @@ export const updateUser = (id: number, input: UserInput) =>
     fullName: input.fullName,
     username: input.username,
     hotelId: input.hotelId ?? undefined,
+    roleId: input.roleId ?? undefined,
   });
 export const deleteUser = (id: number) => adminDelete<void>(`users/${id}`);
-// Quyền THẬT của user nằm ở đây — role trong ReqCreateUserDTO/ReqUpdateUserDTO
-// ở trên chỉ là field trưng bày, không cấp quyền gì cả (xem ADMIN.md mục Roles).
-// User↔Role backend giờ là 1-nhiều thật (1 user chỉ 1 role) — trước đây nhận
-// mảng roleIds (gán nhiều role cùng lúc), giờ chỉ 1 roleId, THAY THẾ role
-// hiện tại (không cộng dồn).
-export const assignUserRole = (userId: number, roleId: number) =>
-  adminPost<unknown>(`users/${userId}/roles`, { roleId });
 
-// ---- Discounts ----
-// Discount giờ chỉ là "định nghĩa" (giá trị + đơn vị %/tiền cố định), KHÔNG
-// còn ngày bắt đầu/kết thúc — ngày áp dụng gắn theo từng phòng riêng (xem
-// attachDiscountToRoom). 1 discount có thể gắn vào nhiều phòng với khung
-// ngày khác nhau.
 export const listDiscounts = () => adminGet<Discount[]>("discounts");
 export const getDiscount = (id: number) => adminGet<Discount>(`discounts/${id}`);
 export const createDiscount = (input: DiscountInput) => adminPost<Discount>("discounts", input);

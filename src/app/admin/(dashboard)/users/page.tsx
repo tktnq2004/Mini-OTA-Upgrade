@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import controls from "@/styles/controls.module.css";
 import styles from "@/components/admin/adminPage.module.css";
 import { AdminApiError } from "@/lib/admin/apiClient";
-import { assignUserRole, createUser, deleteUser, listHotels, listRoles, listUsers, updateUser } from "@/lib/admin/resources";
+import { createUser, deleteUser, listHotels, listRoles, listUsers, updateUser } from "@/lib/admin/resources";
 import type { AppUser, Hotel, Role, UserInput } from "@/lib/admin/types";
 
-const EMPTY_FORM: UserInput = { fullName: "", username: "", email: "", password: "", phone: "", hotelId: null };
+const EMPTY_FORM: UserInput = { fullName: "", username: "", email: "", password: "", phone: "", hotelId: null, roleId: null };
 
 export default function UsersPage() {
     const [users, setUsers] = useState<AppUser[]>([]);
@@ -21,16 +21,13 @@ export default function UsersPage() {
     const [isEditingUser, setIsEditingUser] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [form, setForm] = useState<UserInput>(EMPTY_FORM);
+    // Snapshot lúc mở form Sửa — dùng để biết field nào THẬT SỰ đổi so với
+    // lúc mở (kể cả role), tránh gọi API với body y hệt cũ (xem handleSubmit).
+    const [originalForm, setOriginalForm] = useState<UserInput | null>(null);
     const [formError, setFormError] = useState("");
     const [saving, setSaving] = useState(false);
 
     const [roles, setRoles] = useState<Role[]>([]);
-    // User↔Role backend giờ là 1-nhiều thật (1 user chỉ 1 role) — trước đây
-    // là mảng roleIds (checkbox nhiều role), giờ chỉ 1 lựa chọn.
-    const [assignRoleId, setAssignRoleId] = useState<number | null>(null);
-    const [assigning, setAssigning] = useState(false);
-    const [assignStatus, setAssignStatus] = useState("");
-
     // Danh sách khách sạn cho dropdown "Khách sạn phụ trách" — lấy 1 trang
     // lớn (size:100) vì listHotels vốn phân trang mà dropdown cần thấy hết;
     // đủ dùng cho quy mô demo hiện tại, cần đổi cách lấy nếu số khách sạn
@@ -69,6 +66,7 @@ export default function UsersPage() {
         setIsEditingUser(false);
         setEditingId(null);
         setForm(EMPTY_FORM);
+        setOriginalForm(null);
         setFormError("");
         setShowForm(true);
     };
@@ -78,40 +76,29 @@ export default function UsersPage() {
         setEditingId(u.id);
         // fullName/username/phone có thể null (dữ liệu cũ/seed thiếu) —
         // input controlled không chấp nhận value=null, phải đổi về "".
-        setForm({
+        // hotelId để null ("giữ nguyên") chứ không prefill hotel hiện tại —
+        // cùng lý do roleId prefill ĐÚNG role hiện tại (khác hotelId): dropdown
+        // role cần hiện sẵn lựa chọn hiện tại để sửa nhanh, còn hotelId thì
+        // không (xem chú thích ở dropdown "Khách sạn phụ trách" bên dưới).
+        const initialForm: UserInput = {
             fullName: u.fullName ?? "",
             username: u.username ?? "",
             email: u.email,
             password: "",
             phone: u.phone ?? "",
-            hotelId: u.hotelId ?? null,
-        });
+            hotelId: null,
+            roleId: u.roleId ?? null,
+        };
+        setForm(initialForm);
+        setOriginalForm(initialForm);
         setFormError("");
-        setAssignRoleId(u.roleId ?? null);
-        setAssignStatus("");
         setShowForm(true);
-    };
-
-    const handleAssignRole = async () => {
-        if (!editingId || !assignRoleId) return;
-        setAssignStatus("");
-        setAssigning(true);
-        try {
-            await assignUserRole(editingId, assignRoleId);
-            setAssignStatus("Đã gán role — thay thế role cũ của user này.");
-            load();
-        } catch (e) {
-            setAssignStatus(e instanceof AdminApiError ? e.message : "Gán role thất bại");
-        } finally {
-            setAssigning(false);
-        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Backend mới (PUT /admin/users/{id}, UserService.update_All) đã sửa
-        // đúng: để trống password lúc Sửa = giữ nguyên, không còn ghi đè bằng
-        // chuỗi rỗng như bug cũ. Nên password chỉ bắt buộc lúc TẠO mới.
+        // Backend (PUT /admin/users/{id}, UserService.update_All) để trống
+        // password lúc Sửa = giữ nguyên. Password chỉ bắt buộc lúc TẠO mới.
         if (!form.fullName || !form.username || !form.email || !form.phone || (!isEditingUser && !form.password)) {
             setFormError("Vui lòng nhập đủ thông tin bắt buộc" + (isEditingUser ? "" : ", kể cả mật khẩu"));
             return;
@@ -124,9 +111,45 @@ export default function UsersPage() {
         setSaving(true);
         try {
             if (isEditingUser && editingId) {
+                // Role giờ là 1 field trong CHÍNH form này (không còn khối/nút
+                // riêng) — "Cập nhật" gửi 1 request PUT duy nhất, backend tự áp
+                // dụng field nào thật sự đổi (kể cả role, xem UserInput.roleId).
+                // Chỉ cần chặn trước request rỗng (không đổi gì) để tránh lỗi
+                // "Nothing change" từ backend.
+                const changed =
+                    !originalForm ||
+                    form.fullName !== originalForm.fullName ||
+                    form.username !== originalForm.username ||
+                    form.email !== originalForm.email ||
+                    form.phone !== originalForm.phone ||
+                    form.password !== "" ||
+                    form.hotelId !== null ||
+                    (form.roleId !== null && form.roleId !== originalForm.roleId);
+                if (!changed) {
+                    setFormError("Không có gì để cập nhật.");
+                    return;
+                }
                 await updateUser(editingId, form);
             } else {
-                await createUser(form);
+                // POST /users public/không xác thực nên không nhận roleId lúc
+                // tạo (xem UserInput.roleId) — nếu có chọn role, gọi thêm 1
+                // request PUT ngay sau đó bằng chính id vừa tạo. Với người
+                // dùng vẫn là 1 thao tác — bấm "Tạo" 1 lần.
+                const created = await createUser(form);
+                if (form.roleId !== null && created.id) {
+                    try {
+                        await updateUser(created.id, form);
+                    } catch (roleErr) {
+                        setShowForm(false);
+                        load();
+                        setListError(
+                            `Đã tạo user nhưng gán role thất bại: ${
+                                roleErr instanceof AdminApiError ? roleErr.message : "Lỗi không xác định"
+                            }`
+                        );
+                        return;
+                    }
+                }
             }
             setShowForm(false);
             load();
@@ -210,9 +233,9 @@ export default function UsersPage() {
                             {/* hotelId = null -> customer (mặc định). hotelId = 0 (hotel "Hệ
                                 thống" — sentinel chỉ dành cho admin gốc do StartupRunner sinh ra)
                                 không xuất hiện ở đây vì backend đã lọc khỏi danh sách `hotels`
-                                lẫn chặn gán qua API này. Lúc SỬA, để nguyên "— Không gán khách sạn
-                                —" nghĩa là GIỮ NGUYÊN hotel hiện tại (chưa hỗ trợ bỏ gán về
-                                customer qua form này). */}
+                                lẫn chặn gán qua API này. Lúc SỬA, để nguyên "— Giữ nguyên —"
+                                nghĩa là GIỮ NGUYÊN hotel hiện tại (chưa hỗ trợ bỏ gán về customer
+                                qua form này). */}
                             <select
                                 className={controls.select}
                                 value={form.hotelId ?? ""}
@@ -226,6 +249,34 @@ export default function UsersPage() {
                                 ))}
                             </select>
                         </div>
+                        <div className={controls.field}>
+                            <label className={controls.label}>Vai trò</label>
+                            {/* Gộp thẳng vào form user (không còn khối/nút "Gán vai trò" riêng
+                                — trước đây bấm nhầm "Cập nhật" thay vì nút riêng đó làm role chọn
+                                bị bỏ qua, còn request PUT thì báo lỗi "Nothing change" dù có ý
+                                định đổi role thật). Lúc SỬA, dropdown prefill đúng role hiện tại
+                                (khác hotelId — role cần thấy ngay giá trị đang có). Lúc TẠO, chọn
+                                role ở đây thì FE tự gọi thêm 1 lần cập nhật ngay sau khi tạo xong
+                                (POST /users public nên không nhận field này — xem
+                                UserInput.roleId), vẫn chỉ 1 thao tác bấm "Tạo". */}
+                            <select
+                                className={controls.select}
+                                value={form.roleId ?? ""}
+                                onChange={(e) => setForm({ ...form, roleId: e.target.value ? Number(e.target.value) : null })}
+                            >
+                                <option value="">{isEditingUser ? "— Giữ nguyên —" : "— Chưa gán role —"}</option>
+                                {roles.map((r) => (
+                                    <option key={r.id} value={r.id}>
+                                        {r.roleName}
+                                    </option>
+                                ))}
+                            </select>
+                            {roles.length === 0 && (
+                                <span style={{ fontSize: 11.5, color: "var(--color-text-faint)" }}>
+                                    Chưa có role nào — tạo ở trang Phân quyền trước.
+                                </span>
+                            )}
+                        </div>
                     </div>
                     {formError && <p className={controls.error}>{formError}</p>}
                     <div className={styles.formActions}>
@@ -235,48 +286,6 @@ export default function UsersPage() {
                         <button type="button" className={controls.buttonGhost} onClick={() => setShowForm(false)}>
                             Huỷ
                         </button>
-                    </div>
-
-                    <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid var(--color-border-soft)" }}>
-                        <label className={controls.label}>Vai trò</label>
-                        {!isEditingUser ? (
-                            <p style={{ fontSize: 12, color: "var(--color-text-faint)", marginTop: 6 }}>
-                                Tạo user xong rồi mới gán được vai trò (cần ID thật) — sau khi tạo, bấm &quot;Sửa&quot; ở
-                                user vừa tạo để gán.
-                            </p>
-        ) : (
-                            <>
-                                <select
-                                    className={controls.select}
-                                    style={{ marginTop: 8, maxWidth: 320 }}
-                                    value={assignRoleId ?? ""}
-                                    onChange={(e) => setAssignRoleId(e.target.value ? Number(e.target.value) : null)}
-                                >
-                                    <option value="">— Chưa gán role —</option>
-                                    {roles.map((r) => (
-                                        <option key={r.id} value={r.id}>
-                                            {r.roleName}
-                                        </option>
-                                    ))}
-                                </select>
-                                {roles.length === 0 && (
-                                    <p style={{ fontSize: 12, color: "var(--color-text-faint)", marginTop: 6 }}>
-                                        Chưa có role nào — tạo ở trang Phân quyền trước.
-                                    </p>
-                                )}
-                                <div style={{ marginTop: 10 }}>
-                                    <button
-                                        type="button"
-                                        className={controls.buttonGhost}
-                                        onClick={handleAssignRole}
-                                        disabled={assigning || !editingId || !assignRoleId}
-                                    >
-                                        {assigning ? "Đang gán..." : "Gán vai trò (thay thế role hiện tại)"}
-                                    </button>
-                                </div>
-                                {assignStatus && <p className={styles.pageSubtitle}>{assignStatus}</p>}
-                            </>
-                        )}
                     </div>
                 </form>
             )}

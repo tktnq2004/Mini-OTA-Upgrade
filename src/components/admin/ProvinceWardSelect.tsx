@@ -13,20 +13,6 @@ interface ProvinceWardSelectProps {
     onProvinceChange?: (provinceId: string | null) => void;
 }
 
-// Chọn tỉnh rồi chọn phường/xã theo đúng tỉnh đó — CHỈ gửi wardId lên
-// backend khi submit (HotelInput không có field provinceId, và từ wardId
-// luôn suy ra được tỉnh qua Ward.province ở phía backend, nên không cần lưu
-// riêng). provinceId ở đây chỉ là state màn hình để lọc dropdown ward, không
-// phải dữ liệu gửi đi.
-//
-// Dùng chung src/data/locations.data.ts (vn-provinces-wards.json) với trang
-// Map — id ở backend giờ CHÍNH LÀ mã hành chính VN thật này (Province/Ward.id
-// đổi từ auto-increment sang String = Code, xem StartupRunner/ADMIN.md), nên
-// không còn cần snapshot DB riêng (admin-locations.json) như trước nữa.
-//
-// Trả về 2 <div className={controls.field}> làm 2 ô riêng (không bọc thêm
-// div ngoài) để xếp thẳng vào .formGrid 2 cột sẵn có của trang cha, giống
-// cách Latitude/Longitude đang nằm cạnh nhau.
 export default function ProvinceWardSelect({ wardId, onChange, onProvinceChange }: ProvinceWardSelectProps) {
     const [provinceId, setProvinceId] = useState<string | null>(() => getWardById(wardId)?.provinceId ?? null);
     const wardOptions = getWardsByProvince(provinceId);
