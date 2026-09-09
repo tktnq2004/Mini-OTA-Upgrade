@@ -4,6 +4,7 @@ import { useState } from "react";
 import controls from "@/styles/controls.module.css";
 import styles from "./adminPage.module.css";
 import ChipPicker from "./ChipPicker";
+import MediaGallery from "@/components/media/MediaGallery";
 import { AdminApiError } from "@/lib/admin/apiClient";
 import { deleteRoom, removeRoomAmenity, removeRoomView, updateRoom } from "@/lib/admin/resources";
 import type { Amenity, Room, View } from "@/lib/admin/types";
@@ -149,6 +150,10 @@ export default function RoomCard({ room, allAmenities, allViews, onChanged }: Ro
 
             {expanded && (
                 <div className={styles.stack} style={{ marginTop: 14 }}>
+                    <div className={controls.field}>
+                        <label className={controls.label}>Ảnh phòng</label>
+                        <MediaGallery ownerType="ROOM" ownerId={room.id} />
+                    </div>
                     <div className={styles.formGrid}>
                         <div className={controls.field}>
                             <label className={controls.label}>Tên phòng</label>
