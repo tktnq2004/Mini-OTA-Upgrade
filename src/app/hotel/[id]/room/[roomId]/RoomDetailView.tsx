@@ -24,7 +24,7 @@ import SiteHeader from "@/components/SiteHeader/SiteHeader";
 import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
 import Stepper from "@/components/Stepper/Stepper";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
-import { useCart } from "@/components/cart/CartProvider";
+import { useWishlist } from "@/components/wishlist/WishlistProvider";
 import { getPanoramaTourForHotel } from "@/components/panorama/panoramaTours.data";
 import PanoramaViewerModal from "@/components/panorama/PanoramaViewerModal";
 import RoomCard from "../../RoomCard";
@@ -40,7 +40,7 @@ export default function RoomDetailView({ hotel, room }: RoomDetailViewProps) {
     const { t } = useLanguage();
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { isInCart, addItem, removeItem } = useCart();
+    const { isSaved, add, remove } = useWishlist();
 
     // Chỉ đọc query string một lần lúc vào trang để khởi tạo ngày/số khách —
     // sau đó người dùng tự điều chỉnh ngay tại đây (giống HotelDetail).
@@ -73,7 +73,7 @@ export default function RoomDetailView({ hotel, room }: RoomDetailViewProps) {
     const total = room.price * nights;
     const minCheckin = todayIso();
     const minCheckout = addDaysIso(checkin || minCheckin, 1);
-    const selected = isInCart(hotel.id, room.id);
+    const selected = isSaved(hotel.id, room.id);
     const hotelHref = `/hotel/${hotel.id}?${searchParams.toString()}`;
 
     const handleCheckinChange = (value: string) => {
@@ -83,18 +83,21 @@ export default function RoomDetailView({ hotel, room }: RoomDetailViewProps) {
         }
     };
 
-    const toggleCart = () => {
+    const toggleWishlist = () => {
         if (selected) {
-            removeItem(hotel.id, room.id);
+            remove(hotel.id, room.id);
         } else {
-            addItem(hotel.id, room.id, { checkin, checkout, guests });
+            add(hotel.id, room.id);
         }
     };
 
     const bookNow = () => {
+        // Ngày/số khách chỉ là gợi ý điền sẵn — chốt lại ở /checkout (có picker
+        // biết ngày đã kín). from=hotel để nút "Quay lại" về đúng trang này.
         const params = new URLSearchParams({
             hotelId: String(hotel.id),
-            roomId: String(room.id),
+            roomIds: String(room.id),
+            from: "hotel",
             checkin,
             checkout,
             guests: String(guests),
@@ -285,10 +288,10 @@ export default function RoomDetailView({ hotel, room }: RoomDetailViewProps) {
                             <button
                                 type="button"
                                 className={selected ? styles.selectButtonActive : styles.selectButton}
-                                onClick={toggleCart}
+                                onClick={toggleWishlist}
                             >
                                 {selected && <CheckIcon size={13} weight="bold" />}
-                                {selected ? t("room.selected") : t("room.selectButton")}
+                                {selected ? t("room.savedToWishlist") : t("room.saveToWishlist")}
                             </button>
                             <button type="button" className={styles.bookNowButton} onClick={bookNow}>
                                 {t("room.bookNow")}

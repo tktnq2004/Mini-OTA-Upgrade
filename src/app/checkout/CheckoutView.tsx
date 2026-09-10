@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type SubmitEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -8,6 +8,8 @@ import {
     BuildingsIcon,
     BedIcon,
     MapPinIcon,
+    CalendarBlankIcon,
+    UsersIcon,
     CreditCardIcon,
     HandCoinsIcon,
     CheckCircleIcon,
@@ -15,68 +17,93 @@ import {
 } from "@phosphor-icons/react";
 import SiteHeader from "@/components/SiteHeader/SiteHeader";
 import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
-import { useCart } from "@/components/cart/CartProvider";
+import DateRangeField from "@/components/DateRangePicker/DateRangeField";
+import { useWishlist } from "@/components/wishlist/WishlistProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { formatVnd } from "@/lib/format";
-import type { Hotel } from "@/lib/hotels/types";
-import { addDaysIso, formatDateVn, nightsBetween, todayIso } from "@/lib/searchFilters";
-import {
-    cartGrandTotal,
-    cartLineTotal,
-    cartTotalRooms,
-    findRoomForItem,
-    groupCartItemsByHotel,
-    loadHotelsForCart,
-} from "@/components/cart/cartUtils";
-import type { CartItem } from "@/components/cart/cartStorage";
+import { getHotel } from "@/lib/hotels/client";
+import type { Hotel, Room } from "@/lib/hotels/types";
+import { nightsBetween } from "@/lib/searchFilters";
+import { getUnavailableDates } from "@/lib/booking/availability";
+import { createBooking, type PaymentMethod } from "@/lib/booking/client";
 import controls from "@/styles/controls.module.css";
 import styles from "./checkout.module.css";
 
-type PaymentMethod = "payAtHotel" | "card";
-
 export default function CheckoutView() {
-    const { t, language } = useLanguage();
+    const { t } = useLanguage();
     const searchParams = useSearchParams();
-    const { items: cartItems, clear: clearCart } = useCart();
+    const { remove: removeFromWishlist } = useWishlist();
 
-    const directHotelId = searchParams.get("hotelId");
-    const directRoomId = searchParams.get("roomId");
-    const isDirectMode = Boolean(directHotelId && directRoomId);
+    // 1 lần đặt = 1 khách sạn + N phòng của khách sạn đó (xem quyết định 3a).
+    // Đọc từ query: ?hotelId=..&roomIds=1,2,3  (tương thích ngược: ?roomId=1).
+    const hotelId = Number(searchParams.get("hotelId")) || null;
+    const roomIds = useMemo(() => {
+        const csv = searchParams.get("roomIds");
+        const single = searchParams.get("roomId");
+        const raw = csv ? csv.split(",") : single ? [single] : [];
+        return Array.from(new Set(raw.map(Number).filter((n) => Number.isFinite(n) && n > 0)));
+    }, [searchParams]);
+    const cameFromHotel = searchParams.get("from") === "hotel";
+    const backHref = cameFromHotel && hotelId ? `/hotel/${hotelId}` : "/wishlist";
 
-    // Luồng "Đặt ngay" (1 phòng, từ query string) và luồng giỏ hàng (nhiều
-    // phòng, từ CartProvider) cùng đổ về một mảng orderItems — phần hiển thị
-    // bên dưới không cần biết đang ở luồng nào.
-    const orderItems: CartItem[] = isDirectMode
-        ? [
-              {
-                  hotelId: Number(directHotelId),
-                  roomId: Number(directRoomId),
-                  quantity: 1,
-                  checkin: searchParams.get("checkin") || todayIso(),
-                  checkout: searchParams.get("checkout") || addDaysIso(todayIso(), 1),
-                  guests: Number(searchParams.get("guests")) || 2,
-                  addedAt: 0,
-              },
-          ]
-        : cartItems;
+    const [hotel, setHotel] = useState<Hotel | null>(null);
+    const [loadingHotel, setLoadingHotel] = useState(Boolean(hotelId));
 
-    const [hotelsById, setHotelsById] = useState<Map<number, Hotel>>(new Map());
-    const [loadingHotels, setLoadingHotels] = useState(true);
+    useEffect(() => {
+        if (!hotelId) return;
+        let alive = true;
+        getHotel(hotelId)
+            .then((h) => {
+                if (alive) setHotel(h);
+            })
+            .catch(() => {
+                if (alive) setHotel(null);
+            })
+            .finally(() => {
+                if (alive) setLoadingHotel(false);
+            });
+        return () => {
+            alive = false;
+        };
+    }, [hotelId]);
 
-    const loadHotels = () => {
-        setLoadingHotels(true);
-        loadHotelsForCart(orderItems)
-            .then(setHotelsById)
-            .finally(() => setLoadingHotels(false));
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    useEffect(loadHotels, [orderItems.map((i) => `${i.hotelId}:${i.roomId}`).join(",")]); // eslint-disable-line react-hooks/set-state-in-effect -- tải hotel/room từ API theo đơn hàng hiện tại, một external system
+    const rooms: Room[] = useMemo(() => {
+        if (!hotel?.rooms) return [];
+        return roomIds
+            .map((id) => hotel.rooms!.find((r) => r.id === id))
+            .filter((r): r is Room => Boolean(r));
+    }, [hotel, roomIds]);
 
-    const groups = groupCartItemsByHotel(orderItems, hotelsById);
-    const grandTotal = cartGrandTotal(orderItems, hotelsById);
-    const totalRooms = cartTotalRooms(orderItems);
-    const backHref = isDirectMode ? `/hotel/${directHotelId}` : "/cart";
+    // ----- Ngày nhận / trả (chọn Ở ĐÂY, không phải ở wishlist) -----
+    const [checkIn, setCheckIn] = useState<string | null>(searchParams.get("checkin"));
+    const [checkOut, setCheckOut] = useState<string | null>(searchParams.get("checkout"));
+    const [guests, setGuests] = useState(() => Number(searchParams.get("guests")) || 2);
 
+    const [unavailable, setUnavailable] = useState<string[]>([]);
+    const [loadingDates, setLoadingDates] = useState(true);
+
+    useEffect(() => {
+        if (!hotelId || roomIds.length === 0) return;
+        let alive = true;
+        // TODO(backend): getUnavailableDates hiện trả rỗng — khi có API, các
+        // ngày đã kín sẽ tự bị bôi xám trong DateRangePicker.
+        getUnavailableDates(hotelId, roomIds)
+            .then((days) => {
+                if (alive) setUnavailable(days);
+            })
+            .finally(() => {
+                if (alive) setLoadingDates(false);
+            });
+        return () => {
+            alive = false;
+        };
+    }, [hotelId, roomIds]);
+
+    const nights = checkIn && checkOut ? nightsBetween(checkIn, checkOut) : 0;
+    const roomsSubtotal = rooms.reduce((sum, r) => sum + r.price, 0);
+    const grandTotal = nights > 0 ? roomsSubtotal * nights : 0;
+
+    // ----- Thông tin khách + thanh toán -----
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
     const [phone, setPhone] = useState("");
@@ -87,15 +114,17 @@ export default function CheckoutView() {
     const [cardExpiry, setCardExpiry] = useState("");
     const [cardCvv, setCardCvv] = useState("");
     const [error, setError] = useState("");
-    // Chụp lại số phòng/tổng tiền tại thời điểm đặt — không thể dùng lại
-    // totalRooms/grandTotal ở màn hình thành công vì luồng giỏ hàng gọi
-    // clearCart() ngay sau đó, khiến chúng bị tính lại về 0.
+    const [submitting, setSubmitting] = useState(false);
     const [order, setOrder] = useState<{ code: string; rooms: number; total: number } | null>(null);
 
-    const handleSubmit = (e: SubmitEvent<HTMLFormElement>) => {
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError("");
 
+        if (!checkIn || !checkOut) {
+            setError(t("checkout.errorDates"));
+            return;
+        }
         if (!fullName || !email || !phone) {
             setError(t("checkout.errorRequired"));
             return;
@@ -104,30 +133,33 @@ export default function CheckoutView() {
             setError(t("checkout.errorCardRequired"));
             return;
         }
+        if (!hotelId || rooms.length === 0) return;
 
-        // TODO(backend): POST /orders — gửi orderItems + thông tin khách +
-        // phương thức thanh toán lên server, nhận về mã đơn thật thay cho mã
-        // demo sinh ở client bên dưới. Nếu người dùng đã đăng nhập, đây cũng là
-        // chỗ gắn userId vào đơn thay vì để guest checkout.
-        console.log("Đặt phòng (demo):", {
-            fullName,
-            email,
-            phone,
-            note,
-            paymentMethod,
-            orderItems,
-            total: grandTotal,
-        });
-
-        if (!isDirectMode) {
-            clearCart();
+        setSubmitting(true);
+        try {
+            const result = await createBooking({
+                hotelId,
+                roomIds: rooms.map((r) => r.id),
+                checkIn,
+                checkOut,
+                guests,
+                guest: { fullName, email, phone, note: note || undefined },
+                payment: {
+                    method: paymentMethod,
+                    card:
+                        paymentMethod === "card"
+                            ? { number: cardNumber, name: cardName, expiry: cardExpiry, cvv: cardCvv }
+                            : undefined,
+                },
+            });
+            // Đặt xong thì bỏ các phòng vừa đặt khỏi wishlist (nếu có).
+            rooms.forEach((r) => removeFromWishlist(hotelId, r.id));
+            setOrder({ code: result.code, rooms: rooms.length, total: grandTotal });
+        } catch {
+            setError(t("checkout.errorSubmit"));
+        } finally {
+            setSubmitting(false);
         }
-        // handleSubmit chỉ chạy khi submit form (event handler), không phải lúc
-        // render — Date.now() ở đây an toàn, không vi phạm yêu cầu "render phải
-        // pure" mà rule này nhắm tới.
-        // eslint-disable-next-line react-hooks/purity
-        const code = `MO-${Date.now().toString(36).toUpperCase()}`;
-        setOrder({ code, rooms: totalRooms, total: grandTotal });
     };
 
     if (order) {
@@ -152,27 +184,27 @@ export default function CheckoutView() {
         );
     }
 
-    if (loadingHotels) {
+    if (loadingHotel) {
         return (
             <div className={styles.page}>
                 <SiteHeader />
                 <div className={styles.layout}>
-                    <p className={styles.emptyState}>{t("cart.loading")}</p>
+                    <p className={styles.emptyState}>{t("wishlist.loading")}</p>
                 </div>
             </div>
         );
     }
 
-    if (groups.length === 0) {
+    if (!hotel || rooms.length === 0) {
         return (
             <div className={styles.page}>
                 <SiteHeader />
                 <div className={styles.layout}>
                     <div className={styles.emptyState}>
                         <ShoppingBagIcon size={32} weight="light" />
-                        <p>{t("cart.empty")}</p>
-                        <Link href="/" className={controls.button}>
-                            {t("cart.emptyCta")}
+                        <p>{t("checkout.nothingToBook")}</p>
+                        <Link href="/wishlist" className={controls.button}>
+                            {t("checkout.backToWishlist")}
                         </Link>
                     </div>
                 </div>
@@ -187,13 +219,13 @@ export default function CheckoutView() {
             <div className={styles.layout}>
                 <Link href={backHref} className={styles.backLink}>
                     <ArrowLeftIcon size={14} weight="bold" />
-                    {isDirectMode ? t("checkout.backToHotel") : t("checkout.backToCart")}
+                    {cameFromHotel ? t("checkout.backToHotel") : t("checkout.backToWishlist")}
                 </Link>
 
                 <h1 className={styles.title}>{t("checkout.title")}</h1>
 
-                <div className={styles.grid}>
-                    <form className={styles.formColumn} onSubmit={handleSubmit}>
+                <form className={styles.grid} onSubmit={handleSubmit}>
+                    <div className={styles.formColumn}>
                         <section className={styles.formSection}>
                             <h2>{t("checkout.customerInfoTitle")}</h2>
                             <p className={styles.sectionHint}>{t("checkout.customerInfoHint")}</p>
@@ -260,8 +292,7 @@ export default function CheckoutView() {
 
                             <div className={styles.paymentOptions}>
                                 <label
-                                    className={`${styles.paymentOption} ${paymentMethod === "payAtHotel" ? styles.paymentOptionActive : ""
-                                        }`}
+                                    className={`${styles.paymentOption} ${paymentMethod === "payAtHotel" ? styles.paymentOptionActive : ""}`}
                                 >
                                     <input
                                         type="radio"
@@ -273,8 +304,7 @@ export default function CheckoutView() {
                                     <span>{t("checkout.payAtHotel")}</span>
                                 </label>
                                 <label
-                                    className={`${styles.paymentOption} ${paymentMethod === "card" ? styles.paymentOptionActive : ""
-                                        }`}
+                                    className={`${styles.paymentOption} ${paymentMethod === "card" ? styles.paymentOptionActive : ""}`}
                                 >
                                     <input
                                         type="radio"
@@ -350,78 +380,108 @@ export default function CheckoutView() {
                         </section>
 
                         {error && <p className={controls.error}>{error}</p>}
-
-                        <button type="submit" className={styles.submitButton}>
-                            {t("checkout.submit", { total: formatVnd(grandTotal) })}
-                        </button>
-                    </form>
+                    </div>
 
                     <aside className={styles.summaryColumn}>
                         <div className={styles.summaryCard}>
-                            <h2>{t("checkout.orderSummaryTitle")}</h2>
+                            <div className={styles.datesBlock}>
+                                <h2 className={styles.summaryHeading}>
+                                    <CalendarBlankIcon size={15} weight="bold" /> {t("checkout.datesTitle")}
+                                </h2>
 
-                            {groups.map(({ hotel, items: hotelItems }) => (
-                                <div key={hotel.id} className={styles.summaryHotelGroup}>
-                                    <div className={styles.summaryHotelHead}>
+                                <DateRangeField
+                                    checkIn={checkIn}
+                                    checkOut={checkOut}
+                                    onChange={(ci, co) => {
+                                        setCheckIn(ci);
+                                        setCheckOut(co);
+                                    }}
+                                    disabledDates={unavailable}
+                                    loading={loadingDates}
+                                />
+
+                                <div className={styles.guestsField}>
+                                    <label className={controls.label} htmlFor="co-guests">
+                                        <UsersIcon size={13} weight="bold" /> {t("checkout.guestsLabel")}
+                                    </label>
+                                    <input
+                                        id="co-guests"
+                                        type="number"
+                                        min={1}
+                                        max={30}
+                                        className={controls.input}
+                                        value={guests}
+                                        onChange={(e) => setGuests(Math.max(1, Number(e.target.value) || 1))}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className={styles.summaryDivider} />
+
+                            <h2 className={styles.summaryHeading}>{t("checkout.orderSummaryTitle")}</h2>
+
+                            <div className={styles.summaryHotelGroup}>
+                                <div className={styles.summaryHotelHead}>
+                                    <ImageWithFallback
+                                        src={hotel.image}
+                                        alt={hotel.name}
+                                        className={styles.summaryHotelThumb}
+                                        fallbackClassName={styles.summaryHotelThumbFallback}
+                                        fallback={<BuildingsIcon size={16} weight="light" />}
+                                    />
+                                    <div className={styles.summaryHotelText}>
+                                        <span className={styles.summaryHotelName}>{hotel.name}</span>
+                                        <span className={styles.summaryHotelAddress}>
+                                            <MapPinIcon size={11} />
+                                            <span>{hotel.address}</span>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {rooms.map((room) => (
+                                    <div key={room.id} className={styles.summaryRoomRow}>
                                         <ImageWithFallback
-                                            src={hotel.image}
-                                            alt={hotel.name}
-                                            className={styles.summaryHotelThumb}
-                                            fallbackClassName={styles.summaryHotelThumbFallback}
-                                            fallback={<BuildingsIcon size={16} weight="light" />}
+                                            src={room.thumbnail}
+                                            alt={room.name}
+                                            className={styles.summaryRoomThumb}
+                                            fallbackClassName={styles.summaryRoomThumbFallback}
+                                            fallback={<BedIcon size={14} weight="light" />}
                                         />
-                                        <div className={styles.summaryHotelText}>
-                                            <span className={styles.summaryHotelName}>{hotel.name}</span>
-                                            <span className={styles.summaryHotelAddress}>
-                                                <MapPinIcon size={11} />
-                                                <span>{hotel.address}</span>
+                                        <div className={styles.summaryRoomInfo}>
+                                            <span className={styles.summaryRoomName}>
+                                                {room.roomType ? `${room.roomType.roomTypeName} · ` : ""}
+                                                {room.name}
+                                            </span>
+                                            <span className={styles.summaryRoomMeta}>
+                                                {nights > 0
+                                                    ? `${formatVnd(room.price)} × ${t("hotel.nightsSuffix", { count: nights })}`
+                                                    : `${formatVnd(room.price)} ${t("room.perNight")}`}
                                             </span>
                                         </div>
+                                        <span className={styles.summaryRoomPrice}>
+                                            {nights > 0 ? formatVnd(room.price * nights) : "—"}
+                                        </span>
                                     </div>
-
-                                    {hotelItems.map((item) => {
-                                        const room = findRoomForItem(item, hotelsById);
-                                        if (!room) return null;
-                                        const nights = nightsBetween(item.checkin, item.checkout);
-                                        return (
-                                            <div key={item.roomId} className={styles.summaryRoomRow}>
-                                                <ImageWithFallback
-                                                    src={room.thumbnail}
-                                                    alt={room.name}
-                                                    className={styles.summaryRoomThumb}
-                                                    fallbackClassName={styles.summaryRoomThumbFallback}
-                                                    fallback={<BedIcon size={14} weight="light" />}
-                                                />
-                                                <div className={styles.summaryRoomInfo}>
-                                                    <span className={styles.summaryRoomName}>
-                                                        {room.roomType ? `${room.roomType.roomTypeName} · ` : ""}
-                                                        {room.name}
-                                                    </span>
-                                                    <span className={styles.summaryRoomMeta}>
-                                                        {formatDateVn(item.checkin, language)} –{" "}
-                                                        {formatDateVn(item.checkout, language)} ·{" "}
-                                                        {t("hotel.nightsSuffix", { count: nights })}
-                                                        {item.quantity > 1
-                                                            ? ` · ${t("checkout.roomQuantity", { count: item.quantity })}`
-                                                            : ""}
-                                                    </span>
-                                                </div>
-                                                <span className={styles.summaryRoomPrice}>
-                                                    {formatVnd(cartLineTotal(room, item))}
-                                                </span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            ))}
+                                ))}
+                            </div>
 
                             <div className={styles.summaryTotalRow}>
-                                <span>{t("cart.summaryTotal")}</span>
-                                <strong>{formatVnd(grandTotal)}</strong>
+                                <span>{t("wishlist.summaryTotal")}</span>
+                                <strong>{nights > 0 ? formatVnd(grandTotal) : t("checkout.pickDatesForTotal")}</strong>
                             </div>
+
+                            <button
+                                type="submit"
+                                className={styles.submitButton}
+                                disabled={submitting}
+                            >
+                                {submitting
+                                    ? t("checkout.submitting")
+                                    : t("checkout.submit", { total: formatVnd(grandTotal) })}
+                            </button>
                         </div>
                     </aside>
-                </div>
+                </form>
             </div>
         </div>
     );

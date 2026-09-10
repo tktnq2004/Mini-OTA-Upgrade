@@ -5,7 +5,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import "./globals.css";
 import { ThemeProvider, themeInitScript } from "@/components/theme/ThemeProvider";
 import { LanguageProvider } from "@/components/i18n/LanguageProvider";
-import { CartProvider } from "@/components/cart/CartProvider";
+import { WishlistProvider } from "@/components/wishlist/WishlistProvider";
 import { AccountProvider } from "@/components/auth/AccountProvider";
 
 const inter = Inter({
@@ -34,7 +34,7 @@ export default function RootLayout({
         <ThemeProvider>
           <LanguageProvider>
             <AccountProvider>
-              <CartProvider>{children}</CartProvider>
+              <WishlistProvider>{children}</WishlistProvider>
             </AccountProvider>
           </LanguageProvider>
         </ThemeProvider>

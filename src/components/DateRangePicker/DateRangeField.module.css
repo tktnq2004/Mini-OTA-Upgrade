@@ -1,0 +1,90 @@
+.wrap {
+    position: relative;
+}
+
+.fields {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-panel);
+    overflow: hidden;
+}
+
+.fieldsOpen {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+.field {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 8px 10px;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.field:hover {
+    background: var(--color-inset);
+}
+
+.label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--color-text-faint);
+}
+
+.value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.placeholder {
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.sep {
+    align-self: center;
+    padding: 0 2px;
+    font-size: 12px;
+    color: var(--color-text-faint);
+}
+
+.nights {
+    margin-top: 5px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+}
+
+.popover {
+    position: absolute;
+    z-index: 30;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    padding: 12px;
+    background: var(--color-panel);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: 0 12px 28px -8px rgba(0, 0, 0, 0.28);
+}
+
+.popoverHint {
+    margin-bottom: 8px;
+    font-size: 11.5px;
+    color: var(--color-text-muted);
+}

@@ -1,0 +1,163 @@
+.picker {
+    user-select: none;
+}
+
+.picker[data-loading] {
+    opacity: 0.55;
+    pointer-events: none;
+}
+
+.toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.monthTitles {
+    flex: 1;
+    display: flex;
+    justify-content: space-around;
+    gap: 8px;
+}
+
+.monthTitle {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--color-text);
+    text-transform: capitalize;
+}
+
+.navButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    background: var(--color-inset);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.navButton:hover {
+    color: var(--color-text);
+    border-color: var(--color-accent);
+}
+
+.months {
+    display: flex;
+    gap: 14px;
+}
+
+.month {
+    flex: 1;
+    min-width: 0;
+}
+
+.weekdays,
+.grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+}
+
+.weekday {
+    text-align: center;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--color-text-faint);
+    padding-bottom: 3px;
+}
+
+.cell {
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    border: none;
+    background: transparent;
+    color: var(--color-text);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+
+.cell:hover:not(:disabled) {
+    background: var(--color-inset);
+}
+
+.cellOutside {
+    color: var(--color-text-faint);
+}
+
+/* Giữ nền của các ô đã chọn khi hover (hover chung ở trên có specificity
+   cao hơn class đơn nên sẽ đè mất nếu không có mấy dòng này). */
+.cellInRange:hover:not(:disabled) {
+    background: var(--color-accent-soft, var(--color-inset));
+}
+
+.cellStart:hover:not(:disabled),
+.cellEnd:hover:not(:disabled) {
+    background: var(--color-accent);
+}
+
+.cellDisabled {
+    cursor: not-allowed;
+    color: var(--color-text-faint);
+    opacity: 0.4;
+}
+
+/* Ngày kín phòng do backend trả — gạch ngang, nền mờ */
+.cellBlocked {
+    text-decoration: line-through;
+    background: repeating-linear-gradient(
+        -45deg,
+        var(--color-inset),
+        var(--color-inset) 3px,
+        transparent 3px,
+        transparent 6px
+    );
+    opacity: 0.6;
+}
+
+.cellInRange {
+    background: var(--color-accent-soft, var(--color-inset));
+    border-radius: 0;
+    color: var(--color-text);
+    opacity: 1;
+}
+
+.cellStart,
+.cellEnd {
+    background: var(--color-accent);
+    color: var(--color-accent-ink, #fff);
+    font-weight: 700;
+    opacity: 1;
+}
+
+.cellStart {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.cellEnd {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+@media (max-width: 560px) {
+    .months {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .monthTitles {
+        flex-direction: column;
+        gap: 2px;
+        text-align: center;
+    }
+}

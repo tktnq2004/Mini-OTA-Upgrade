@@ -32,7 +32,7 @@
 
 .grid {
     display: grid;
-    grid-template-columns: 1.4fr 1fr;
+    grid-template-columns: minmax(0, 1fr) 400px;
     align-items: start;
     gap: 20px;
 }
@@ -41,6 +41,34 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
+}
+
+/* Khối chọn ngày + số khách, nằm chung card với tóm tắt đơn ở cột phải */
+.datesBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.summaryHeading {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.summaryDivider {
+    height: 1px;
+    background: var(--color-border-soft);
+    margin: 2px 0;
+}
+
+.guestsField {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .formSection {
@@ -54,6 +82,9 @@
 }
 
 .formSection h2 {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     font-size: 14px;
     font-weight: 700;
     color: var(--color-text);
@@ -143,7 +174,7 @@
 .summaryCard {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
     padding: 16px;
     background: var(--color-panel);
     border: 1px solid var(--color-border);

@@ -2,17 +2,17 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CompassIcon, SunIcon, MoonIcon, ShoppingBagIcon, UserCircleIcon } from "@phosphor-icons/react";
+import { CompassIcon, SunIcon, MoonIcon, HeartIcon, UserCircleIcon } from "@phosphor-icons/react";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
-import { useCart } from "@/components/cart/CartProvider";
+import { useWishlist } from "@/components/wishlist/WishlistProvider";
 import { useAccount } from "@/components/auth/AccountProvider";
 import styles from "./SiteHeader.module.css";
 
 export default function SiteHeader() {
     const { theme, toggleTheme } = useTheme();
     const { language, toggleLanguage, t } = useLanguage();
-    const { totalCount } = useCart();
+    const { count: wishlistCount } = useWishlist();
     const { user, ready, logout } = useAccount();
     const router = useRouter();
 
@@ -43,12 +43,12 @@ export default function SiteHeader() {
 
                 <div className={styles.actions}>
                     <Link
-                        href="/cart"
+                        href="/wishlist"
                         className={styles.cartButton}
-                        aria-label={t("nav.cartAria", { count: totalCount })}
+                        aria-label={t("nav.wishlistAria", { count: wishlistCount })}
                     >
-                        <ShoppingBagIcon size={16} weight="bold" />
-                        {totalCount > 0 && <span className={styles.cartBadge}>{totalCount}</span>}
+                        <HeartIcon size={16} weight="bold" />
+                        {wishlistCount > 0 && <span className={styles.cartBadge}>{wishlistCount}</span>}
                     </Link>
 
                     <button

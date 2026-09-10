@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { loadCartFromStorage, mergeCartOnLogin } from "@/components/cart/cartStorage";
+import { loadWishlist, mergeWishlistOnLogin } from "@/components/wishlist/wishlistStorage";
 import type { LoginInput, RegisterInput, SessionUser } from "@/lib/auth/types";
 
 interface AuthResult {
@@ -27,7 +27,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         // Access token là cookie httpOnly (JS không đọc được) — phải hỏi
         // ngược server đang đăng nhập là ai qua route riêng, giống cách
-        // ThemeProvider/CartProvider tự hydrate từ 1 nguồn ngoài React.
+        // ThemeProvider/WishlistProvider tự hydrate từ 1 nguồn ngoài React.
         fetch("/api/account/session")
             .then((res) => res.json())
             .then((data) => setUser(data?.user ?? null))
@@ -44,7 +44,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         const data = await res.json().catch(() => null);
         if (!res.ok) return { ok: false, message: data?.message ?? "Đăng nhập thất bại" };
         setUser(data.user ?? null);
-        await mergeCartOnLogin(loadCartFromStorage());
+        await mergeWishlistOnLogin(loadWishlist());
         return { ok: true };
     };
 
@@ -62,7 +62,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
             return { ok: true };
         }
         setUser(data.user ?? null);
-        await mergeCartOnLogin(loadCartFromStorage());
+        await mergeWishlistOnLogin(loadWishlist());
         return { ok: true };
     };
 

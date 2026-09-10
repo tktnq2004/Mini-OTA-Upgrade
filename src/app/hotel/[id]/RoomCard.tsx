@@ -7,7 +7,7 @@ import type { Room } from "@/lib/hotels/types";
 import { formatVnd } from "@/lib/format";
 import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
-import { useCart } from "@/components/cart/CartProvider";
+import { useWishlist } from "@/components/wishlist/WishlistProvider";
 import styles from "./RoomCard.module.css";
 
 const VISIBLE_AMENITIES = 4;
@@ -24,8 +24,8 @@ interface RoomCardProps {
 export default function RoomCard({ hotelId, room, nights, checkin, checkout, guests }: RoomCardProps) {
     const { t } = useLanguage();
     const router = useRouter();
-    const { isInCart, addItem, removeItem } = useCart();
-    const selected = isInCart(hotelId, room.id);
+    const { isSaved, add, remove } = useWishlist();
+    const selected = isSaved(hotelId, room.id);
     const visibleAmenities = room.amenities.slice(0, VISIBLE_AMENITIES);
     const extraCount = room.amenities.length - visibleAmenities.length;
     const total = room.price * nights;
@@ -35,18 +35,22 @@ export default function RoomCard({ hotelId, room, nights, checkin, checkout, gue
         guests: String(guests),
     }).toString()}`;
 
-    const toggleCart = () => {
+    const toggleWishlist = () => {
         if (selected) {
-            removeItem(hotelId, room.id);
+            remove(hotelId, room.id);
         } else {
-            addItem(hotelId, room.id, { checkin, checkout, guests });
+            add(hotelId, room.id);
         }
     };
 
     const bookNow = () => {
+        // Ngày/số khách chỉ là gợi ý điền sẵn — người dùng chốt lại ở /checkout
+        // (nơi có picker biết ngày nào đã kín). from=hotel để nút "Quay lại"
+        // của checkout về đúng trang khách sạn.
         const params = new URLSearchParams({
             hotelId: String(hotelId),
-            roomId: String(room.id),
+            roomIds: String(room.id),
+            from: "hotel",
             checkin,
             checkout,
             guests: String(guests),
@@ -107,10 +111,10 @@ export default function RoomCard({ hotelId, room, nights, checkin, checkout, gue
                         <button
                             type="button"
                             className={selected ? styles.selectButtonActive : styles.selectButton}
-                            onClick={toggleCart}
+                            onClick={toggleWishlist}
                         >
                             {selected && <CheckIcon size={13} weight="bold" />}
-                            {selected ? t("room.selected") : t("room.selectButton")}
+                            {selected ? t("room.savedToWishlist") : t("room.saveToWishlist")}
                         </button>
                         <button type="button" className={styles.bookNowButton} onClick={bookNow}>
                             {t("room.bookNow")}

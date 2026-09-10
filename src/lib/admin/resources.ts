@@ -69,13 +69,6 @@ export const listProvinceNames = () => adminGet<string[]>("provinces");
 export const listWardNamesByProvinceId = (provinceId: number) =>
   adminGet<string[]>(`wards/provinces/${provinceId}`);
 
-// ---- Rooms (quản lý lồng trong khách sạn) ----
-// discount_id không bắt buộc theo ReqCreateRoomDTO (không @NotNull), nhưng
-// RoomService.create_room lại gọi discountRepository.findAllById(discount_id)
-// KHÔNG kiểm tra null trước — nếu không gửi field này, Spring Data ném
-// InvalidDataAccessApiUsageException ("Ids must not be null") và tạo phòng
-// luôn thất bại. Đây là bug xác nhận thật ở backend (đã test bằng curl) —
-// phải luôn gửi mảng rỗng để né, dù field này hiện không dùng vào việc gì.
 export const createRoom = (input: RoomInput) => {
   const { roomTypeId, ...rest } = input;
   return adminPost<Room>("rooms", { ...rest, roomType: { id: roomTypeId }, discount_id: [] });
@@ -119,13 +112,11 @@ export const deleteView = (id: number) => adminDelete<unknown>(`view/${id}`).the
 
 // ---- Users ----
 export const listUsers = (params: ListParams = {}) =>
-  adminGet<Paginated<AppUser>>(`users?${buildListQuery(params, "email")}`);
-export const getUser = (id: number) => adminGet<AppUser>(`users/${id}`);
-// POST /users public/không xác thực (dùng chung với đăng ký công khai, xem
-// UserInput.roleId) — cố tình KHÔNG gửi roleId dù input có field này, để
-// không lỡ dựa vào việc backend "tình cờ" bỏ qua field lạ làm lưới an toàn.
+  adminGet<Paginated<AppUser>>(`admin/users?${buildListQuery(params, "email")}`);
+export const getUser = (id: number) => adminGet<AppUser>(`admin/users/${id}`);
+
 export const createUser = (input: UserInput) =>
-  adminPost<AppUser>("users", {
+  adminPost<AppUser>("/users", {
     email: input.email,
     password: input.password,
     phone: input.phone,
@@ -134,9 +125,6 @@ export const createUser = (input: UserInput) =>
     hotelId: input.hotelId ?? undefined,
   });
 
-// Gộp cả role vào cùng request PUT /admin/users/{id} (ReqUpdateAllLocalDTO.
-// roleId) — không còn endpoint POST /users/{userId}/roles riêng nữa, xem
-// UserInput.roleId.
 export const updateUser = (id: number, input: UserInput) =>
   adminPut<AppUser>(`admin/users/${id}`, {
     email: input.email,
@@ -147,7 +135,7 @@ export const updateUser = (id: number, input: UserInput) =>
     hotelId: input.hotelId ?? undefined,
     roleId: input.roleId ?? undefined,
   });
-export const deleteUser = (id: number) => adminDelete<void>(`users/${id}`);
+export const deleteUser = (id: number) => adminDelete<void>(`admin/users/${id}`);
 
 export const listDiscounts = () => adminGet<Discount[]>("discounts");
 export const getDiscount = (id: number) => adminGet<Discount>(`discounts/${id}`);
@@ -157,15 +145,10 @@ export const updateDiscount = (id: number, input: Partial<DiscountInput>) =>
 export const deleteDiscount = (id: number) => adminDelete<void>(`discounts/${id}`);
 export const attachDiscountToRoom = (roomId: number, discountId: number, startDate: string, endDate: string) =>
   adminPost<Room>(`room/${roomId}/discounts`, [{ discountId, startDate, endDate }]);
-// Backend hiện KHÔNG thật sự gỡ (no-op đã xác nhận trong DiscountService.delete_arr_room)
-// — vẫn gọi đúng API cho khớp hợp đồng, nhưng đừng tin kết quả là đã gỡ.
+
 export const detachDiscountFromRoom = (roomId: number, discountIds: number[]) =>
   adminFetch<void>("discounts", { method: "DELETE", body: JSON.stringify({ roomId, discountId: discountIds }) });
 
-// ---- Roles & Permissions ----
-// GET /permissions là stub lúc nào cũng trả null (bug backend) nên không có
-// cách nào liệt kê toàn bộ permission qua API riêng — lấy gián tiếp bằng
-// cách gộp permissions của mọi role đang có (ROLE_ADMIN mặc định có đủ hết).
 export const listRoles = () => adminGet<Role[]>("roles");
 export const getRole = (id: number) => adminGet<Role>(`roles/${id}`);
 export const createRole = (input: RoleInput) => adminPost<Role>("roles", input);
