@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getHotelServer, getRoomServer } from "@/lib/hotels/server";
+import { getRoomThumbnailServer, getRoomThumbnailsByIds, listRoomPanoramaServer } from "@/lib/media/server";
 import RoomDetailView from "./RoomDetailView";
 
 interface RoomPageProps {
@@ -26,9 +27,24 @@ export default async function RoomPage({ params }: RoomPageProps) {
         notFound();
     }
 
+    // Ảnh thật (admin upload qua R2) ưu tiên hơn room.thumbnail/images cũ —
+    // rỗng thì RoomDetailView tự rơi về gallery cũ.
+    const otherRoomIds = (hotel.rooms ?? []).filter((r) => r.id !== room.id).map((r) => r.id);
+    const [thumbnail, panorama, otherRoomThumbnails] = await Promise.all([
+        getRoomThumbnailServer(room.id),
+        listRoomPanoramaServer(room.id),
+        getRoomThumbnailsByIds(otherRoomIds),
+    ]);
+
     return (
         <Suspense fallback={<div style={{ minHeight: "100vh", background: "var(--color-bg)" }} />}>
-            <RoomDetailView hotel={hotel} room={room} />
+            <RoomDetailView
+                hotel={hotel}
+                room={room}
+                thumbnail={thumbnail}
+                panorama={panorama}
+                roomThumbnails={otherRoomThumbnails}
+            />
         </Suspense>
     );
 }

@@ -1,5 +1,5 @@
 import { adminDelete, adminGet, adminPost } from "@/lib/admin/apiClient";
-import type { ConfirmRequest, MediaAsset, MediaOwnerType, PresignRequest, PresignResponse } from "./types";
+import type { ConfirmRequest, MediaAsset, MediaKind, MediaOwnerType, PresignRequest, PresignResponse } from "./types";
 
 // Gọi qua /api/admin/media/* — được proxy chung bởi route
 // src/app/api/admin/[...path]/route.ts (đã tự đính cookie + tự refresh
@@ -9,7 +9,8 @@ export const presignMediaUpload = (input: PresignRequest) => adminPost<PresignRe
 
 export const confirmMediaUpload = (input: ConfirmRequest) => adminPost<MediaAsset>("media/confirm", input);
 
-export const listMedia = (ownerType: MediaOwnerType, ownerId: number) =>
-  adminGet<MediaAsset[]>(`media?ownerType=${ownerType}&ownerId=${ownerId}`);
+// kind bỏ trống = lấy tất cả (thumbnail + panorama) của owner này.
+export const listMedia = (ownerType: MediaOwnerType, ownerId: number, kind?: MediaKind) =>
+  adminGet<MediaAsset[]>(`media?ownerType=${ownerType}&ownerId=${ownerId}${kind ? `&kind=${kind}` : ""}`);
 
 export const deleteMedia = (mediaId: string) => adminDelete<void>(`media/${mediaId}`);

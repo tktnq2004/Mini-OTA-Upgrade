@@ -15,13 +15,16 @@ const VISIBLE_AMENITIES = 4;
 interface RoomCardProps {
     hotelId: number;
     room: Room;
+    // Ảnh đại diện thật từ module media (R2) — ưu tiên hơn room.thumbnail cũ
+    // khi room này đã có ảnh admin upload (xem HotelDetail/RoomDetailView).
+    coverImage?: string;
     nights: number;
     checkin: string;
     checkout: string;
     guests: number;
 }
 
-export default function RoomCard({ hotelId, room, nights, checkin, checkout, guests }: RoomCardProps) {
+export default function RoomCard({ hotelId, room, coverImage, nights, checkin, checkout, guests }: RoomCardProps) {
     const { t } = useLanguage();
     const router = useRouter();
     const { isSaved, add, remove } = useWishlist();
@@ -62,7 +65,7 @@ export default function RoomCard({ hotelId, room, nights, checkin, checkout, gue
         <article className={styles.card}>
             <Link href={detailHref} className={styles.thumbWrap}>
                 <ImageWithFallback
-                    src={room.thumbnail}
+                    src={coverImage ?? room.thumbnail}
                     alt={room.name}
                     className={styles.thumb}
                     fallbackClassName={styles.thumbFallback}

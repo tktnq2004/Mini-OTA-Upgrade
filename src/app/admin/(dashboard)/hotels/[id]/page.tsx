@@ -8,7 +8,7 @@ import styles from "@/components/admin/adminPage.module.css";
 import RoomCard from "@/components/admin/RoomCard";
 import ChipPicker from "@/components/admin/ChipPicker";
 import ProvinceWardSelect from "@/components/admin/ProvinceWardSelect";
-import MediaGallery from "@/components/media/MediaGallery";
+import ThumbnailUploader from "@/components/media/ThumbnailUploader";
 import { AdminApiError } from "@/lib/admin/apiClient";
 import { createRoom, deleteHotel, getHotel, listAmenities, listViews, updateHotel } from "@/lib/admin/resources";
 import type { Amenity, Hotel, HotelInput, RoomInput, View } from "@/lib/admin/types";
@@ -175,7 +175,7 @@ export default function HotelDetailPage({ params }: { params: Promise<{ id: stri
 
                 <div className={styles.card}>
                     <h2 className={styles.cardTitle}>Ảnh khách sạn</h2>
-                    <MediaGallery ownerType="HOTEL" ownerId={hotelId} />
+                    <ThumbnailUploader ownerType="HOTEL" ownerId={hotelId} />
                 </div>
 
                 <div>

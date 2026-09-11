@@ -38,9 +38,14 @@ const PRICE_CEILING = 5_000_000;
 
 interface HotelDetailProps {
     hotel: Hotel;
+    // Ảnh thumbnail thật từ module media (R2) — ưu tiên hơn hotel.image/
+    // room.thumbnail cũ. Rỗng/undefined (hotel/room chưa có ảnh admin
+    // upload) thì rơi về field cũ, xem chỗ dùng bên dưới.
+    coverImage?: string;
+    roomThumbnails: Record<number, string | undefined>;
 }
 
-export default function HotelDetail({ hotel }: HotelDetailProps) {
+export default function HotelDetail({ hotel, coverImage, roomThumbnails }: HotelDetailProps) {
     const { t, language } = useLanguage();
     const searchParams = useSearchParams();
     // Chỉ đọc query string một lần lúc vào trang để khởi tạo bộ lọc — sau đó
@@ -133,7 +138,7 @@ export default function HotelDetail({ hotel }: HotelDetailProps) {
 
                     <div className={styles.thumbWrap}>
                         <ImageWithFallback
-                            src={hotel.image}
+                            src={coverImage ?? hotel.image}
                             alt={hotel.name}
                             className={styles.thumb}
                             fallbackClassName={styles.thumbFallback}
@@ -273,6 +278,7 @@ export default function HotelDetail({ hotel }: HotelDetailProps) {
                                     key={room.id}
                                     hotelId={hotel.id}
                                     room={room}
+                                    coverImage={roomThumbnails[room.id]}
                                     nights={nights}
                                     checkin={checkin}
                                     checkout={checkout}

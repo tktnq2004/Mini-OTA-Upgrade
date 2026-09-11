@@ -18,6 +18,7 @@ import {
     ArrowsClockwiseIcon,
 } from "@phosphor-icons/react";
 import type { Hotel, Room } from "@/lib/hotels/types";
+import type { MediaAsset } from "@/lib/media/types";
 import { formatVnd } from "@/lib/format";
 import { addDaysIso, nightsBetween, parseFilters, todayIso } from "@/lib/searchFilters";
 import SiteHeader from "@/components/SiteHeader/SiteHeader";
@@ -34,9 +35,16 @@ import styles from "./RoomDetail.module.css";
 interface RoomDetailViewProps {
     hotel: Hotel;
     room: Room;
+    // Ảnh thumbnail + panorama THẬT của CHÍNH room này từ module media (R2)
+    // — cả 2 đều undefined/rỗng thì rơi về room.thumbnail/images cũ (xem
+    // gallery bên dưới).
+    thumbnail?: string;
+    panorama: MediaAsset[];
+    // Ảnh thumbnail của các room khác (mục "phòng khác"), keyed theo room id.
+    roomThumbnails: Record<number, string | undefined>;
 }
 
-export default function RoomDetailView({ hotel, room }: RoomDetailViewProps) {
+export default function RoomDetailView({ hotel, room, thumbnail, panorama, roomThumbnails }: RoomDetailViewProps) {
     const { t } = useLanguage();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -57,13 +65,15 @@ export default function RoomDetailView({ hotel, room }: RoomDetailViewProps) {
     // 2D mock khác) nên nút "Xem Panorama 360°" chỉ hiện đúng ở đó.
     const panoramaTour = getPanoramaTourForHotel(hotel.id);
 
-    // Room chỉ có 1 thumbnail + images (hiện luôn rỗng, chưa có tính năng
-    // thêm ảnh phòng ở admin) — không còn sinh thêm ảnh giả deterministic
-    // như mock cũ, hiển thị đúng số ảnh thật đang có.
-    const gallery = useMemo(
-        () => (room.images.length > 0 ? [room.thumbnail, ...room.images.map((img) => img.image)] : [room.thumbnail]),
-        [room]
-    );
+    // Ưu tiên ảnh thật từ module media (R2, do admin upload): thumbnail trước
+    // rồi tới các ảnh panorama (panorama vẫn xem được như ảnh thường trong
+    // gallery 2D này — xem 360° tương tác là tính năng riêng, xem
+    // panoramaTour bên dưới). Chỉ rơi về room.thumbnail/images cũ khi room
+    // này CHƯA có thumbnail nào trong media_assets.
+    const gallery = useMemo(() => {
+        if (thumbnail) return [thumbnail, ...panorama.map((p) => p.url)];
+        return room.images.length > 0 ? [room.thumbnail, ...room.images.map((img) => img.image)] : [room.thumbnail];
+    }, [thumbnail, panorama, room]);
     const otherRooms = useMemo(
         () => (hotel.rooms ?? []).filter((r) => r.id !== room.id).slice(0, 4),
         [hotel.rooms, room.id]
@@ -223,6 +233,7 @@ export default function RoomDetailView({ hotel, room }: RoomDetailViewProps) {
                                         key={r.id}
                                         hotelId={hotel.id}
                                         room={r}
+                                        coverImage={roomThumbnails[r.id]}
                                         nights={nights}
                                         checkin={checkin}
                                         checkout={checkout}

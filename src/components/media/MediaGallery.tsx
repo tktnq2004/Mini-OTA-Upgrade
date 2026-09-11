@@ -4,19 +4,23 @@ import { useEffect, useRef } from "react";
 import controls from "@/styles/controls.module.css";
 import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
 import { useMediaUpload } from "@/hooks/useMediaUpload";
-import type { MediaOwnerType } from "@/lib/media/types";
+import type { MediaKind, MediaOwnerType } from "@/lib/media/types";
 import styles from "./MediaGallery.module.css";
 
 interface MediaGalleryProps {
   ownerType: MediaOwnerType;
   ownerId: number;
+  // Hiện tại chỉ Room mới có gallery nhiều ảnh (panorama 360°) — Hotel chỉ 1
+  // thumbnail, dùng <ThumbnailUploader /> thay vì component này. Vẫn nhận
+  // kind qua prop (không hardcode "PANORAMA") để không phải sửa component
+  // nếu sau này có thêm loại gallery nhiều-ảnh khác.
+  kind: MediaKind;
 }
 
-// Component dùng chung cho ảnh hotel VÀ room — nơi duy nhất biết tới module
-// media, đặt vào trang chi tiết hotel hoặc trong RoomCard đều dùng chung API
-// này, chỉ khác ownerType/ownerId truyền vào.
-export default function MediaGallery({ ownerType, ownerId }: MediaGalleryProps) {
-  const { images, loading, uploading, error, reload, upload, remove } = useMediaUpload(ownerType, ownerId);
+// Gallery nhiều ảnh (thêm/xoá từng ảnh riêng lẻ) — đối lập với
+// <ThumbnailUploader /> (đúng 1 ảnh, upload mới thay thế ảnh cũ).
+export default function MediaGallery({ ownerType, ownerId, kind }: MediaGalleryProps) {
+  const { images, loading, uploading, error, reload, upload, remove } = useMediaUpload(ownerType, ownerId, kind);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(reload, [reload]); // eslint-disable-line react-hooks/set-state-in-effect -- tải danh sách ảnh ban đầu từ API, một external system

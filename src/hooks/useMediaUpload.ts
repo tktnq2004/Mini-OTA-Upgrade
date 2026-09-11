@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import { AdminApiError } from "@/lib/admin/apiClient";
 import { confirmMediaUpload, deleteMedia, listMedia, presignMediaUpload } from "@/lib/media/api";
-import type { MediaAsset, MediaOwnerType } from "@/lib/media/types";
+import type { MediaAsset, MediaKind, MediaOwnerType } from "@/lib/media/types";
 
 interface UseMediaUploadResult {
   images: MediaAsset[];
@@ -15,11 +15,12 @@ interface UseMediaUploadResult {
   remove: (mediaId: string) => Promise<void>;
 }
 
-// Hook dùng chung cho cả gallery ảnh hotel lẫn room — chỉ khác nhau
-// ownerType/ownerId truyền vào. Toàn bộ luồng 3 bước (xin presigned URL ->
-// PUT thẳng lên R2 -> confirm để BE lưu DB) nằm gọn ở đây, component chỉ lo
-// hiển thị.
-export function useMediaUpload(ownerType: MediaOwnerType, ownerId: number): UseMediaUploadResult {
+// Hook dùng chung cho cả 2 kiểu ảnh (THUMBNAIL: đúng 1 ảnh, upload mới tự
+// thay thế ảnh cũ ở BE; PANORAMA: nhiều ảnh, thêm/xoá riêng lẻ) và cả 2
+// owner (hotel/room) — chỉ khác ownerType/ownerId/kind truyền vào. Toàn bộ
+// luồng 3 bước (xin presigned URL -> PUT thẳng lên R2 -> confirm để BE lưu
+// DB) nằm gọn ở đây, component chỉ lo hiển thị.
+export function useMediaUpload(ownerType: MediaOwnerType, ownerId: number, kind: MediaKind): UseMediaUploadResult {
   const [images, setImages] = useState<MediaAsset[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -28,14 +29,14 @@ export function useMediaUpload(ownerType: MediaOwnerType, ownerId: number): UseM
   const reload = useCallback(() => {
     setLoading(true);
     setError("");
-    listMedia(ownerType, ownerId)
+    listMedia(ownerType, ownerId, kind)
       .then(setImages)
       .catch((e) => setError(e instanceof AdminApiError ? e.message : "Không tải được ảnh"))
       .finally(() => setLoading(false));
-  }, [ownerType, ownerId]);
+  }, [ownerType, ownerId, kind]);
 
   const uploadOne = async (file: File) => {
-    const { uploadUrl, key, mediaId } = await presignMediaUpload({ ownerType, ownerId, contentType: file.type });
+    const { uploadUrl, key, mediaId } = await presignMediaUpload({ ownerType, ownerId, kind, contentType: file.type });
 
     // Upload thẳng browser -> R2, KHÔNG qua Next proxy/Spring Boot — proxy
     // hiện tại chỉ forward JSON, không hợp để tải file nhị phân.
@@ -46,7 +47,7 @@ export function useMediaUpload(ownerType: MediaOwnerType, ownerId: number): UseM
     });
     if (!putRes.ok) throw new Error(`Upload lên R2 thất bại (mã ${putRes.status})`);
 
-    await confirmMediaUpload({ mediaId, ownerType, ownerId, key });
+    await confirmMediaUpload({ mediaId, ownerType, ownerId, kind, key });
   };
 
   const upload = async (files: FileList | File[]) => {
@@ -54,7 +55,9 @@ export function useMediaUpload(ownerType: MediaOwnerType, ownerId: number): UseM
     setUploading(true);
     try {
       // Tuần tự từng file — đơn giản và đủ dùng cho vài ảnh một lần; không
-      // Promise.all để tránh làm ngập presign request cùng lúc.
+      // Promise.all để tránh làm ngập presign request cùng lúc. Với
+      // THUMBNAIL, chọn nhiều file thì chỉ ảnh CUỐI CÙNG còn tồn tại (mỗi
+      // lần confirm BE tự xoá ảnh thumbnail trước đó).
       for (const file of Array.from(files)) {
         await uploadOne(file);
       }
