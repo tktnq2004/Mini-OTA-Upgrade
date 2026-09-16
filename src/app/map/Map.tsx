@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader/SiteHeader";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
@@ -28,6 +28,10 @@ export default function MapView() {
 
     const [searchQuery, setSearchQuery] = useState("");
 
+    // Đo mép dưới của lớp overlay (thanh tìm kiếm) để popup marker biết chỗ
+    // nào đang bị che mà tránh mở lên đó — xem components/popupAnchor.ts.
+    const overlayRef = useRef<HTMLDivElement | null>(null);
+
     const { mapContainerRef, flyTo } = useMapInstance({
         initialProvinceId: filters.provinceId,
         hotels: filteredHotels,
@@ -36,6 +40,7 @@ export default function MapView() {
         noPriceLabel: t("map.viewHotelMarker"),
         onBookHotel: bookHotel,
         onViewportChange: (bounds) => setViewMode({ type: "bounds", bounds }),
+        getOverlayBottomPx: () => overlayRef.current?.getBoundingClientRect().bottom ?? 0,
     });
 
     const { isLocating, geoError, findNearby } = useGeolocation({
@@ -44,7 +49,11 @@ export default function MapView() {
         flyTo,
     });
 
- 
+    // Bay bản đồ tới tỉnh/thành khi bộ lọc địa điểm đổi (chế độ "province").
+    // Phụ thuộc cả wardId — trước đây effect chỉ theo dõi provinceId nên đổi
+    // xã (giữ nguyên tỉnh) không kích hoạt lại flyTo. Dữ liệu xã chưa có
+    // toạ độ riêng nên vẫn bay tới tâm tỉnh, nhưng zoom sâu hơn khi đã chọn
+    // xã cụ thể để người dùng thấy rõ có phản hồi.
     useEffect(() => {
         if (viewMode.type !== "province") return;
 
@@ -53,6 +62,7 @@ export default function MapView() {
         } else {
             flyTo(VIETNAM_CENTER, VIETNAM_ZOOM);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [filters.provinceId, filters.wardId, viewMode.type]);
 
     const resultLabel = (() => {
@@ -70,21 +80,23 @@ export default function MapView() {
             <div className={styles.mapArea}>
                 <div ref={mapContainerRef} className={styles.mapContainer} />
 
-                <MapOverlay
-                    filters={filters}
-                    onFilterSubmit={handleFilterSubmit}
-                    submitLabel={t("search.submitFind")}
-                    searchQuery={searchQuery}
-                    onSearchQueryChange={setSearchQuery}
-                    onFindNearby={findNearby}
-                    isLocating={isLocating}
-                    geoError={geoError}
-                    resultCount={filteredHotels.length}
-                    resultLabel={resultLabel}
-                    canClear={canClear}
-                    onClear={clearProvince}
-                    t={t}
-                />
+                <div ref={overlayRef}>
+                    <MapOverlay
+                        filters={filters}
+                        onFilterSubmit={handleFilterSubmit}
+                        submitLabel={t("search.submitFind")}
+                        searchQuery={searchQuery}
+                        onSearchQueryChange={setSearchQuery}
+                        onFindNearby={findNearby}
+                        isLocating={isLocating}
+                        geoError={geoError}
+                        resultCount={filteredHotels.length}
+                        resultLabel={resultLabel}
+                        canClear={canClear}
+                        onClear={clearProvince}
+                        t={t}
+                    />
+                </div>
             </div>
         </div>
     );

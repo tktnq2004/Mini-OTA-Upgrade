@@ -172,6 +172,13 @@
     box-shadow: var(--shadow-pop);
 }
 
+/* z-index cao hơn .overlay (thanh search, z-index: 10) — lớp bảo hiểm thêm
+   cho pickPopupAnchor: dù có lỡ chọn hướng vẫn còn lấn nhẹ vào overlay, popup
+   luôn nổi lên trên chứ không bị thanh search che mất */
+.mapArea :global(.maplibregl-popup) {
+    z-index: 20;
+}
+
 /* Tinh chỉnh popup maplibre-gl (bo góc, đổ bóng, viền) cho khớp token thiết kế */
 .mapArea :global(.maplibregl-popup-content) {
     background: var(--color-panel);

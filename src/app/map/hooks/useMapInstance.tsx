@@ -5,13 +5,15 @@ import * as maplibregl from "maplibre-gl";
 import { Map as MapLibreMap, type GeoJSONSource, type MapLayerMouseEvent, type MapLibreEvent, type Popup } from "maplibre-gl";
 import { createRoot, type Root } from "react-dom/client";
 import "maplibre-gl/dist/maplibre-gl.css";
-import type { FeatureCollection, Point } from "geojson";
+import type { Feature, FeatureCollection, Point } from "geojson";
 import type { Hotel } from "@/lib/hotels/types";
 import { formatCompactVnd } from "@/lib/format";
 import { getProvinceById } from "@/data/locations.data";
 import type { BoundsBox } from "@/lib/geo";
 import HotelPopupCard from "../HotelPopupCard";
 import { ensureHotelMarkerIcons, hotelMarkerIconId } from "../components/HotelMarkerBadge";
+import { computePopupOffset, pickPopupAnchor } from "../components/popupAnchor";
+import { spiderfyFeatures } from "../components/spiderfy";
 import { MAPTILER_STYLE_URL, PROVINCE_ZOOM, VIETNAM_CENTER, VIETNAM_ZOOM } from "../mapConstants";
 
 // Marker là 1 GeoJSON source + đúng 1 style layer "symbol", vẽ bằng các ảnh
@@ -33,16 +35,28 @@ function hotelLabel(hotel: Hotel, noPriceLabel: string): string {
     return hotel.averagePrice != null ? formatCompactVnd(hotel.averagePrice) : noPriceLabel;
 }
 
-function hotelsToFeatureCollection(hotels: Hotel[], noPriceLabel: string): FeatureCollection<Point> {
-    return {
-        type: "FeatureCollection",
-        features: hotels.map((hotel) => ({
-            type: "Feature",
-            id: hotel.id,
-            geometry: { type: "Point", coordinates: [Number(hotel.longitude), Number(hotel.latitude)] },
-            properties: { id: hotel.id, iconId: hotelMarkerIconId(hotelLabel(hotel, noPriceLabel)) },
-        })),
-    };
+interface HotelMarkerProperties {
+    id: number;
+    iconId: string;
+}
+
+// Toạ độ THẬT của từng hotel — chưa tách marker chồng nhau (xem
+// buildMarkerFeatureCollection, nơi áp dụng spiderfy dựa trên map hiện tại).
+function hotelsToFeatures(hotels: Hotel[], noPriceLabel: string): Feature<Point, HotelMarkerProperties>[] {
+    return hotels.map((hotel) => ({
+        type: "Feature",
+        id: hotel.id,
+        geometry: { type: "Point", coordinates: [Number(hotel.longitude), Number(hotel.latitude)] },
+        properties: { id: hotel.id, iconId: hotelMarkerIconId(hotelLabel(hotel, noPriceLabel)) },
+    }));
+}
+
+// Toạ độ hiển thị thật sự trên bản đồ: tách nhẹ các marker chồng nhau (xem
+// spiderfyFeatures) khi đã zoom đủ gần. Phải nhận `map` vì spiderfy cần biết
+// zoom/kích thước màn hình hiện tại để tính khoảng cách pixel giữa các
+// marker.
+function buildMarkerFeatureCollection(map: MapLibreMap, hotels: Hotel[], noPriceLabel: string): FeatureCollection<Point, HotelMarkerProperties> {
+    return { type: "FeatureCollection", features: spiderfyFeatures(map, hotelsToFeatures(hotels, noPriceLabel)) };
 }
 
 // Chỉ dùng nội bộ để dọn dẹp popup/React root đang mở khi mở popup khác hoặc
@@ -68,6 +82,10 @@ interface UseMapInstanceOptions {
     noPriceLabel: string;
     onBookHotel: (hotelId: number) => void;
     onViewportChange: (bounds: BoundsBox) => void;
+    // Toạ độ Y (viewport, px) của mép dưới lớp overlay (thanh tìm kiếm) —
+    // dùng để popup marker biết vùng nào đang bị che mà tránh mở lên đó, xem
+    // components/popupAnchor.ts. Không truyền thì coi như không có gì che.
+    getOverlayBottomPx?: () => number;
 }
 
 // Quản lý toàn bộ vòng đời của instance MapLibre: khởi tạo bản đồ một lần,
@@ -83,23 +101,39 @@ export function useMapInstance({
     noPriceLabel,
     onBookHotel,
     onViewportChange,
+    getOverlayBottomPx,
 }: UseMapInstanceOptions) {
     const mapContainerRef = useRef<HTMLDivElement | null>(null);
     const mapRef = useRef<MapLibreMap | null>(null);
     const openPopupRef = useRef<OpenPopup | null>(null);
+    // Feature ĐANG hiển thị thật trên bản đồ (toạ độ đã qua spiderfy) — dùng
+    // để openPopupFor biết vị trí pixel của các marker KHÁC, tránh chọn
+    // hướng mở popup đè lên chúng (xem pickPopupAnchor).
+    const lastFeaturesRef = useRef<Feature<Point, HotelMarkerProperties>[]>([]);
 
     const onViewportChangeRef = useRef(onViewportChange);
     const onBookHotelRef = useRef(onBookHotel);
     const hotelsRef = useRef(hotels);
     const bookLabelRef = useRef(bookLabel);
     const noPriceLabelRef = useRef(noPriceLabel);
+    const getOverlayBottomPxRef = useRef(getOverlayBottomPx);
     useEffect(() => {
         onViewportChangeRef.current = onViewportChange;
         onBookHotelRef.current = onBookHotel;
         hotelsRef.current = hotels;
         bookLabelRef.current = bookLabel;
         noPriceLabelRef.current = noPriceLabel;
+        getOverlayBottomPxRef.current = getOverlayBottomPx;
     });
+
+    // Build feature collection (đã spiderfy) + ghi lại vào lastFeaturesRef —
+    // dùng chung cho mọi chỗ cần setData để openPopupFor luôn có đúng vị trí
+    // marker MỚI NHẤT đang hiển thị, không bị lệch với data cũ.
+    const computeMarkerData = (map: MapLibreMap, hotelsList: Hotel[], noPriceLabelValue: string) => {
+        const collection = buildMarkerFeatureCollection(map, hotelsList, noPriceLabelValue);
+        lastFeaturesRef.current = collection.features;
+        return collection;
+    };
 
     const openPopupFor = (hotel: Hotel, coordinates: [number, number]) => {
         const map = mapRef.current;
@@ -112,7 +146,21 @@ export function useMapInstance({
             <HotelPopupCard hotel={hotel} onBook={() => onBookHotelRef.current(hotel.id)} bookLabel={bookLabelRef.current} />
         );
 
-        const popup = new maplibregl.Popup({ offset: 25, maxWidth: "260px" })
+        const containerRect = map.getContainer().getBoundingClientRect();
+        const overlayBottom = getOverlayBottomPxRef.current?.() ?? containerRect.top;
+        const topInsetPx = Math.max(0, overlayBottom - containerRect.top);
+        const point = map.project(coordinates);
+        const otherPoints = lastFeaturesRef.current
+            .filter((feature) => feature.properties.id !== hotel.id)
+            .map((feature) => map.project(feature.geometry.coordinates as [number, number]));
+        const anchor = pickPopupAnchor(
+            point,
+            { width: containerRect.width, height: containerRect.height, topInsetPx },
+            otherPoints
+        );
+        const offset = computePopupOffset(anchor, point, topInsetPx);
+
+        const popup = new maplibregl.Popup({ anchor, offset, maxWidth: "260px" })
             .setLngLat(coordinates)
             .setDOMContent(popupNode)
             .addTo(map);
@@ -143,7 +191,7 @@ export function useMapInstance({
 
             map.addSource(SOURCE_ID, {
                 type: "geojson",
-                data: hotelsToFeatureCollection(hotelsRef.current, noPriceLabelRef.current),
+                data: computeMarkerData(map, hotelsRef.current, noPriceLabelRef.current),
             });
 
             map.addLayer({
@@ -195,10 +243,20 @@ export function useMapInstance({
         };
         map.on("moveend", handleMoveEnd);
 
+        // Khoảng cách PIXEL giữa 2 toạ độ cố định đổi theo zoom (không đổi
+        // khi chỉ kéo/pan) — nên phải tính lại spiderfy mỗi khi zoom xong,
+        // độc lập với việc danh sách hotel có đổi hay không.
+        const handleZoomEnd = () => {
+            const source = map.getSource(SOURCE_ID) as GeoJSONSource | undefined;
+            source?.setData(computeMarkerData(map, hotelsRef.current, noPriceLabelRef.current));
+        };
+        map.on("zoomend", handleZoomEnd);
+
         mapRef.current = map;
 
         return () => {
             map.off("moveend", handleMoveEnd);
+            map.off("zoomend", handleZoomEnd);
             disposeOpenPopup(openPopupRef.current);
             openPopupRef.current = null;
             map.remove();
@@ -218,7 +276,7 @@ export function useMapInstance({
         if (!map) return;
         ensureHotelMarkerIcons(map, hotels.map((h) => hotelLabel(h, noPriceLabel)));
         const source = map.getSource(SOURCE_ID) as GeoJSONSource | undefined;
-        source?.setData(hotelsToFeatureCollection(hotels, noPriceLabel));
+        source?.setData(computeMarkerData(map, hotels, noPriceLabel));
     }, [hotels, language, noPriceLabel]);
 
     const flyTo = (center: [number, number], zoom: number) => {

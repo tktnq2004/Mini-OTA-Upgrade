@@ -14,11 +14,43 @@
 }
 
 .bar {
-    gap: 8px;
-    padding: 8px;
+    gap: 7px;
+    padding: 7px;
     background: rgba(255, 255, 255, 0.92);
     backdrop-filter: blur(10px);
     box-shadow: var(--shadow-pop);
+}
+
+/* Thu nhỏ 10% riêng cho variant "bar" (thanh tìm kiếm nổi trên bản đồ) —
+   .selectControl/.dateControl/.submit compose từ controls.module.css dùng
+   chung toàn app, nên không sửa trực tiếp ở đó (sẽ ảnh hưởng mọi form khác),
+   chỉ override tại đây theo scope ".bar". Số đo gốc: input/select height
+   38px, font 13.5px, padding 0 10px; button font 13.5px, padding 0 16px;
+   label font 12px — nhân 0.9. */
+.bar .label {
+    font-size: 10.8px;
+}
+
+.bar .field {
+    gap: 4px;
+}
+
+.bar .selectControl,
+.bar .dateControl {
+    height: 34px;
+    font-size: 12.2px;
+    padding: 0 9px;
+}
+
+.bar .selectControl {
+    padding-right: 25px;
+    background-size: 10px;
+    background-position: right 9px center;
+}
+
+.bar .submit {
+    font-size: 12.2px;
+    padding: 0 14px;
 }
 
 .field {
