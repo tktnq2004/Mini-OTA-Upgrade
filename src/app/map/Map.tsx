@@ -33,6 +33,7 @@ export default function MapView() {
         hotels: filteredHotels,
         language,
         bookLabel: t("map.viewRoomsAndBook"),
+        noPriceLabel: t("map.viewHotelMarker"),
         onBookHotel: bookHotel,
         onViewportChange: (bounds) => setViewMode({ type: "bounds", bounds }),
     });
@@ -43,11 +44,7 @@ export default function MapView() {
         flyTo,
     });
 
-    // Bay bản đồ tới tỉnh/thành khi bộ lọc địa điểm đổi (chế độ "province").
-    // Phụ thuộc cả wardId — trước đây effect chỉ theo dõi provinceId nên đổi
-    // xã (giữ nguyên tỉnh) không kích hoạt lại flyTo. Dữ liệu xã chưa có
-    // toạ độ riêng nên vẫn bay tới tâm tỉnh, nhưng zoom sâu hơn khi đã chọn
-    // xã cụ thể để người dùng thấy rõ có phản hồi.
+ 
     useEffect(() => {
         if (viewMode.type !== "province") return;
 
@@ -56,7 +53,6 @@ export default function MapView() {
         } else {
             flyTo(VIETNAM_CENTER, VIETNAM_ZOOM);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [filters.provinceId, filters.wardId, viewMode.type]);
 
     const resultLabel = (() => {

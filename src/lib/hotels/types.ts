@@ -63,6 +63,11 @@ export interface Hotel {
   longitude: string;
   ward: Ward;
   rooms?: Room[];
+  // Giá phòng trung bình (VNĐ) — BE tự tính lại (AVG price mọi room của
+  // hotel này) mỗi khi 1 room được thêm/sửa giá/xoá, không cho sửa tay.
+  // null nếu hotel chưa có room nào (vd. nhóm "test hotel" seed) — không
+  // hiện badge giá cho trường hợp này, xem formatCompactVnd/Map marker.
+  averagePrice: number | null;
 }
 
 export interface ReviewAuthor {

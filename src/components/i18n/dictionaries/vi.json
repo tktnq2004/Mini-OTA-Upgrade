@@ -80,6 +80,8 @@
     "map.withinRadius": " trong bán kính {radius}km quanh bạn",
     "map.clearFilter": "Xem tất cả",
     "map.viewRoomsAndBook": "Xem phòng & đặt ngay",
+    "map.viewHotelMarker": "Xem",
+    "map.close": "Đóng",
     "map.findNearby": "Tìm quanh đây",
     "map.locating": "Đang định vị...",
     "map.geolocationUnsupported": "Trình duyệt không hỗ trợ định vị",

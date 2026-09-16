@@ -80,6 +80,8 @@
     "map.withinRadius": " within {radius}km of you",
     "map.clearFilter": "Show all",
     "map.viewRoomsAndBook": "View rooms & book now",
+    "map.viewHotelMarker": "View",
+    "map.close": "Close",
     "map.findNearby": "Search nearby",
     "map.locating": "Locating...",
     "map.geolocationUnsupported": "Your browser doesn't support geolocation",
