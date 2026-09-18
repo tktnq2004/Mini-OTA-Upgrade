@@ -120,8 +120,7 @@ export function createHotelMarkerIcon(label: string): MarkerIconBitmap {
     ctx.strokeStyle = getCssVar("--color-border", "#e3e5e8");
     ctx.stroke();
 
-    // Chữ vẽ NGAY TRÊN CÙNG canvas này — đây chính là điểm mấu chốt khiến
-    // pill+chữ luôn là 1 khối duy nhất khi các marker chồng lên nhau.
+    
     ctx.font = font;
     ctx.fillStyle = getCssVar("--color-accent-strong", "#1d4ed8");
     ctx.textAlign = "center";
@@ -131,9 +130,6 @@ export function createHotelMarkerIcon(label: string): MarkerIconBitmap {
     return { width, height, pixelRatio: MARKER_SCALE, data: ctx.getImageData(0, 0, width, height).data };
 }
 
-// Đăng ký ảnh cho mọi nhãn CHƯA có sẵn trên bản đồ — idempotent (map.hasImage
-// kiểm tra trước), gọi lại an toàn mỗi khi danh sách nhãn đổi (lọc/tìm kiếm
-// ra hotel với mức giá mới chưa từng thấy).
 export function ensureHotelMarkerIcons(map: MapLibreMap, labels: Iterable<string>) {
     for (const label of new Set(labels)) {
         const id = hotelMarkerIconId(label);

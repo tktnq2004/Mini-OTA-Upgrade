@@ -98,3 +98,88 @@ export async function refreshBackendSession(refreshToken: string): Promise<Refre
     refreshMaxAge: rotated?.maxAgeSeconds,
   };
 }
+
+export interface OAuth2ExchangeResult {
+  status: "LOGIN_SUCCESS" | "REGISTER_REQUIRED";
+  accessToken?: string;
+  accessMaxAge?: number;
+  refreshToken?: string;
+  refreshMaxAge?: number;
+  sessionId?: string;
+  email?: string;
+  name?: string;
+}
+
+// Đổi 1 lần "handoff code" (backend tạo sau khi Google/Facebook redirect
+// login thành công qua Spring Security oauth2Login — xem OAuth2SuccessHandler
+// bên backend) lấy access_token thật. Gọi server-to-server nên không đụng
+// CORS. Không bao giờ đưa access_token thẳng vào URL redirect cho browser.
+export async function exchangeOAuth2Code(code: string): Promise<OAuth2ExchangeResult | null> {
+  const res = await fetch(`${getApiBaseUrl()}/auth/oauth2/exchange`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code }),
+    cache: "no-store",
+  });
+  if (!res.ok) return null;
+
+  const envelope = await res.json().catch(() => null);
+  const session = envelope?.data?.session;
+  if (!session) return null;
+
+  if (session.status === "REGISTER_REQUIRED") {
+    return {
+      status: "REGISTER_REQUIRED",
+      sessionId: session.sessionId,
+      email: session.email,
+      name: session.name,
+    };
+  }
+
+  const accessToken: string | undefined = session.accessToken;
+  if (!accessToken) return null;
+
+  const claims = decodeAccountJwt(accessToken);
+  if (!claims) return null;
+
+  const rotated = extractBackendRefreshCookie(res.headers);
+  return {
+    status: "LOGIN_SUCCESS",
+    accessToken,
+    accessMaxAge: Math.max(60, claims.exp - Math.floor(Date.now() / 1000)),
+    refreshToken: rotated?.value,
+    refreshMaxAge: rotated?.maxAgeSeconds,
+  };
+}
+
+// POST /auth/session — bước cuối khi user social login lần đầu (chưa có tài
+// khoản trong hệ thống), sau khi nhập xong username/phone ở trang
+// /complete-profile.
+export async function completeProviderProfile(params: {
+  sessionId: string;
+  username: string;
+  phone: string;
+}): Promise<RefreshResult | null> {
+  const res = await fetch(`${getApiBaseUrl()}/auth/session`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+    cache: "no-store",
+  });
+  if (!res.ok) return null;
+
+  const envelope = await res.json().catch(() => null);
+  const accessToken: string | undefined = envelope?.data?.access_token;
+  if (!accessToken) return null;
+
+  const claims = decodeAccountJwt(accessToken);
+  if (!claims) return null;
+
+  const rotated = extractBackendRefreshCookie(res.headers);
+  return {
+    accessToken,
+    accessMaxAge: Math.max(60, claims.exp - Math.floor(Date.now() / 1000)),
+    refreshToken: rotated?.value,
+    refreshMaxAge: rotated?.maxAgeSeconds,
+  };
+}

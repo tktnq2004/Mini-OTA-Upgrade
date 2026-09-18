@@ -4,7 +4,7 @@ import { useState, type SubmitEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AuthShell from "@/components/auth/AuthShell";
-import { SocialLoginButtons } from "@/components/auth/social";
+import SocialAuthLinks from "@/components/auth/SocialAuthLinks";
 import { useAccount } from "@/components/auth/AccountProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import controls from "@/styles/controls.module.css";
@@ -188,7 +188,7 @@ export default function SignupPage() {
                 <span>{t("auth.or")}</span>
             </div>
 
-            <SocialLoginButtons googleText="signup_with" />
+            <SocialAuthLinks />
         </AuthShell>
     );
 }

@@ -2,21 +2,22 @@
 
 import { useState, type SubmitEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import AuthShell from "@/components/auth/AuthShell";
-import { SocialLoginButtons } from "@/components/auth/social";
+import SocialAuthLinks from "@/components/auth/SocialAuthLinks";
 import { useAccount } from "@/components/auth/AccountProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import controls from "@/styles/controls.module.css";
 import form from "@/components/auth/AuthForm.module.css";
 
-export default function LoginPage() {
+export default function LoginForm() {
     const { t } = useLanguage();
     const { login } = useAccount();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [error, setError] = useState("");
+    const [error, setError] = useState(searchParams.get("social_error") ? t("auth.socialLoginError") : "");
     const [submitting, setSubmitting] = useState(false);
 
     const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
@@ -88,7 +89,7 @@ export default function LoginPage() {
                 <span>{t("auth.or")}</span>
             </div>
 
-            <SocialLoginButtons googleText="signin_with" />
+            <SocialAuthLinks />
         </AuthShell>
     );
 }
