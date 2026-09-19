@@ -9,7 +9,6 @@ import {
     BedIcon,
     MapPinIcon,
     CalendarBlankIcon,
-    UsersIcon,
     CreditCardIcon,
     HandCoinsIcon,
     CheckCircleIcon,
@@ -17,15 +16,16 @@ import {
 } from "@phosphor-icons/react";
 import SiteHeader from "@/components/SiteHeader/SiteHeader";
 import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
+import GuestsField from "@/components/GuestsField/GuestsField";
 import DateRangeField from "@/components/DateRangePicker/DateRangeField";
 import { useWishlist } from "@/components/wishlist/WishlistProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { formatVnd } from "@/lib/format";
-import { getHotel } from "@/lib/hotels/client";
+import { getHotel, PublicApiError } from "@/lib/hotels/client";
 import type { Hotel, Room } from "@/lib/hotels/types";
 import { nightsBetween } from "@/lib/searchFilters";
-import { getUnavailableDates } from "@/lib/booking/availability";
-import { createBooking, type PaymentMethod } from "@/lib/booking/client";
+import { getRoomsAvailability, isRangeBookable, type RoomsAvailability } from "@/lib/booking/availability";
+import { createBooking, simulateCardPayment, type PaymentMethod } from "@/lib/booking/client";
 import controls from "@/styles/controls.module.css";
 import styles from "./checkout.module.css";
 
@@ -79,17 +79,25 @@ export default function CheckoutView() {
     const [checkOut, setCheckOut] = useState<string | null>(searchParams.get("checkout"));
     const [guests, setGuests] = useState(() => Number(searchParams.get("guests")) || 2);
 
-    const [unavailable, setUnavailable] = useState<string[]>([]);
+    const [availability, setAvailability] = useState<RoomsAvailability>({ disabledDates: [] });
     const [loadingDates, setLoadingDates] = useState(true);
 
     useEffect(() => {
-        if (!hotelId || roomIds.length === 0) return;
+        if (roomIds.length === 0) return;
         let alive = true;
-        // TODO(backend): getUnavailableDates hiện trả rỗng — khi có API, các
-        // ngày đã kín sẽ tự bị bôi xám trong DateRangePicker.
-        getUnavailableDates(hotelId, roomIds)
-            .then((days) => {
-                if (alive) setUnavailable(days);
+        // GET /rooms/{id} của từng phòng: đêm đã kín + cửa sổ đặt phòng (min/max).
+        getRoomsAvailability(roomIds)
+            .then((a) => {
+                if (!alive) return;
+                setAvailability(a);
+                // Ngày điền sẵn từ URL mà đã kín/ngoài cửa sổ thì bỏ, khách chọn lại.
+                if (!isRangeBookable(searchParams.get("checkin"), searchParams.get("checkout"), a)) {
+                    setCheckIn(null);
+                    setCheckOut(null);
+                }
+            })
+            .catch(() => {
+                if (alive) setAvailability({ disabledDates: [] });
             })
             .finally(() => {
                 if (alive) setLoadingDates(false);
@@ -97,8 +105,10 @@ export default function CheckoutView() {
         return () => {
             alive = false;
         };
-    }, [hotelId, roomIds]);
+    }, [roomIds, searchParams]);
 
+    // Tối đa số khách = tổng sức chứa các phòng đã chọn (không có phòng thì 30).
+    const maxGuests = rooms.reduce((sum, r) => sum + r.capacity, 0) || 30;
     const nights = checkIn && checkOut ? nightsBetween(checkIn, checkOut) : 0;
     const roomsSubtotal = rooms.reduce((sum, r) => sum + r.price, 0);
     const grandTotal = nights > 0 ? roomsSubtotal * nights : 0;
@@ -138,25 +148,17 @@ export default function CheckoutView() {
         setSubmitting(true);
         try {
             const result = await createBooking({
-                hotelId,
                 roomIds: rooms.map((r) => r.id),
                 checkIn,
                 checkOut,
-                guests,
-                guest: { fullName, email, phone, note: note || undefined },
-                payment: {
-                    method: paymentMethod,
-                    card:
-                        paymentMethod === "card"
-                            ? { number: cardNumber, name: cardName, expiry: cardExpiry, cvv: cardCvv }
-                            : undefined,
-                },
+                guest: { fullName, email, phone },
             });
+            if (paymentMethod === "card") await simulateCardPayment();
             // Đặt xong thì bỏ các phòng vừa đặt khỏi wishlist (nếu có).
             rooms.forEach((r) => removeFromWishlist(hotelId, r.id));
-            setOrder({ code: result.code, rooms: rooms.length, total: grandTotal });
-        } catch {
-            setError(t("checkout.errorSubmit"));
+            setOrder({ code: `MO-${result.bookingId}`, rooms: rooms.length, total: result.totalAmount * nights });
+        } catch (err) {
+            setError(err instanceof PublicApiError && err.message ? err.message : t("checkout.errorSubmit"));
         } finally {
             setSubmitting(false);
         }
@@ -230,18 +232,21 @@ export default function CheckoutView() {
                             <h2>{t("checkout.customerInfoTitle")}</h2>
                             <p className={styles.sectionHint}>{t("checkout.customerInfoHint")}</p>
 
-                            <div className={controls.field}>
-                                <label className={controls.label} htmlFor="co-name">
-                                    {t("auth.fullNameLabel")}
-                                </label>
-                                <input
-                                    id="co-name"
-                                    type="text"
-                                    className={controls.input}
-                                    placeholder={t("auth.fullNamePlaceholder")}
-                                    value={fullName}
-                                    onChange={(e) => setFullName(e.target.value)}
-                                />
+                            <div className={styles.fieldRow}>
+                                <div className={controls.field}>
+                                    <label className={controls.label} htmlFor="co-name">
+                                        {t("auth.fullNameLabel")}
+                                    </label>
+                                    <input
+                                        id="co-name"
+                                        type="text"
+                                        className={controls.input}
+                                        placeholder={t("auth.fullNamePlaceholder")}
+                                        value={fullName}
+                                        onChange={(e) => setFullName(e.target.value)}
+                                    />
+                                </div>
+                                <GuestsField stacked value={guests} onChange={setGuests} max={maxGuests} />
                             </div>
 
                             <div className={styles.fieldRow}>
@@ -316,6 +321,10 @@ export default function CheckoutView() {
                                     <span>{t("checkout.payByCard")}</span>
                                 </label>
                             </div>
+
+                            {paymentMethod === "payAtHotel" && (
+                                <p className={styles.paymentNote}>{t("checkout.payAtHotelNote")}</p>
+                            )}
 
                             {paymentMethod === "card" && (
                                 <div className={styles.cardFields}>
@@ -396,24 +405,13 @@ export default function CheckoutView() {
                                         setCheckIn(ci);
                                         setCheckOut(co);
                                     }}
-                                    disabledDates={unavailable}
+                                    alwaysOpen
+                                    disabledDates={availability.disabledDates}
+                                    minDate={availability.minDate}
+                                    maxDate={availability.maxDate}
                                     loading={loadingDates}
                                 />
 
-                                <div className={styles.guestsField}>
-                                    <label className={controls.label} htmlFor="co-guests">
-                                        <UsersIcon size={13} weight="bold" /> {t("checkout.guestsLabel")}
-                                    </label>
-                                    <input
-                                        id="co-guests"
-                                        type="number"
-                                        min={1}
-                                        max={30}
-                                        className={controls.input}
-                                        value={guests}
-                                        onChange={(e) => setGuests(Math.max(1, Number(e.target.value) || 1))}
-                                    />
-                                </div>
                             </div>
 
                             <div className={styles.summaryDivider} />

@@ -3,11 +3,11 @@
 }
 
 .layout {
-    max-width: 1180px;
+    max-width: 1280px;
     margin: 0 auto;
     padding: 16px 20px 60px;
     display: grid;
-    grid-template-columns: 1.6fr 1fr;
+    grid-template-columns: minmax(0, 1fr) 380px;
     align-items: start;
     gap: 24px;
 }
@@ -25,7 +25,9 @@
     gap: 5px;
     font-size: 12px;
     color: var(--color-text-muted);
-    align-self: flex-start;
+    grid-column: 1 / -1; /* nằm 1 hàng riêng phía trên, cột đặt phòng bắt đầu ngang với nội dung chính */
+    justify-self: start;
+    margin-bottom: -8px;
 }
 
 .backLink:hover {
@@ -248,16 +250,23 @@
     gap: 14px;
 }
 
+/* Cột đặt phòng dính theo màn hình: luôn nằm gọn trong 1 viewport, nếu nội
+   dung (vd. lịch 6 hàng + chân lịch) vẫn cao hơn thì cuộn bên trong thay vì
+   bị đẩy lệch khỏi màn hình. */
 .bookingColumn {
     position: sticky;
-    top: 72px;
+    top: 64px;
+    max-height: calc(100vh - 76px);
+    overflow-y: auto;
+    scrollbar-width: thin;
 }
 
 .bookingCard {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    padding: 16px;
+    gap: 10px;
+    padding: 14px;
+    --cal-cell: 26px; /* ô ngày của lịch gọn lại cho vừa thẻ */
     background: var(--color-panel);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
@@ -267,7 +276,7 @@
     display: flex;
     align-items: baseline;
     gap: 6px;
-    padding-bottom: 12px;
+    padding-bottom: 10px;
     border-bottom: 1px solid var(--color-border-soft);
 }
 
@@ -298,14 +307,19 @@
 
 .bookingActions {
     display: flex;
-    flex-direction: column;
     gap: 8px;
+}
+
+.bookingActions > button {
+    flex: 1;
+    min-width: 0;
 }
 
 .selectButton,
 .selectButtonActive,
 .bookNowButton {
-    height: 44px;
+    height: 40px;
+    white-space: nowrap;
     border-radius: var(--radius-sm);
     border: 1px solid transparent;
     display: inline-flex;
@@ -364,6 +378,8 @@
 
     .bookingColumn {
         position: static;
+        max-height: none;
+        overflow: visible;
     }
 }
 
@@ -381,4 +397,9 @@
     .otherRoomsGrid {
         grid-template-columns: 1fr;
     }
+}
+
+.bookNowButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }

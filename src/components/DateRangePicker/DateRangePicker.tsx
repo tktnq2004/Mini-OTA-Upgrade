@@ -18,6 +18,8 @@ interface DateRangePickerProps {
   disabledDates?: string[];
   /** Ngày sớm nhất chọn được — mặc định hôm nay. */
   minDate?: string;
+  /** Ngày muộn nhất chọn được (backend giới hạn cửa sổ đặt phòng). */
+  maxDate?: string;
   /** Đang tải danh sách ngày kín từ backend. */
   loading?: boolean;
   /** Số tháng hiển thị cạnh nhau (mặc định 2; màn hẹp CSS tự rút còn 1). */
@@ -93,6 +95,7 @@ export default function DateRangePicker({
   onChange,
   disabledDates = [],
   minDate,
+  maxDate,
   loading = false,
   monthsToShow = 2,
 }: DateRangePickerProps) {
@@ -130,14 +133,18 @@ export default function DateRangePicker({
   };
 
   const cellState = (cell: DayCell) => {
-    const past = cell.iso < min;
+    const past = cell.iso < min || (maxDate !== undefined && cell.iso > maxDate);
     const isBlocked = blocked.has(cell.iso);
-    const disabled = past || isBlocked;
+    // Ngày đầu của 1 booking khác vẫn chọn được làm NGÀY TRẢ phòng (khách cũ
+    // nhận phòng hôm đó, mình trả sáng hôm đó) nếu các đêm ở giữa còn trống.
+    const canCheckOut =
+      isBlocked && !!checkIn && !checkOut && cell.iso > checkIn && !rangeHasBlocked(checkIn, cell.iso, blocked);
+    const disabled = past || (isBlocked && !canCheckOut);
     const isStart = cell.iso === checkIn;
     const isEnd = cell.iso === checkOut;
     const inRange =
       checkIn && checkOut && cell.iso > checkIn && cell.iso < checkOut;
-    return { disabled, isBlocked, past, isStart, isEnd, inRange };
+    return { disabled, isBlocked: isBlocked && !canCheckOut, past, isStart, isEnd, inRange };
   };
 
   const months = Array.from({ length: monthsToShow }, (_, i) => addMonths(view.year, view.month, i));

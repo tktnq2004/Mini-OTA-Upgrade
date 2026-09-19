@@ -52,6 +52,13 @@ export interface Room {
   amenities: Amenity[];
   roomType: RoomType | null;
   images: RoomImage[];
+  // Chỉ có ở GET /rooms/{id} (backend tính lại mỗi lần gọi): cửa sổ đặt phòng
+  // [minDate, maxDate] và các khoảng đã có booking trong cửa sổ đó. endDate là
+  // NGÀY TRẢ phòng của booking (ngày đó vẫn nhận khách mới) — xem
+  // lib/booking/availability.ts.
+  minDate?: string;
+  maxDate?: string;
+  unavailableRanges?: { startDate: string; endDate: string }[];
 }
 
 export interface Hotel {

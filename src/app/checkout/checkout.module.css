@@ -3,7 +3,7 @@
 }
 
 .layout {
-    max-width: 1080px;
+    max-width: 1280px;
     margin: 0 auto;
     padding: 20px 20px 60px;
     display: flex;
@@ -32,8 +32,8 @@
 
 .grid {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 400px;
-    align-items: start;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    align-items: stretch; /* 2 cột cao bằng nhau, đáy thẳng hàng */
     gap: 20px;
 }
 
@@ -41,6 +41,12 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
+}
+
+/* Card cuối (thanh toán) giãn hết chỗ trống để đáy 2 cột thẳng hàng với đơn
+   đặt phòng; ô ghi chú giữ cỡ vừa phải. */
+.formColumn > .formSection:last-child {
+    flex: 1;
 }
 
 /* Khối chọn ngày + số khách, nằm chung card với tóm tắt đơn ở cột phải */
@@ -65,11 +71,6 @@
     margin: 2px 0;
 }
 
-.guestsField {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
 
 .formSection {
     display: flex;
@@ -166,16 +167,19 @@
     transform: translateY(1px);
 }
 
+/* Cột phải kéo cao bằng cột trái; card bên trong mới là phần dính theo màn hình. */
 .summaryColumn {
-    position: sticky;
-    top: 72px;
+    min-width: 0;
 }
 
 .summaryCard {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    padding: 16px;
+    position: sticky;
+    top: 64px;
+    padding: 14px;
+    --cal-cell: 26px; /* ô ngày của lịch gọn lại cho vừa thẻ */
     background: var(--color-panel);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
@@ -402,7 +406,7 @@
         grid-template-columns: 1fr;
     }
 
-    .summaryColumn {
+    .summaryCard {
         position: static;
     }
 }
@@ -415,4 +419,13 @@
     .paymentOptions {
         flex-direction: column;
     }
+}
+
+.paymentNote {
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+    background: var(--color-inset);
+    border-radius: var(--radius-sm);
 }

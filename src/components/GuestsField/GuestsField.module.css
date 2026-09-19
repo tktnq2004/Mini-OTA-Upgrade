@@ -1,0 +1,22 @@
+.field {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.field label {
+    margin: 0;
+    white-space: nowrap;
+}
+
+.field input {
+    width: 96px;
+    text-align: center;
+}
+
+.stacked {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}

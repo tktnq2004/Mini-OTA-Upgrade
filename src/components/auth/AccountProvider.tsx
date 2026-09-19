@@ -1,7 +1,6 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { loadWishlist, mergeWishlistOnLogin } from "@/components/wishlist/wishlistStorage";
 import type { LoginInput, RegisterInput, SessionUser } from "@/lib/auth/types";
 
 interface AuthResult {
@@ -44,7 +43,6 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         const data = await res.json().catch(() => null);
         if (!res.ok) return { ok: false, message: data?.message ?? "Đăng nhập thất bại" };
         setUser(data.user ?? null);
-        await mergeWishlistOnLogin(loadWishlist());
         return { ok: true };
     };
 
@@ -62,7 +60,6 @@ export function AccountProvider({ children }: { children: ReactNode }) {
             return { ok: true };
         }
         setUser(data.user ?? null);
-        await mergeWishlistOnLogin(loadWishlist());
         return { ok: true };
     };
 

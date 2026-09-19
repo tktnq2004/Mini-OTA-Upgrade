@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CalendarBlankIcon } from "@phosphor-icons/react";
+import { CalendarBlankIcon, MoonIcon } from "@phosphor-icons/react";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { formatDateVn, nightsBetween } from "@/lib/searchFilters";
 import DateRangePicker from "./DateRangePicker";
@@ -14,6 +14,11 @@ interface DateRangeFieldProps {
     disabledDates?: string[];
     loading?: boolean;
     minDate?: string;
+    maxDate?: string;
+    // true: lịch luôn hiện ngay dưới 2 ô ngày (không popover, không tự đóng) —
+    // dùng ở nơi còn trống chỗ như thẻ đặt phòng / trang checkout.
+    alwaysOpen?: boolean;
+    monthsToShow?: number;
 }
 
 // Ô "Nhận phòng / Trả phòng" gọn — bấm vào mới mở lịch (popover) để không
@@ -25,18 +30,25 @@ export default function DateRangeField({
     disabledDates,
     loading,
     minDate,
+    maxDate,
+    alwaysOpen = false,
+    monthsToShow = 1,
 }: DateRangeFieldProps) {
     const { t, language } = useLanguage();
-    const [open, setOpen] = useState(false);
+    const [popoverOpen, setPopoverOpen] = useState(false);
+    const open = alwaysOpen || popoverOpen;
+    const setOpen = (v: boolean | ((o: boolean) => boolean)) => {
+        if (!alwaysOpen) setPopoverOpen(v);
+    };
     const wrapRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (!open) return;
+        if (!popoverOpen) return;
         const onDown = (e: MouseEvent) => {
-            if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+            if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setPopoverOpen(false);
         };
         const onKey = (e: KeyboardEvent) => {
-            if (e.key === "Escape") setOpen(false);
+            if (e.key === "Escape") setPopoverOpen(false);
         };
         document.addEventListener("mousedown", onDown);
         document.addEventListener("keydown", onKey);
@@ -44,7 +56,7 @@ export default function DateRangeField({
             document.removeEventListener("mousedown", onDown);
             document.removeEventListener("keydown", onKey);
         };
-    }, [open]);
+    }, [popoverOpen]);
 
     const handleChange = (ci: string | null, co: string | null) => {
         onChange(ci, co);
@@ -95,8 +107,8 @@ export default function DateRangeField({
             )}
 
             {open && (
-                <div className={styles.popover}>
-                    <p className={styles.popoverHint}>{t("checkout.datesHint")}</p>
+                <div className={alwaysOpen ? styles.inline : styles.popover}>
+                    {!alwaysOpen && <p className={styles.popoverHint}>{t("checkout.datesHint")}</p>}
                     <DateRangePicker
                         checkIn={checkIn}
                         checkOut={checkOut}
@@ -104,8 +116,28 @@ export default function DateRangeField({
                         disabledDates={disabledDates}
                         loading={loading}
                         minDate={minDate}
-                        monthsToShow={1}
+                        maxDate={maxDate}
+                        monthsToShow={monthsToShow}
                     />
+                    {alwaysOpen && (
+                        <div className={styles.footer}>
+                            {nights > 0 ? (
+                                <span className={styles.footerNights}>
+                                    <MoonIcon size={14} weight="fill" />
+                                    {t("hotel.nightsSuffix", { count: nights })}
+                                </span>
+                            ) : (
+                                <span className={styles.footerHint}>
+                                    {t(checkIn ? "checkout.pickCheckoutHint" : "checkout.pickCheckinHint")}
+                                </span>
+                            )}
+                            {checkIn && (
+                                <button type="button" className={styles.footerClear} onClick={() => onChange(null, null)}>
+                                    {t("checkout.clearDates")}
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </div>
             )}
         </div>

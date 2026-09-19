@@ -13,17 +13,18 @@ import {
     IdentificationCardIcon,
     ProhibitIcon,
     BuildingsIcon,
-    CalendarBlankIcon,
     BedIcon,
     ArrowsClockwiseIcon,
 } from "@phosphor-icons/react";
 import type { Hotel, Room } from "@/lib/hotels/types";
 import type { MediaAsset } from "@/lib/media/types";
 import { formatVnd } from "@/lib/format";
-import { addDaysIso, nightsBetween, parseFilters, todayIso } from "@/lib/searchFilters";
+import { nightsBetween, parseFilters } from "@/lib/searchFilters";
+import { isRangeBookable, mergeAvailability } from "@/lib/booking/availability";
 import SiteHeader from "@/components/SiteHeader/SiteHeader";
 import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
-import Stepper from "@/components/Stepper/Stepper";
+import GuestsField from "@/components/GuestsField/GuestsField";
+import DateRangeField from "@/components/DateRangePicker/DateRangeField";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { useWishlist } from "@/components/wishlist/WishlistProvider";
 import { getPanoramaTourForHotel } from "@/components/panorama/panoramaTours.data";
@@ -55,8 +56,17 @@ export default function RoomDetailView({ hotel, room, thumbnail, panorama, roomT
     // eslint-disable-next-line react-hooks/exhaustive-deps
     const initial = useMemo(() => parseFilters(searchParams), []);
 
-    const [checkin, setCheckin] = useState(initial.checkin);
-    const [checkout, setCheckout] = useState(initial.checkout);
+    // Ngày kín + cửa sổ đặt phòng do GET /rooms/{id} trả sẵn trong `room`.
+    const availability = useMemo(() => mergeAvailability([room]), [room]);
+
+    // Ngày điền sẵn từ tìm kiếm chỉ giữ nếu còn đặt được — đã kín / ngoài cửa
+    // sổ đặt thì để trống cho khách tự chọn trên lịch.
+    const [checkin, setCheckin] = useState<string | null>(() =>
+        isRangeBookable(initial.checkin, initial.checkout, availability) ? initial.checkin : null
+    );
+    const [checkout, setCheckout] = useState<string | null>(() =>
+        isRangeBookable(initial.checkin, initial.checkout, availability) ? initial.checkout : null
+    );
     const [guests, setGuests] = useState(() => Math.min(initial.guests, room.capacity));
     const [activePhoto, setActivePhoto] = useState(0);
     const [showPanorama, setShowPanorama] = useState(false);
@@ -79,19 +89,11 @@ export default function RoomDetailView({ hotel, room, thumbnail, panorama, roomT
         [hotel.rooms, room.id]
     );
 
-    const nights = nightsBetween(checkin, checkout);
+    const nights = checkin && checkout ? nightsBetween(checkin, checkout) : 0;
     const total = room.price * nights;
-    const minCheckin = todayIso();
-    const minCheckout = addDaysIso(checkin || minCheckin, 1);
+    const canBook = Boolean(checkin && checkout);
     const selected = isSaved(hotel.id, room.id);
     const hotelHref = `/hotel/${hotel.id}?${searchParams.toString()}`;
-
-    const handleCheckinChange = (value: string) => {
-        setCheckin(value);
-        if (checkout && checkout <= value) {
-            setCheckout(addDaysIso(value, 1));
-        }
-    };
 
     const toggleWishlist = () => {
         if (selected) {
@@ -102,6 +104,7 @@ export default function RoomDetailView({ hotel, room, thumbnail, panorama, roomT
     };
 
     const bookNow = () => {
+        if (!checkin || !checkout) return;
         // Ngày/số khách chỉ là gợi ý điền sẵn — chốt lại ở /checkout (có picker
         // biết ngày đã kín). from=hotel để nút "Quay lại" về đúng trang này.
         const params = new URLSearchParams({
@@ -120,11 +123,11 @@ export default function RoomDetailView({ hotel, room, thumbnail, panorama, roomT
             <SiteHeader />
 
             <div className={styles.layout}>
-                <div className={styles.mainColumn}>
-                    <Link href={hotelHref} className={styles.backLink}>
-                        <ArrowLeftIcon size={14} weight="bold" /> {t("room.detail.backToHotel")}
-                    </Link>
+                <Link href={hotelHref} className={styles.backLink}>
+                    <ArrowLeftIcon size={14} weight="bold" /> {t("room.detail.backToHotel")}
+                </Link>
 
+                <div className={styles.mainColumn}>
                     <div className={styles.gallery}>
                         <div className={styles.heroWrap}>
                             <ImageWithFallback
@@ -234,9 +237,9 @@ export default function RoomDetailView({ hotel, room, thumbnail, panorama, roomT
                                         hotelId={hotel.id}
                                         room={r}
                                         coverImage={roomThumbnails[r.id]}
-                                        nights={nights}
-                                        checkin={checkin}
-                                        checkout={checkout}
+                                        nights={nights || 1}
+                                        checkin={checkin ?? ""}
+                                        checkout={checkout ?? ""}
                                         guests={guests}
                                     />
                                 ))}
@@ -253,46 +256,24 @@ export default function RoomDetailView({ hotel, room, thumbnail, panorama, roomT
                         </div>
 
                         <div className={controls.field}>
-                            <label className={controls.label} htmlFor="rd-checkin">
-                                <CalendarBlankIcon size={13} weight="bold" /> {t("search.checkinLabel")}
-                            </label>
-                            <input
-                                id="rd-checkin"
-                                type="date"
-                                className={controls.input}
-                                value={checkin}
-                                min={minCheckin}
-                                onChange={(e) => handleCheckinChange(e.target.value)}
+                            <DateRangeField
+                                alwaysOpen
+                                checkIn={checkin}
+                                checkOut={checkout}
+                                onChange={(ci, co) => {
+                                    setCheckin(ci);
+                                    setCheckout(co);
+                                }}
+                                disabledDates={availability.disabledDates}
+                                minDate={availability.minDate}
+                                maxDate={availability.maxDate}
                             />
                         </div>
-                        <div className={controls.field}>
-                            <label className={controls.label} htmlFor="rd-checkout">
-                                <CalendarBlankIcon size={13} weight="bold" /> {t("search.checkoutLabel")}
-                            </label>
-                            <input
-                                id="rd-checkout"
-                                type="date"
-                                className={controls.input}
-                                value={checkout}
-                                min={minCheckout}
-                                onChange={(e) => setCheckout(e.target.value)}
-                            />
-                        </div>
-                        <div className={controls.field}>
-                            <label className={controls.label}>{t("search.guestsLabel")}</label>
-                            <Stepper
-                                value={guests}
-                                min={1}
-                                max={room.capacity}
-                                onChange={setGuests}
-                                formatValue={(v) => t("search.guestsValue", { count: v })}
-                                ariaLabel={t("search.guestsLabel")}
-                            />
-                        </div>
+                        <GuestsField value={guests} onChange={setGuests} max={room.capacity} />
 
                         <div className={styles.priceBreakdown}>
-                            <span>{t("hotel.nightsSuffix", { count: nights })}</span>
-                            <strong>{formatVnd(total)}</strong>
+                            <span>{t("wishlist.summaryTotal")}</span>
+                            <strong>{nights > 0 ? formatVnd(total) : t("checkout.pickDatesForTotal")}</strong>
                         </div>
 
                         <div className={styles.bookingActions}>
@@ -304,7 +285,7 @@ export default function RoomDetailView({ hotel, room, thumbnail, panorama, roomT
                                 {selected && <CheckIcon size={13} weight="bold" />}
                                 {selected ? t("room.savedToWishlist") : t("room.saveToWishlist")}
                             </button>
-                            <button type="button" className={styles.bookNowButton} onClick={bookNow}>
+                            <button type="button" className={styles.bookNowButton} onClick={bookNow} disabled={!canBook}>
                                 {t("room.bookNow")}
                             </button>
                         </div>
