@@ -9,6 +9,13 @@ interface ImageWithFallbackProps {
     fallbackClassName?: string;
     fallback: ReactNode;
     loading?: "lazy" | "eager";
+    /**
+     * Đặt "anonymous" cho ảnh mà CHỖ KHÁC trong cùng trang cũng tải bằng CORS
+     * (vd. ảnh panorama nạp vào three.js). Nếu <img> thường tải URL đó TRƯỚC (không
+     * crossorigin), trình duyệt giữ bản không có header CORS trong bộ nhớ ảnh và
+     * lần nạp CORS sau đó dùng lại nó -> bị chặn "blocked by CORS policy".
+     */
+    crossOrigin?: "anonymous" | "use-credentials";
 }
 
 export default function ImageWithFallback({
@@ -18,6 +25,7 @@ export default function ImageWithFallback({
     fallbackClassName,
     fallback,
     loading = "lazy",
+    crossOrigin,
 }: ImageWithFallbackProps) {
     const imgRef = useRef<HTMLImageElement | null>(null);
     const [error, setError] = useState(false);
@@ -41,6 +49,7 @@ export default function ImageWithFallback({
             alt={alt}
             className={className}
             loading={loading}
+            crossOrigin={crossOrigin}
             onError={() => setError(true)}
         />
     );

@@ -5,8 +5,9 @@
 export type MediaOwnerType = "HOTEL" | "ROOM";
 
 // THUMBNAIL: đúng 1 ảnh/owner — upload mới THAY THẾ ảnh cũ (BE tự xoá ảnh cũ
-// khi confirm). Hotel chỉ có THUMBNAIL (đúng yêu cầu: hotel chỉ 1 ảnh).
-// PANORAMA: nhiều ảnh 360°/room — chỉ ROOM mới có, thêm/xoá từng ảnh riêng lẻ.
+// khi confirm). PANORAMA: nhiều ảnh 360° — của ROOM (phòng khách, phòng
+// ngủ...) và của HOTEL (hành lang, sảnh...), thêm/xoá từng ảnh riêng lẻ; ghép
+// thành tour có hotspot ở module tour (lib/tour).
 export type MediaKind = "THUMBNAIL" | "PANORAMA";
 
 // mediaId là UUID do BE sinh ra lúc presign — dùng làm tên file trên R2 (chỉ

@@ -13,4 +13,8 @@ export const confirmMediaUpload = (input: ConfirmRequest) => adminPost<MediaAsse
 export const listMedia = (ownerType: MediaOwnerType, ownerId: number, kind?: MediaKind) =>
   adminGet<MediaAsset[]>(`media?ownerType=${ownerType}&ownerId=${ownerId}${kind ? `&kind=${kind}` : ""}`);
 
-export const deleteMedia = (mediaId: string) => adminDelete<void>(`media/${mediaId}`);
+// cascade = false (mặc định): panorama đang là đích của hotspot khác thì BE trả
+// 409 kèm danh sách hotspot; cascade = true: xoá luôn cả các hotspot đó (chỉ những
+// hotspot trỏ tới panorama này — panorama/hotspot khác không bị ảnh hưởng).
+export const deleteMedia = (mediaId: string, cascade = false) =>
+  adminDelete<void>(`media/${mediaId}${cascade ? "?cascade=true" : ""}`);

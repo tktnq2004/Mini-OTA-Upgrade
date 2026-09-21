@@ -8,6 +8,7 @@ import styles from "@/components/admin/adminPage.module.css";
 import RoomCard from "@/components/admin/RoomCard";
 import ChipPicker from "@/components/admin/ChipPicker";
 import ProvinceWardSelect from "@/components/admin/ProvinceWardSelect";
+import MediaGallery from "@/components/media/MediaGallery";
 import ThumbnailUploader from "@/components/media/ThumbnailUploader";
 import { AdminApiError } from "@/lib/admin/apiClient";
 import { createRoom, deleteHotel, getHotel, listAmenities, listViews, updateHotel } from "@/lib/admin/resources";
@@ -176,6 +177,31 @@ export default function HotelDetailPage({ params }: { params: Promise<{ id: stri
                 <div className={styles.card}>
                     <h2 className={styles.cardTitle}>Ảnh khách sạn</h2>
                     <ThumbnailUploader ownerType="HOTEL" ownerId={hotelId} />
+                </div>
+
+                <div className={styles.card}>
+                    <h2 className={styles.cardTitle}>Panorama 360° của khách sạn</h2>
+                    <p className={styles.pageSubtitle} style={{ marginBottom: 12 }}>
+                        Ảnh 360° chung của khách sạn (hành lang, sảnh…). Ảnh 360° của từng phòng upload ở mục phòng bên dưới.
+                    </p>
+                    <MediaGallery ownerType="HOTEL" ownerId={hotelId} kind="PANORAMA" />
+                </div>
+
+                <div className={styles.card}>
+                    <h2 className={styles.cardTitle}>Quản lý panorama</h2>
+                    <p className={styles.pageSubtitle} style={{ marginBottom: 12 }}>
+                        Đặt tên, chọn điểm bắt đầu và gắn hotspot để khách di chuyển giữa hành lang và các phòng. Upload/xoá
+                        ảnh làm ở đây và ở từng phòng; trang quản lý panorama chỉ chỉnh hotspot.
+                    </p>
+                    <Link
+                        href={`/admin/tour/${hotelId}`}
+                        target="_blank"
+                        rel="noopener"
+                        className={controls.button}
+                        style={{ textDecoration: "none", display: "inline-flex" }}
+                    >
+                        Quản lý panorama ↗
+                    </Link>
                 </div>
 
                 <div>

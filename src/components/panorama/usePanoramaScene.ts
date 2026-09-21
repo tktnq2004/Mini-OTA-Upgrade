@@ -171,5 +171,7 @@ export function usePanoramaScene({ imageUrl, hotspots }: UsePanoramaSceneParams)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [imageUrl]);
 
-    return { containerRef, projectedHotspots, loadError, isReady };
+    // lonRef/latRef/fovRef lộ ra cho editor (bấm lên ảnh -> tính yaw/pitch,
+    // xoay tới một hotspot) — viewer thường không cần dùng.
+    return { containerRef, projectedHotspots, loadError, isReady, lonRef, latRef, fovRef };
 }

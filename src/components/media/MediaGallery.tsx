@@ -10,10 +10,10 @@ import styles from "./MediaGallery.module.css";
 interface MediaGalleryProps {
   ownerType: MediaOwnerType;
   ownerId: number;
-  // Hiện tại chỉ Room mới có gallery nhiều ảnh (panorama 360°) — Hotel chỉ 1
-  // thumbnail, dùng <ThumbnailUploader /> thay vì component này. Vẫn nhận
-  // kind qua prop (không hardcode "PANORAMA") để không phải sửa component
-  // nếu sau này có thêm loại gallery nhiều-ảnh khác.
+  // Gallery nhiều ảnh dùng cho panorama 360° của Hotel (hành lang, sảnh…) và của
+  // từng Room; thumbnail đại diện (đúng 1 ảnh) dùng <ThumbnailUploader /> thay vì
+  // component này. Vẫn nhận kind qua prop (không hardcode "PANORAMA") để không phải
+  // sửa component nếu sau này có thêm loại gallery nhiều-ảnh khác.
   kind: MediaKind;
 }
 
@@ -38,6 +38,9 @@ export default function MediaGallery({ ownerType, ownerId, kind }: MediaGalleryP
             <ImageWithFallback
               src={img.url}
               alt=""
+              // Ảnh panorama còn được three.js nạp bằng CORS ở tab editor: <img> thường tải
+              // trước sẽ để lại bản cache không có header CORS làm lần nạp đó bị chặn.
+              crossOrigin={kind === "PANORAMA" ? "anonymous" : undefined}
               className={styles.thumbImg}
               fallbackClassName={styles.thumbFallback}
               fallback={<span>?</span>}
