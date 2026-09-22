@@ -5,6 +5,7 @@ import controls from "@/styles/controls.module.css";
 import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
 import { useMediaUpload } from "@/hooks/useMediaUpload";
 import type { MediaKind, MediaOwnerType } from "@/lib/media/types";
+import { panoramaReviewHref } from "@/lib/media/review";
 import styles from "./MediaGallery.module.css";
 
 interface MediaGalleryProps {
@@ -33,23 +34,33 @@ export default function MediaGallery({ ownerType, ownerId, kind }: MediaGalleryP
   return (
     <div className={styles.gallery}>
       <div className={styles.grid}>
-        {images.map((img) => (
-          <div key={img.id} className={styles.thumb}>
-            <ImageWithFallback
-              src={img.url}
-              alt=""
-              // Ảnh panorama còn được three.js nạp bằng CORS ở tab editor: <img> thường tải
-              // trước sẽ để lại bản cache không có header CORS làm lần nạp đó bị chặn.
-              crossOrigin={kind === "PANORAMA" ? "anonymous" : undefined}
-              className={styles.thumbImg}
-              fallbackClassName={styles.thumbFallback}
-              fallback={<span>?</span>}
-            />
-            <button type="button" className={styles.removeBtn} onClick={() => remove(img.id)} aria-label="Xoá ảnh">
-              ×
-            </button>
-          </div>
-        ))}
+        {images.map((img, i) => {
+          // Panorama -> trang review riêng (dựng lại khối cầu 360° bằng three.js, xem
+          // lib/media/review.ts) vì mở thẳng URL gốc chỉ ra ảnh equirectangular méo hình, không
+          // xoay được. Ảnh thường (kind khác, hiện chưa dùng ở component này) -> URL gốc trên
+          // R2 là đủ, trình duyệt đã có sẵn trình xem ảnh.
+          const label = `${kind === "PANORAMA" ? "Panorama" : "Ảnh"} ${i + 1}`;
+          const reviewHref = kind === "PANORAMA" ? panoramaReviewHref(img.url, label) : img.url;
+          return (
+            <div key={img.id} className={styles.thumb}>
+              <a href={reviewHref} target="_blank" rel="noopener noreferrer" className={styles.thumbLink} title={`Xem lớn «${label}»`}>
+                <ImageWithFallback
+                  src={img.url}
+                  alt=""
+                  // Ảnh panorama còn được three.js nạp bằng CORS ở tab editor: <img> thường tải
+                  // trước sẽ để lại bản cache không có header CORS làm lần nạp đó bị chặn.
+                  crossOrigin={kind === "PANORAMA" ? "anonymous" : undefined}
+                  className={styles.thumbImg}
+                  fallbackClassName={styles.thumbFallback}
+                  fallback={<span>?</span>}
+                />
+              </a>
+              <button type="button" className={styles.removeBtn} onClick={() => remove(img.id)} aria-label="Xoá ảnh">
+                ×
+              </button>
+            </div>
+          );
+        })}
         {!loading && images.length === 0 && <p className={styles.empty}>Chưa có ảnh nào</p>}
       </div>
 

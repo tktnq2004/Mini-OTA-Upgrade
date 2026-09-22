@@ -1,0 +1,136 @@
+/* Lightbox toàn màn hình luôn nền đen bất kể theme sáng/tối của web — cùng quy ước sân khấu
+   panorama (luôn đen) đã có ở PanoramaCanvas.module.css, để ảnh 360° luôn nổi bật. */
+.root {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    background: #000;
+    color: #fff;
+    font-family: var(--font-sans);
+    font-size: 13px;
+}
+
+.center {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: rgba(255, 255, 255, 0.7);
+    text-align: center;
+    padding: 24px;
+}
+
+.topbar {
+    flex: none;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 14px;
+    background: rgba(17, 19, 23, 0.72);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.iconButton {
+    flex: none;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.85);
+    cursor: pointer;
+    transition: background 0.12s ease;
+}
+
+.iconButton:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.title {
+    font-size: 13.5px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 60%;
+}
+
+.spacer {
+    flex: 1;
+}
+
+.stage {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+}
+
+.controls {
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    padding: 3px;
+    border-radius: 12px;
+    background: rgba(17, 19, 23, 0.72);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.controlButton {
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 9px;
+    background: transparent;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.12s ease;
+}
+
+.controlButton:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.hint {
+    position: absolute;
+    left: 50%;
+    bottom: 16px;
+    transform: translateX(-50%);
+    z-index: 3;
+    max-width: calc(100% - 140px);
+    padding: 7px 14px;
+    border-radius: 999px;
+    background: rgba(17, 19, 23, 0.72);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.75);
+    text-align: center;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+@media (max-width: 640px) {
+    .title {
+        max-width: 40%;
+    }
+
+    .hint {
+        display: none;
+    }
+}

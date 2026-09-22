@@ -20,6 +20,13 @@
     background: var(--color-inset);
 }
 
+.thumbLink {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: zoom-in;
+}
+
 .thumbImg {
     width: 100%;
     height: 100%;

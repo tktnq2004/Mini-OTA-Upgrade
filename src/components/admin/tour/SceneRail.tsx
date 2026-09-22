@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ArrowSquareOutIcon, CaretDownIcon, CaretRightIcon, WarningIcon } from "@phosphor-icons/react";
 import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
 import type { Room } from "@/lib/admin/types";
+import { panoramaReviewHref } from "@/lib/media/review";
 import type { TourScene } from "@/lib/tour/types";
 import type { TourCoverage } from "./coverage";
 import { HOTEL_LEVEL_LABEL } from "./linkRules";
@@ -54,23 +55,50 @@ export default function SceneRail({ hotelId, scenes, rooms, coverage, selectedId
     </a>
   );
 
+  // Bấm hàng để CHỌN scene như cũ; nút nhỏ ở góc ảnh mở panorama ở tab mới để xem lớn/xoay
+  // thử — tách riêng khỏi việc chọn (stopPropagation) để không bật nhầm hộp "chưa lưu" khi
+  // chỉ định xem lại panorama. Dùng <div role="button"> thay vì <button> vì <button> không
+  // được phép chứa phần tử tương tác lồng bên trong (ở đây là nút review) theo chuẩn HTML.
+  // aria-label đặt CỐ ĐỊNH = tên scene — không để trình duyệt tự suy ra tên từ nội dung con,
+  // vì như vậy sẽ lẫn cả tên của nút review lồng bên trong.
   const renderScenes = (list: TourScene[]) => (
     <div className={styles.sceneList}>
       {list.map((scene) => (
-        <button
+        <div
           key={scene.id}
-          type="button"
+          role="button"
+          tabIndex={0}
+          aria-label={scene.nameVi}
           className={scene.id === selectedId ? styles.sceneCardActive : styles.sceneCard}
           onClick={() => onSelect(scene.id)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onSelect(scene.id);
+            }
+          }}
         >
-          <ImageWithFallback
-            src={scene.imageUrl}
-            alt=""
-            crossOrigin="anonymous"
-            className={styles.sceneThumb}
-            fallbackClassName={styles.sceneThumb}
-            fallback={<span />}
-          />
+          <span className={styles.sceneThumbWrap}>
+            <ImageWithFallback
+              src={scene.imageUrl}
+              alt=""
+              crossOrigin="anonymous"
+              className={styles.sceneThumb}
+              fallbackClassName={styles.sceneThumb}
+              fallback={<span />}
+            />
+            <a
+              href={panoramaReviewHref(scene.imageUrl, scene.nameVi)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.sceneThumbReview}
+              title="Xem lớn ở tab mới"
+              aria-label={`Xem panorama «${scene.nameVi}» ở tab mới`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ArrowSquareOutIcon size={10} weight="bold" />
+            </a>
+          </span>
           <span className={styles.sceneInfo}>
             <span className={styles.sceneName}>{scene.nameVi}</span>
             <span className={styles.sceneMeta}>
@@ -78,7 +106,7 @@ export default function SceneRail({ hotelId, scenes, rooms, coverage, selectedId
               <span>{scene.hotspots.length} hotspot</span>
             </span>
           </span>
-        </button>
+        </div>
       ))}
     </div>
   );

@@ -32,13 +32,17 @@ export default function ThumbnailUploader({ ownerType, ownerId }: ThumbnailUploa
     <div className={styles.wrap}>
       <div className={styles.preview}>
         {current ? (
-          <ImageWithFallback
-            src={current.url}
-            alt=""
-            className={styles.previewImg}
-            fallbackClassName={styles.previewFallback}
-            fallback={<span>?</span>}
-          />
+          // Mở thẳng URL gốc trên R2 ở tab mới — ảnh thường thì trình xem ảnh có sẵn của
+          // trình duyệt (zoom/pan mặc định) là đủ, không cần trang review riêng.
+          <a href={current.url} target="_blank" rel="noopener noreferrer" className={styles.previewLink} title="Xem ảnh gốc ở tab mới">
+            <ImageWithFallback
+              src={current.url}
+              alt=""
+              className={styles.previewImg}
+              fallbackClassName={styles.previewFallback}
+              fallback={<span>?</span>}
+            />
+          </a>
         ) : (
           <span className={styles.previewFallback}>Chưa có ảnh</span>
         )}
