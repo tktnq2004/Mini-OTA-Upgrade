@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRightIcon, ArrowsLeftRightIcon, CrosshairIcon, InfoIcon, TrashIcon, WarningIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon, ArrowsLeftRightIcon, CopyIcon, CrosshairIcon, InfoIcon, TrashIcon, WarningIcon } from "@phosphor-icons/react";
 import controls from "@/styles/controls.module.css";
 import { normalizeYaw } from "@/lib/tour/geometry";
 import type { TourScene } from "@/lib/tour/types";
@@ -23,6 +23,7 @@ interface HotspotPanelProps {
   onChange: (key: string, patch: Partial<HotspotDraft>) => void;
   onRemove: (key: string) => void;
   onMove: (key: string) => void;
+  onDuplicate: (key: string) => void;
   onCreateReverse: (key: string) => void;
 }
 
@@ -38,6 +39,7 @@ export default function HotspotPanel({
   onChange,
   onRemove,
   onMove,
+  onDuplicate,
   onCreateReverse,
 }: HotspotPanelProps) {
   const [lang, setLang] = useState<Lang>("vi");
@@ -199,6 +201,10 @@ export default function HotspotPanel({
             <button type="button" className={styles.smallButton} disabled={disabled} onClick={() => onMove(selected.key)}>
               <CrosshairIcon size={14} weight="bold" />
               Đặt lại vị trí
+            </button>
+            <button type="button" className={styles.smallButton} disabled={disabled} onClick={() => onDuplicate(selected.key)} title="Nhân bản (Ctrl+D)">
+              <CopyIcon size={14} weight="bold" />
+              Nhân bản
             </button>
             {selected.type === "NAVIGATION" && selected.targetSceneId && (
               <button

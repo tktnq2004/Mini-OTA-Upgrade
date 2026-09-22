@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowSquareOutIcon, CheckCircleIcon, WarningCircleIcon, XIcon } from "@phosphor-icons/react";
-import PanoramaCanvas from "@/components/panorama/PanoramaCanvas";
+import PanoramaCanvas, { type PanoramaViewHandle } from "@/components/panorama/PanoramaCanvas";
 import type { HotspotItem } from "@/components/panorama/types";
 import { AdminApiError } from "@/lib/admin/apiClient";
 import { getHotel } from "@/lib/admin/resources";
@@ -19,10 +19,17 @@ import SceneRail from "./SceneRail";
 import SceneSettings from "./SceneSettings";
 import StageToolbar, { type ActiveTool } from "./StageToolbar";
 import { newDraft, toDrafts, toInputs, validateDrafts, type HotspotDraft } from "./draft";
+import { useDraftState } from "./draftHistory";
+import { emitCursor } from "./hudBus";
+import ViewControls from "./ViewControls";
+import ViewHud from "./ViewHud";
 import styles from "./TourEditor.module.css";
 
 type Placing = { mode: "new"; type: HotspotType } | { mode: "move"; key: string };
 type InspectorTab = "hotspot" | "panorama";
+
+// Mỗi lần bấm nút/phím +/− đổi FOV bấy nhiêu độ.
+const ZOOM_STEP = 8;
 
 const errorText = (e: unknown, fallback: string) => (e instanceof AdminApiError || e instanceof Error ? e.message : fallback);
 
@@ -31,7 +38,8 @@ const errorText = (e: unknown, fallback: string) => (e instanceof AdminApiError 
 // bên trái để gắn hotspot (chuyển cảnh / thông tin), đặt tên và chọn panorama bắt
 // đầu. Vì hai trang thường mở song song, danh sách tự làm mới khi tab lấy lại focus
 // (không đụng bản nháp hotspot đang sửa). Bản nháp hotspot nằm ở state cục bộ
-// (`draft`) tới khi lưu — đổi panorama hoặc đóng tab khi chưa lưu đều được cảnh báo.
+// (`draft`, có hoàn tác/làm lại) tới khi lưu — đổi panorama hoặc đóng tab khi chưa lưu đều
+// được cảnh báo.
 export default function TourEditor({ hotelId }: { hotelId: number }) {
   const router = useRouter();
 
@@ -41,7 +49,7 @@ export default function TourEditor({ hotelId }: { hotelId: number }) {
   const [loadError, setLoadError] = useState("");
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [draft, setDraft] = useState<HotspotDraft[]>([]);
+  const { draft, apply: applyDraft, reset: resetDraft, undo, redo, canUndo, canRedo } = useDraftState();
   const [dirty, setDirty] = useState(false);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [placing, setPlacing] = useState<Placing | null>(null);
@@ -49,6 +57,8 @@ export default function TourEditor({ hotelId }: { hotelId: number }) {
 
   const [railOpen, setRailOpen] = useState(true);
   const [inspectorOpen, setInspectorOpen] = useState(true);
+  const [focusMode, setFocusMode] = useState(false);
+  const viewRef = useRef<PanoramaViewHandle | null>(null);
   const [tab, setTab] = useState<InspectorTab>("hotspot");
 
   const [busy, setBusy] = useState(false);
@@ -77,7 +87,7 @@ export default function TourEditor({ hotelId }: { hotelId: number }) {
   const openScene = (list: TourScene[], sceneId: string | null) => {
     const scene = list.find((s) => s.id === sceneId) ?? null;
     setSelectedId(scene?.id ?? null);
-    setDraft(scene ? toDrafts(scene.hotspots) : []);
+    resetDraft(scene ? toDrafts(scene.hotspots) : []);
     setDirty(false);
     setSelectedKey(null);
     setPlacing(null);
@@ -154,7 +164,8 @@ export default function TourEditor({ hotelId }: { hotelId: number }) {
   };
 
   const patchDraft = (key: string, patch: Partial<HotspotDraft>) => {
-    setDraft((prev) => prev.map((d) => (d.key === key ? { ...d, ...patch } : d)));
+    // Cùng khoá -> gõ liên tiếp trong 1 ô chỉ tính là một bước hoàn tác.
+    applyDraft((prev) => prev.map((d) => (d.key === key ? { ...d, ...patch } : d)), `edit:${key}:${Object.keys(patch).join(",")}`);
     setDirty(true);
   };
 
@@ -163,17 +174,27 @@ export default function TourEditor({ hotelId }: { hotelId: number }) {
       if (!placing) return;
       if (placing.mode === "new") {
         const created = newDraft(placing.type, yaw, pitch);
-        setDraft((prev) => [...prev, created]);
+        applyDraft((prev) => [...prev, created]);
         setSelectedKey(created.key);
         setTab("hotspot");
         setInspectorOpen(true);
       } else {
-        setDraft((prev) => prev.map((d) => (d.key === placing.key ? { ...d, yaw, pitch } : d)));
+        applyDraft((prev) => prev.map((d) => (d.key === placing.key ? { ...d, yaw, pitch } : d)));
       }
       setDirty(true);
       setPlacing(null);
     },
-    [placing]
+    [placing, applyDraft]
+  );
+
+  // Kéo marker trực tiếp trên ảnh: gộp cả lần kéo thành một bước hoàn tác.
+  const handleMoveHotspot = useCallback(
+    (key: string, yaw: number, pitch: number) => {
+      applyDraft((prev) => prev.map((d) => (d.key === key ? { ...d, yaw, pitch } : d)), `drag:${key}`);
+      setSelectedKey(key);
+      setDirty(true);
+    },
+    [applyDraft]
   );
 
   const handleSelectHotspot = (key: string) => {
@@ -183,10 +204,34 @@ export default function TourEditor({ hotelId }: { hotelId: number }) {
   };
 
   const handleRemoveHotspot = (key: string) => {
-    setDraft((prev) => prev.filter((d) => d.key !== key));
+    applyDraft((prev) => prev.filter((d) => d.key !== key));
     setSelectedKey(null);
     setDirty(true);
   };
+
+  const handleDuplicateHotspot = (key: string) => {
+    const source = draft.find((d) => d.key === key);
+    if (!source) return;
+    // Lệch sang bên một chút để bản sao không đè kín bản gốc.
+    const copy: HotspotDraft = {
+      ...source,
+      key: crypto.randomUUID(),
+      yaw: normalizeYaw(source.yaw + 8),
+      nameVi: source.nameVi ? `${source.nameVi} (bản sao)` : "",
+    };
+    applyDraft((prev) => [...prev, copy]);
+    setSelectedKey(copy.key);
+    setDirty(true);
+  };
+
+  // Giữ hotspot đang chọn nếu nó vẫn còn sau khi hoàn tác/làm lại (form không bị đóng đột ngột).
+  const afterHistoryStep = (restored: HotspotDraft[] | null) => {
+    if (!restored) return;
+    setDirty(true);
+    setSelectedKey((current) => (current && restored.some((d) => d.key === current) ? current : null));
+  };
+  const handleUndo = () => afterHistoryStep(undo());
+  const handleRedo = () => afterHistoryStep(redo());
 
   // Lỗi 404/409 khi lưu thường nghĩa là panorama (nguồn hoặc đích) vừa bị xoá ở tab
   // quản lý — báo rõ và tải lại danh sách để dropdown "Đi tới" phản ánh đúng.
@@ -217,7 +262,7 @@ export default function TourEditor({ hotelId }: { hotelId: number }) {
     try {
       const saved = await saveHotspots(selectedScene.id, toInputs(draft));
       setScenes((prev) => prev.map((s) => (s.id === selectedScene.id ? { ...s, hotspots: saved } : s)));
-      setDraft(toDrafts(saved));
+      resetDraft(toDrafts(saved));
       setDirty(false);
       setSelectedKey(null);
       flash("Đã lưu hotspot");
@@ -299,28 +344,53 @@ export default function TourEditor({ hotelId }: { hotelId: number }) {
     setPlacing(tool === "select" ? null : { mode: "new", type: tool });
   };
 
-  // Phím tắt: N / I chọn công cụ, Esc huỷ, Delete xoá hotspot đang chọn,
-  // Ctrl/Cmd+S lưu. Bỏ qua khi đang gõ vào ô nhập. Đọc hàm/state mới nhất qua ref để
-  // chỉ cần đăng ký listener một lần.
-  const shortcutsRef = useRef({ save: handleSaveHotspots, remove: handleRemoveHotspot, selectedKey });
+  // Phím tắt: N / I chọn công cụ, Esc huỷ, Delete xoá hotspot đang chọn, Ctrl+S lưu, Ctrl+Z /
+  // Ctrl+Shift+Z hoàn tác/làm lại, Ctrl+D nhân bản, F chế độ tập trung, +/−/0 điều khiển góc
+  // nhìn. Bỏ qua khi đang gõ vào ô nhập (để Ctrl+Z gõ chữ vẫn là của trình duyệt). Đọc
+  // hàm/state mới nhất qua ref để chỉ cần đăng ký listener một lần.
+  const shortcutsRef = useRef({ save: handleSaveHotspots, remove: handleRemoveHotspot, duplicate: handleDuplicateHotspot, undo: handleUndo, redo: handleRedo, selectedKey });
   useEffect(() => {
-    shortcutsRef.current = { save: handleSaveHotspots, remove: handleRemoveHotspot, selectedKey };
+    shortcutsRef.current = { save: handleSaveHotspots, remove: handleRemoveHotspot, duplicate: handleDuplicateHotspot, undo: handleUndo, redo: handleRedo, selectedKey };
   });
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const ctx = shortcutsRef.current;
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+      const mod = e.ctrlKey || e.metaKey;
+      const key = e.key.toLowerCase();
+      if (mod && key === "s") {
         e.preventDefault();
         ctx.save();
         return;
       }
       const el = e.target as HTMLElement | null;
       const typing = el && (["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName) || el.isContentEditable);
-      if (typing || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (typing) return;
+
+      if (mod && key === "z") {
+        e.preventDefault();
+        if (e.shiftKey) ctx.redo();
+        else ctx.undo();
+        return;
+      }
+      if (mod && key === "y") {
+        e.preventDefault();
+        ctx.redo();
+        return;
+      }
+      if (mod && key === "d") {
+        e.preventDefault();
+        if (ctx.selectedKey) ctx.duplicate(ctx.selectedKey);
+        return;
+      }
+      if (mod || e.altKey) return;
 
       if (e.key === "Escape") setPlacing(null);
-      else if (e.key === "n" || e.key === "N") setPlacing({ mode: "new", type: "NAVIGATION" });
-      else if (e.key === "i" || e.key === "I") setPlacing({ mode: "new", type: "INFO" });
+      else if (key === "n") setPlacing({ mode: "new", type: "NAVIGATION" });
+      else if (key === "i") setPlacing({ mode: "new", type: "INFO" });
+      else if (key === "f") setFocusMode((v) => !v);
+      else if (e.key === "+" || e.key === "=") viewRef.current?.zoom(-ZOOM_STEP);
+      else if (e.key === "-" || e.key === "_") viewRef.current?.zoom(ZOOM_STEP);
+      else if (e.key === "0") viewRef.current?.reset();
       else if ((e.key === "Delete" || e.key === "Backspace") && ctx.selectedKey) {
         e.preventDefault();
         ctx.remove(ctx.selectedKey);
@@ -336,7 +406,8 @@ export default function TourEditor({ hotelId }: { hotelId: number }) {
         const target = d.type === "NAVIGATION" ? scenes.find((s) => s.id === d.targetSceneId) : undefined;
         return {
           id: d.key,
-          name: `${d.key === selectedKey ? "● " : ""}${d.nameVi || "(chưa đặt tên)"}`,
+          name: d.nameVi || "(chưa đặt tên)",
+          selected: d.key === selectedKey,
           position: yawPitchToVector(d.yaw, d.pitch),
           type: d.type,
           onPress: () => {
@@ -379,7 +450,7 @@ export default function TourEditor({ hotelId }: { hotelId: number }) {
       ? `Bấm lên ảnh để đặt hotspot ${placing.type === "NAVIGATION" ? "chuyển cảnh" : "thông tin"} · Esc để huỷ`
       : placing?.mode === "move"
         ? "Bấm lên ảnh để chọn vị trí mới · Esc để huỷ"
-        : "Kéo để xoay · Cuộn để zoom · Chọn công cụ rồi bấm lên ảnh để đặt điểm";
+        : null;
 
   return (
     <div className={styles.root}>
@@ -389,16 +460,20 @@ export default function TourEditor({ hotelId }: { hotelId: number }) {
         sceneName={selectedScene?.nameVi ?? null}
         dirty={dirty}
         busy={busy}
+        canUndo={canUndo}
+        canRedo={canRedo}
         railOpen={railOpen}
         inspectorOpen={inspectorOpen}
         onClose={handleClose}
         onSave={handleSaveHotspots}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
         onToggleRail={() => setRailOpen((v) => !v)}
         onToggleInspector={() => setInspectorOpen((v) => !v)}
       />
 
       <div className={styles.body}>
-        {railOpen && (
+        {railOpen && !focusMode && (
           <aside className={styles.rail}>
             <SceneRail
               hotelId={hotelId}
@@ -415,17 +490,27 @@ export default function TourEditor({ hotelId }: { hotelId: number }) {
           {selectedScene ? (
             <>
               <PanoramaCanvas
+                ref={viewRef}
                 imageUrl={selectedScene.imageUrl}
                 hotspots={canvasHotspots}
                 onPick={placing ? handlePick : undefined}
+                onHover={emitCursor}
+                onMoveHotspot={handleMoveHotspot}
                 lookAt={lookAt}
                 crosshair={Boolean(placing)}
               />
-              <div className={styles.floatSceneChip}>{selectedScene.nameVi}</div>
               <div className={styles.floatTop}>
                 <StageToolbar tool={activeTool} onChange={handleToolChange} />
               </div>
-              <div className={placing ? styles.floatBottomActive : styles.floatBottom}>{hint}</div>
+              <ViewHud viewRef={viewRef} />
+              <ViewControls
+                focusMode={focusMode}
+                onZoomIn={() => viewRef.current?.zoom(-ZOOM_STEP)}
+                onZoomOut={() => viewRef.current?.zoom(ZOOM_STEP)}
+                onReset={() => viewRef.current?.reset()}
+                onToggleFocus={() => setFocusMode((v) => !v)}
+              />
+              {hint && <div className={styles.floatBottomActive}>{hint}</div>}
             </>
           ) : (
             <div className={styles.emptyStage}>
@@ -466,7 +551,7 @@ export default function TourEditor({ hotelId }: { hotelId: number }) {
           </div>
         </main>
 
-        {inspectorOpen && selectedScene && (
+        {inspectorOpen && !focusMode && selectedScene && (
           <aside className={styles.inspector}>
             <div className={styles.tabs} role="tablist">
               <button
@@ -502,6 +587,7 @@ export default function TourEditor({ hotelId }: { hotelId: number }) {
                   onChange={patchDraft}
                   onRemove={handleRemoveHotspot}
                   onMove={(key) => setPlacing({ mode: "move", key })}
+                  onDuplicate={handleDuplicateHotspot}
                   onCreateReverse={handleCreateReverse}
                 />
               ) : (

@@ -34,3 +34,13 @@
     font-size: 13.5px;
     line-height: 1.5;
 }
+
+/* Editor: marker kéo được -> con trỏ "nắm"; đang kéo thì mọi nơi là "nắm chặt". */
+.container[data-editing] button {
+    cursor: grab;
+}
+
+.container[data-dragging],
+.container[data-dragging] * {
+    cursor: grabbing !important;
+}

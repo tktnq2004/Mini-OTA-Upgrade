@@ -75,7 +75,10 @@ export const createRoom = (input: RoomInput) => {
 };
 export const getRoom = (id: number) => adminGet<Room>(`rooms/${id}`);
 export const updateRoom = (input: RoomUpdateInput) => adminPut<Room>("rooms", input);
-export const deleteRoom = (id: number) => adminDelete<void>(`rooms/${id}`);
+// Xoá phòng kéo theo toàn bộ ảnh (thumbnail + panorama) của phòng. cascade = false:
+// nếu panorama của phòng đang được hotspot Ở NGOÀI phòng (thường ở hành lang) trỏ tới
+// thì BE trả 409 kèm danh sách hotspot; cascade = true: xoá luôn, các hotspot đó biến mất theo.
+export const deleteRoom = (id: number, cascade = false) => adminDelete<void>(`rooms/${id}${cascade ? "?cascade=true" : ""}`);
 export const removeRoomAmenity = (roomId: number, amenityId: number) =>
   adminFetch<Room>("relationships", {
     method: "DELETE",

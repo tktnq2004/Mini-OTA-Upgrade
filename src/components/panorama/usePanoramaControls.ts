@@ -5,9 +5,9 @@ import { useEffect, useRef } from "react";
 const LOOK_SENSITIVITY = 0.25;
 const MAX_LATITUDE = 85;
 
-const DEFAULT_FOV = 75;
-const MIN_FOV = 30; // zoom vào tối đa, tránh phóng to quá gây vỡ nét texture
-const MAX_FOV = 90; // zoom ra tối đa, giữ dưới ~100 để hạn chế méo rìa khung hình
+export const DEFAULT_FOV = 75;
+export const MIN_FOV = 30; // zoom vào tối đa, tránh phóng to quá gây vỡ nét texture
+export const MAX_FOV = 90; // zoom ra tối đa, giữ dưới ~100 để hạn chế méo rìa khung hình
 const WHEEL_SENSITIVITY = 0.05;
 
 interface PointerPos {

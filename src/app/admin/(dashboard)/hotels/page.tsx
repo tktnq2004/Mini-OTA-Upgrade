@@ -50,7 +50,7 @@ export default function HotelsPage() {
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm("Xoá khách sạn này? Toàn bộ phòng thuộc khách sạn cũng sẽ bị xoá.")) return;
+        if (!confirm("Xoá khách sạn này? Toàn bộ phòng, ảnh và tour 360° của khách sạn cũng sẽ bị xoá vĩnh viễn.")) return;
         try {
             await deleteHotel(id);
             load();

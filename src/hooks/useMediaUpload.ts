@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { AdminApiError } from "@/lib/admin/apiClient";
+import { AdminApiError, conflictLines } from "@/lib/admin/apiClient";
 import { confirmMediaUpload, deleteMedia, listMedia, presignMediaUpload } from "@/lib/media/api";
 import { confirmPanoramaRatio } from "@/lib/media/imageSize";
 import type { MediaAsset, MediaKind, MediaOwnerType } from "@/lib/media/types";
@@ -14,13 +14,6 @@ interface UseMediaUploadResult {
   reload: () => void;
   upload: (files: FileList | File[]) => Promise<void>;
   remove: (mediaId: string) => Promise<void>;
-}
-
-// Backend trả lỗi 409 dưới dạng { error: string | string[] } — gom về mảng dòng.
-function conflictLines(e: AdminApiError): string[] {
-  const err = (e.payload as { error?: unknown } | null)?.error;
-  if (Array.isArray(err)) return err.map(String);
-  return [typeof err === "string" ? err : e.message];
 }
 
 // Hook dùng chung cho cả 2 kiểu ảnh (THUMBNAIL: đúng 1 ảnh, upload mới tự

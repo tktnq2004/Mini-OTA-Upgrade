@@ -6,7 +6,7 @@ import styles from "./adminPage.module.css";
 import ChipPicker from "./ChipPicker";
 import MediaGallery from "@/components/media/MediaGallery";
 import ThumbnailUploader from "@/components/media/ThumbnailUploader";
-import { AdminApiError } from "@/lib/admin/apiClient";
+import { AdminApiError, conflictLines } from "@/lib/admin/apiClient";
 import { deleteRoom, removeRoomAmenity, removeRoomView, updateRoom } from "@/lib/admin/resources";
 import type { Amenity, Room, View } from "@/lib/admin/types";
 
@@ -69,12 +69,32 @@ export default function RoomCard({ room, allAmenities, allViews, onChanged }: Ro
         }
     };
 
+    // Xoá phòng kéo theo toàn bộ ảnh của phòng. Nếu panorama của phòng đang được hotspot
+    // Ở NGOÀI phòng (thường là "vào phòng" ở hành lang) trỏ tới, BE trả 409 kèm danh sách —
+    // liệt kê rõ sẽ mất gì rồi hỏi lại mới xoá kèm (hotspot khác không bị ảnh hưởng).
     const handleDeleteRoom = async () => {
-        if (!confirm(`Xoá phòng "${room.name}"?`)) return;
+        if (!confirm(`Xoá phòng "${room.name}"? Toàn bộ ảnh của phòng (ảnh đại diện và panorama 360°) cũng bị xoá vĩnh viễn.`)) return;
         try {
             await deleteRoom(room.id);
             onChanged();
         } catch (e) {
+            if (e instanceof AdminApiError && e.status === 409) {
+                const proceed = confirm(
+                    `Panorama của phòng "${room.name}" đang được hotspot khác liên kết tới:\n\n` +
+                        conflictLines(e)
+                            .map((line) => `• ${line}`)
+                            .join("\n") +
+                        "\n\nXoá phòng sẽ gỡ luôn các hotspot trên (các hotspot khác không bị ảnh hưởng). Vẫn xoá?"
+                );
+                if (!proceed) return;
+                try {
+                    await deleteRoom(room.id, true);
+                    onChanged();
+                } catch (e2) {
+                    setError(e2 instanceof AdminApiError ? e2.message : "Xoá thất bại");
+                }
+                return;
+            }
             setError(e instanceof AdminApiError ? e.message : "Xoá thất bại");
         }
     };

@@ -37,6 +37,8 @@ export interface HotspotItem {
     position: [number, number, number];
     type: "INFO" | "NAVIGATION";
     onPress: () => void;
+    /** Editor: hotspot đang được chọn — marker được làm nổi bật. */
+    selected?: boolean;
     /** Chỉ có ở hotspot NAVIGATION: ảnh + tên scene đích, hiện thẻ xem trước khi giữ chuột/tay lên hotspot. */
     previewImageUrl?: string;
     previewLabel?: string;

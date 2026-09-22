@@ -63,7 +63,7 @@ function HotspotMarker({ hotspot }: { hotspot: ProjectedHotspot }) {
 
     return (
         <div
-            className={styles.wrapper}
+            className={hotspot.selected ? styles.wrapperSelected : styles.wrapper}
             style={{ left: hotspot.screenX, top: hotspot.screenY }}
         >
             {isPeeking && canPeek && (
@@ -81,6 +81,7 @@ function HotspotMarker({ hotspot }: { hotspot: ProjectedHotspot }) {
             <button
                 type="button"
                 className={styles.markerButton}
+                data-hotspot-id={hotspot.id}
                 onClick={hotspot.onPress}
                 onMouseEnter={() => canPeek && setIsPeeking(true)}
                 onMouseLeave={clearPeek}

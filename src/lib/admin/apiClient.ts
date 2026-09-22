@@ -9,6 +9,14 @@ export class AdminApiError extends Error {
   }
 }
 
+// Backend trả lỗi 409 (Confict) dưới dạng { error: string | string[] } — gom về mảng
+// dòng để hiển thị thành danh sách (vd. các hotspot sẽ mất khi xoá panorama/phòng).
+export function conflictLines(e: AdminApiError): string[] {
+  const err = (e.payload as { error?: unknown } | null)?.error;
+  if (Array.isArray(err)) return err.map(String);
+  return [typeof err === "string" ? err : e.message];
+}
+
 function errorMessageFrom(payload: unknown, fallback: string): string {
   if (payload && typeof payload === "object" && "error" in payload) {
     const err = (payload as { error: unknown }).error;

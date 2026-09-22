@@ -7,6 +7,35 @@
     pointer-events: none;
 }
 
+.wrapperSelected {
+    composes: wrapper;
+    z-index: 2;
+}
+
+/* Editor: hotspot đang chọn nổi bật bằng nền xanh + vành sáng. */
+.wrapperSelected .markerNav,
+.wrapperSelected .markerInfo {
+    background: rgba(37, 99, 235, 0.92);
+    border-color: #ffffff;
+    color: #ffffff;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.35);
+}
+
+.wrapperSelected .labelChip {
+    background: rgba(37, 99, 235, 0.92);
+    border-color: transparent;
+}
+
+.markerButton:focus-visible {
+    outline: none;
+}
+
+/* Vòng focus bàn phím đúng dáng marker (tròn) thay vì khung vuông mặc định. */
+.markerButton:focus-visible .markerNav,
+.markerButton:focus-visible .markerInfo {
+    box-shadow: 0 0 0 3px rgba(125, 171, 255, 0.7);
+}
+
 .markerButton {
     display: flex;
     flex-direction: column;

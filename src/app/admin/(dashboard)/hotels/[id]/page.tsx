@@ -91,7 +91,7 @@ export default function HotelDetailPage({ params }: { params: Promise<{ id: stri
     };
 
     const handleDeleteHotel = async () => {
-        if (!confirm("Xoá khách sạn này? Toàn bộ phòng thuộc khách sạn cũng sẽ bị xoá.")) return;
+        if (!confirm("Xoá khách sạn này? Toàn bộ phòng, ảnh và tour 360° của khách sạn cũng sẽ bị xoá vĩnh viễn.")) return;
         try {
             await deleteHotel(hotelId);
             router.push("/admin/hotels");
@@ -181,18 +181,13 @@ export default function HotelDetailPage({ params }: { params: Promise<{ id: stri
 
                 <div className={styles.card}>
                     <h2 className={styles.cardTitle}>Panorama 360° của khách sạn</h2>
-                    <p className={styles.pageSubtitle} style={{ marginBottom: 12 }}>
-                        Ảnh 360° chung của khách sạn (hành lang, sảnh…). Ảnh 360° của từng phòng upload ở mục phòng bên dưới.
-                    </p>
+                   
                     <MediaGallery ownerType="HOTEL" ownerId={hotelId} kind="PANORAMA" />
                 </div>
 
                 <div className={styles.card}>
                     <h2 className={styles.cardTitle}>Quản lý panorama</h2>
-                    <p className={styles.pageSubtitle} style={{ marginBottom: 12 }}>
-                        Đặt tên, chọn điểm bắt đầu và gắn hotspot để khách di chuyển giữa hành lang và các phòng. Upload/xoá
-                        ảnh làm ở đây và ở từng phòng; trang quản lý panorama chỉ chỉnh hotspot.
-                    </p>
+                    
                     <Link
                         href={`/admin/tour/${hotelId}`}
                         target="_blank"
