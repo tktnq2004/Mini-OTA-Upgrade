@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -14,6 +14,7 @@ import {
 } from "@phosphor-icons/react";
 import type { Hotel } from "@/lib/hotels/types";
 import { formatVnd } from "@/lib/format";
+import { rememberHotelView } from "@/lib/recentlyViewed";
 import {
     addDaysIso,
     defaultFilters,
@@ -53,6 +54,13 @@ export default function HotelDetail({ hotel, coverImage, roomThumbnails }: Hotel
     // eslint-disable-next-line react-hooks/exhaustive-deps
     const initial = useMemo(() => parseFilters(searchParams), []);
     const backHref = `/map?${searchParams.toString()}`;
+
+    // Ghi vào "đã xem gần đây" (localStorage, đọc lại ở trang chủ) — chỉ cần chạy lại khi
+    // CHUYỂN sang khách sạn khác, không phải mỗi khi object hotel đổi identity (parent re-fetch).
+    useEffect(() => {
+        rememberHotelView(hotel);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [hotel.id]);
 
     const rooms = useMemo(() => hotel.rooms ?? [], [hotel.rooms]);
 

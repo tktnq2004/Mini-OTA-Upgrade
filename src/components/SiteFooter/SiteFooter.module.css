@@ -1,0 +1,158 @@
+.footer {
+    margin-top: auto;
+    background: var(--color-bg);
+    border-top: 1px solid var(--color-border-soft);
+}
+
+.top {
+    max-width: 1160px;
+    margin: 0 auto;
+    padding: 40px 20px 28px;
+    display: grid;
+    grid-template-columns: 1.6fr 1fr 1fr 1fr;
+    gap: 28px;
+}
+
+.brandCol {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.mark {
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+}
+
+.logoAccent {
+    color: var(--color-accent);
+}
+
+.blurb {
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+    max-width: 34ch;
+}
+
+.col {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+}
+
+.col h3 {
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-text-faint);
+}
+
+.col a,
+.linkButton {
+    font-size: 13px;
+    color: var(--color-text-muted);
+    text-align: left;
+    transition: color 0.15s ease;
+}
+
+.col a:hover,
+.linkButton:hover {
+    color: var(--color-text);
+}
+
+.linkButton {
+    border: none;
+    background: none;
+    padding: 0;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.bottom {
+    max-width: 1160px;
+    margin: 0 auto;
+    padding: 16px 20px 22px;
+    border-top: 1px solid var(--color-border-soft);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.copyright {
+    font-size: 12px;
+    color: var(--color-text-faint);
+}
+
+.bottomActions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.iconButton {
+    height: 28px;
+    min-width: 28px;
+    padding: 0 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    background: transparent;
+    color: var(--color-text-muted);
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.iconButton:hover {
+    border-color: var(--color-text-faint);
+    background: var(--color-panel-raised);
+    color: var(--color-text);
+}
+
+@media (max-width: 780px) {
+    .top {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .brandCol {
+        grid-column: span 2;
+    }
+}
+
+@media (max-width: 480px) {
+    .top {
+        grid-template-columns: 1fr;
+    }
+
+    .brandCol {
+        grid-column: span 1;
+    }
+
+    .bottom {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
