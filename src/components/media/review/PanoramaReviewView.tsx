@@ -59,8 +59,6 @@ export default function PanoramaReviewView() {
             <CompassIcon size={16} />
           </button>
         </div>
-
-        {ready && <div className={styles.hint}>Kéo để xoay · Cuộn hoặc chụm 2 ngón để zoom</div>}
       </div>
     </div>
   );

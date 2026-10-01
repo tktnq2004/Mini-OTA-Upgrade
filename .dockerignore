@@ -1,0 +1,27 @@
+# Những thứ KHÔNG gửi vào build context (build nhanh hơn, image sạch, không lộ bí mật)
+
+# Dependencies & output build - sẽ được tạo lại bên trong image
+node_modules
+.next
+out
+tsconfig.tsbuildinfo
+next-env.d.ts
+
+# Bí mật: KHÔNG BAO GIỜ để lọt vào image
+.env
+.env.*
+certificates
+
+# Git, tài liệu, công cụ
+.git
+.gitignore
+.agents
+docs
+*.md
+skills-lock.json
+npm-debug.log*
+
+# Chính các file Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml

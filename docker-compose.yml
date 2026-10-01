@@ -1,0 +1,24 @@
+# Chạy: docker compose up -d --build   ->   http://localhost:3000
+# Compose tự đọc file .env cạnh file này để thay các ${BIẾN} bên dưới.
+# Buổi sau: thêm service api (Spring Boot), mysql, redis vào đây.
+
+services:
+  web:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_MAPTILER_KEY: ${NEXT_PUBLIC_MAPTILER_KEY}
+        # Trình duyệt của người dùng gọi URL này -> vẫn là localhost của máy host
+        NEXT_PUBLIC_BACKEND_ORIGIN: ${NEXT_PUBLIC_BACKEND_ORIGIN:-http://localhost:8080}
+    image: wen-go:latest
+    container_name: wen-go-web
+    ports:
+      - "3000:3000"
+    environment:
+      # Server Next.js (trong container) gọi backend đang chạy trên máy host.
+      # Trong container "localhost" là chính container, nên phải dùng host.docker.internal.
+      ADMIN_API_BASE_URL: ${DOCKER_ADMIN_API_BASE_URL:-http://host.docker.internal:8080/api/v1}
+    extra_hosts:
+      # Docker Desktop (Windows/Mac) đã có sẵn tên này; dòng này để chạy được cả trên Linux
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped

@@ -59,9 +59,6 @@ export function backendRefreshCookieHeader(refreshToken: string): string {
   return `${BACKEND_REFRESH_COOKIE_NAME}=${refreshToken}`;
 }
 
-// Cùng backend Mini-OTA với admin — dùng chung biến môi trường
-// ADMIN_API_BASE_URL (tên còn giữ vì admin dùng trước, nhưng chỉ là base URL
-// backend chung, không có gì admin-riêng trong giá trị này).
 export function getApiBaseUrl(): string {
   const base = process.env.ADMIN_API_BASE_URL;
   if (!base) throw new Error("ADMIN_API_BASE_URL is not configured");
