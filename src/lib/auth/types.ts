@@ -26,6 +26,7 @@ export interface AccountProfile {
   role: LegacyRole | null;
 }
 
+// Thông tin thu thập ở bước 1 của form đăng ký (trước khi có OTP).
 export interface RegisterInput {
   fullName: string;
   username: string;
@@ -34,9 +35,38 @@ export interface RegisterInput {
   phone: string;
 }
 
+// Bước 2: kèm mã OTP 6 số đã nhận qua email — gửi lên POST /auth/register để
+// tạo tài khoản thật (backend tự kiểm tra OTP, xem AuthService.register).
+export interface CompleteRegisterInput extends RegisterInput {
+  otp: string;
+}
+
 export interface LoginInput {
   email: string;
   password: string;
+}
+
+// Backend trả { exp } = số giây OTP còn hiệu lực — FE dùng luôn số này làm
+// thời gian đếm ngược trước khi được phép bấm "Gửi lại mã".
+export interface OtpSession {
+  exp: number;
+}
+
+// Mật khẩu mới + token lấy từ link trong email — forgot-password lẫn tự đổi
+// mật khẩu khi đã đăng nhập đều dùng chung link này. Có link (= đã xác minh
+// qua email) là đủ, không hỏi thêm mật khẩu hiện tại ở cả 2 trường hợp.
+export interface ResetPasswordInput {
+  token: string;
+  newPassword: string;
+}
+
+// Khớp ResPasswordResetVerify bên backend (vẫn còn field requireOldPassword
+// cho tương thích ngược nhưng backend giờ luôn trả false) — đọc trước khi
+// hiện form đổi mật khẩu ở /reset-password để biết token còn dùng được không.
+export interface ResetTokenInfo {
+  valid: boolean;
+  expiresAt: string | null;
+  requireOldPassword: boolean;
 }
 
 // PUT /users/me/local — backend (UserService.update_own) yêu cầu đúng

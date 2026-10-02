@@ -76,6 +76,9 @@ export default function LoginForm() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                     />
+                    <Link href="/forgot-password" className={form.forgotPasswordLink}>
+                        {t("auth.forgotPasswordLink")}
+                    </Link>
                 </div>
 
                 {error && <p className={controls.error}>{error}</p>}

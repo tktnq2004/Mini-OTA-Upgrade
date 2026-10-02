@@ -1,18 +1,32 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import type { LoginInput, RegisterInput, SessionUser } from "@/lib/auth/types";
+import { AccountApiError } from "@/lib/auth/apiClient";
+import type { CompleteRegisterInput, LoginInput, SessionUser } from "@/lib/auth/types";
+import { sendRegisterOtp as apiSendRegisterOtp } from "@/lib/auth/resources";
 
 interface AuthResult {
     ok: boolean;
     message?: string;
 }
 
+// Kết quả gửi OTP — retryAfter (giây) chỉ có khi bấm gửi lại quá sớm (429),
+// SignupPage dùng để hiện ngay thời gian chờ còn lại thay vì thông báo lỗi
+// chung chung.
+interface SendOtpResult {
+    ok: boolean;
+    message?: string;
+    retryAfter?: number;
+}
+
 interface AccountContextValue {
     user: SessionUser | null;
     ready: boolean; // đã hỏi xong /api/account/session lần đầu chưa
     login: (input: LoginInput) => Promise<AuthResult>;
-    register: (input: RegisterInput) => Promise<AuthResult>;
+    // Đăng ký giờ gồm 2 bước: sendRegisterOtp (gửi mã) rồi register (kèm mã,
+    // tạo tài khoản thật + đăng nhập luôn) — xem SignupPage.
+    sendRegisterOtp: (email: string) => Promise<SendOtpResult>;
+    register: (input: CompleteRegisterInput) => Promise<AuthResult>;
     logout: () => Promise<void>;
     patchUser: (patch: Partial<SessionUser>) => void;
 }
@@ -46,7 +60,23 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         return { ok: true };
     };
 
-    const register = async (input: RegisterInput): Promise<AuthResult> => {
+    // Bước 1: gửi OTP về email — chưa tạo tài khoản, chỉ sau khi nhập đúng mã
+    // ở register() dưới thì tài khoản mới thật sự được tạo.
+    const requestRegisterOtp = async (email: string): Promise<SendOtpResult> => {
+        try {
+            await apiSendRegisterOtp(email);
+            return { ok: true };
+        } catch (e) {
+            if (e instanceof AccountApiError) {
+                return { ok: false, message: e.message, retryAfter: e.retryAfter };
+            }
+            return { ok: false, message: "Gửi mã thất bại, vui lòng thử lại" };
+        }
+    };
+
+    // Bước 2: kèm mã OTP — backend tự kiểm tra, tạo tài khoản VÀ đăng nhập
+    // luôn trong 1 lần gọi (xem app/api/account/auth/register/route.ts).
+    const register = async (input: CompleteRegisterInput): Promise<AuthResult> => {
         const res = await fetch("/api/account/auth/register", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -54,11 +84,6 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         });
         const data = await res.json().catch(() => null);
         if (!res.ok) return { ok: false, message: data?.message ?? "Đăng ký thất bại" };
-        if (data.autoLoginFailed) {
-            // Cực hiếm (tạo tài khoản OK nhưng auto-login lỗi) — coi như thành
-            // công vẫn phải bắt đăng nhập tay, không có session để set user.
-            return { ok: true };
-        }
         setUser(data.user ?? null);
         return { ok: true };
     };
@@ -73,7 +98,9 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     };
 
     return (
-        <AccountContext.Provider value={{ user, ready, login, register, logout, patchUser }}>
+        <AccountContext.Provider
+            value={{ user, ready, login, sendRegisterOtp: requestRegisterOtp, register, logout, patchUser }}
+        >
             {children}
         </AccountContext.Provider>
     );

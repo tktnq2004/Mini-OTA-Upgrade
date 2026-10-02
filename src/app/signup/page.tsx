@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type SubmitEvent } from "react";
+import { useEffect, useState, type SubmitEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AuthShell from "@/components/auth/AuthShell";
@@ -20,47 +20,95 @@ function usernameFromEmail(email: string): string {
     return `${base}${Math.floor(1000 + Math.random() * 9000)}`;
 }
 
+// Đăng ký giờ gồm 2 bước (xác minh email thật qua OTP — AuthService.register
+// bên backend bắt buộc đúng mã mới tạo tài khoản):
+//   1. Nhập thông tin -> bấm gửi mã -> backend gửi OTP 6 số về email.
+//   2. Nhập mã -> tạo tài khoản thật + đăng nhập luôn trong 1 lần gọi.
+type Step = "info" | "otp";
+
 export default function SignupPage() {
     const { t } = useLanguage();
-    const { register } = useAccount();
+    const { sendRegisterOtp, register } = useAccount();
     const router = useRouter();
+
+    const [step, setStep] = useState<Step>("info");
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
     const [phone, setPhone] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [agreed, setAgreed] = useState(false);
+    const [otp, setOtp] = useState("");
     const [error, setError] = useState("");
     const [submitting, setSubmitting] = useState(false);
+    // Giây còn lại trước khi được bấm "Gửi lại mã" — khớp với exp backend trả
+    // (hạn hiệu lực OTP, dùng luôn làm cooldown gửi lại cho đơn giản).
+    const [cooldown, setCooldown] = useState(0);
 
-    const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        setError("");
+    useEffect(() => {
+        if (cooldown <= 0) return;
+        const id = setInterval(() => setCooldown((c) => Math.max(0, c - 1)), 1000);
+        return () => clearInterval(id);
+    }, [cooldown]);
 
+    const validateInfoStep = (): boolean => {
         if (!fullName || !email || !phone || !password || !confirmPassword) {
             setError(t("auth.signupErrorRequired"));
-            return;
+            return false;
         }
-
         if (password.length < 6) {
             setError(t("auth.signupErrorMinLength"));
-            return;
+            return false;
         }
-
         if (password !== confirmPassword) {
             setError(t("auth.signupErrorMismatch"));
-            return;
+            return false;
         }
-
         // Khớp đúng regex backend (ReqCreateUserDTO.phone: ^\+?[0-9]{10,15}$) —
         // validate trước ở đây để báo lỗi ngay, khỏi vòng lên backend rồi mới biết sai.
         if (!/^\+?[0-9]{10,15}$/.test(phone)) {
             setError(t("auth.signupErrorPhone"));
-            return;
+            return false;
         }
-
         if (!agreed) {
             setError(t("auth.signupErrorTerms"));
+            return false;
+        }
+        return true;
+    };
+
+    const requestOtp = async () => {
+        setError("");
+        setSubmitting(true);
+        const result = await sendRegisterOtp(email);
+        setSubmitting(false);
+        if (!result.ok) {
+            if (result.retryAfter) {
+                setCooldown(result.retryAfter);
+                setError(t("auth.otpErrorTooMany", { seconds: result.retryAfter }));
+            } else {
+                setError(result.message ?? t("auth.otpErrorSendFailed"));
+            }
+            return;
+        }
+        setOtp("");
+        setStep("otp");
+        // Mã có hiệu lực 60s (xem AuthService.OTP_VALIDITY) — khoá nút "Gửi
+        // lại mã" trong đúng khoảng đó để khỏi spam hộp thư.
+        setCooldown(60);
+    };
+
+    const handleInfoSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (!validateInfoStep()) return;
+        await requestOtp();
+    };
+
+    const handleOtpSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        setError("");
+        if (!otp.trim()) {
+            setError(t("auth.otpErrorRequired"));
             return;
         }
 
@@ -71,6 +119,7 @@ export default function SignupPage() {
             email,
             password,
             phone,
+            otp: otp.trim(),
         });
         setSubmitting(false);
         if (!result.ok) {
@@ -83,112 +132,160 @@ export default function SignupPage() {
     return (
         <AuthShell
             title={t("auth.signupTitle")}
-            subtitle={t("auth.signupSubtitle")}
+            subtitle={step === "info" ? t("auth.signupSubtitle") : `${t("auth.otpSentSubtitlePrefix")} ${email}`}
             footer={
                 <span>
                     {t("auth.haveAccountAlready")} <Link href="/login">{t("nav.login")}</Link>
                 </span>
             }
         >
-            <form className={form.form} onSubmit={handleSubmit}>
-                <div className={controls.field}>
-                    <label className={controls.label} htmlFor="fullName">
-                        {t("auth.fullNameLabel")}
+            {step === "info" ? (
+                <form className={form.form} onSubmit={handleInfoSubmit}>
+                    <div className={controls.field}>
+                        <label className={controls.label} htmlFor="fullName">
+                            {t("auth.fullNameLabel")}
+                        </label>
+                        <input
+                            id="fullName"
+                            type="text"
+                            className={controls.input}
+                            placeholder={t("auth.fullNamePlaceholder")}
+                            value={fullName}
+                            onChange={(e) => setFullName(e.target.value)}
+                        />
+                    </div>
+
+                    <div className={controls.field}>
+                        <label className={controls.label} htmlFor="signupEmail">
+                            Email
+                        </label>
+                        <input
+                            id="signupEmail"
+                            type="email"
+                            className={controls.input}
+                            placeholder="you@example.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                        />
+                    </div>
+
+                    <div className={controls.field}>
+                        {/* Backend bắt buộc phone (ReqCreateUserDTO @NotBlank + @Pattern
+                            chỉ chữ số) — bỏ nhãn "không bắt buộc" cũ, không còn đúng. */}
+                        <label className={controls.label} htmlFor="phone">
+                            {t("auth.phoneLabel")}
+                        </label>
+                        <input
+                            id="phone"
+                            type="tel"
+                            className={controls.input}
+                            placeholder="09xx xxx xxx"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                        />
+                    </div>
+
+                    <div className={controls.field}>
+                        <label className={controls.label} htmlFor="signupPassword">
+                            {t("auth.passwordLabel")}
+                        </label>
+                        <input
+                            id="signupPassword"
+                            type="password"
+                            className={controls.input}
+                            placeholder={t("auth.minLengthPlaceholder")}
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                        />
+                    </div>
+
+                    <div className={controls.field}>
+                        <label className={controls.label} htmlFor="confirmPassword">
+                            {t("auth.confirmPasswordLabel")}
+                        </label>
+                        <input
+                            id="confirmPassword"
+                            type="password"
+                            className={controls.input}
+                            placeholder="••••••••"
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                        />
+                    </div>
+
+                    <label className={form.checkboxRow} htmlFor="agree">
+                        <input
+                            id="agree"
+                            type="checkbox"
+                            checked={agreed}
+                            onChange={(e) => setAgreed(e.target.checked)}
+                        />
+                        <span>
+                            {t("auth.agreeTermsPrefix")} <strong>{t("auth.termsOfService")}</strong>{" "}
+                            {t("auth.and")} <strong>{t("auth.privacyPolicy")}</strong>{" "}
+                            {t("auth.ofWenGo")}
+                        </span>
                     </label>
-                    <input
-                        id="fullName"
-                        type="text"
-                        className={controls.input}
-                        placeholder={t("auth.fullNamePlaceholder")}
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                    />
-                </div>
 
-                <div className={controls.field}>
-                    <label className={controls.label} htmlFor="signupEmail">
-                        Email
-                    </label>
-                    <input
-                        id="signupEmail"
-                        type="email"
-                        className={controls.input}
-                        placeholder="you@example.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                    />
-                </div>
+                    {error && <p className={controls.error}>{error}</p>}
 
-                <div className={controls.field}>
-                    {/* Backend bắt buộc phone (ReqCreateUserDTO @NotBlank + @Pattern
-                        chỉ chữ số) — bỏ nhãn "không bắt buộc" cũ, không còn đúng. */}
-                    <label className={controls.label} htmlFor="phone">
-                        {t("auth.phoneLabel")}
-                    </label>
-                    <input
-                        id="phone"
-                        type="tel"
-                        className={controls.input}
-                        placeholder="09xx xxx xxx"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                    />
-                </div>
+                    <button type="submit" className={controls.button} disabled={submitting}>
+                        {submitting ? t("auth.otpSending") : t("auth.otpSendButton")}
+                    </button>
+                </form>
+            ) : (
+                <form className={form.form} onSubmit={handleOtpSubmit}>
+                    <p className={form.spamHint}>{t("auth.checkSpamWarning")}</p>
 
-                <div className={controls.field}>
-                    <label className={controls.label} htmlFor="signupPassword">
-                        {t("auth.passwordLabel")}
-                    </label>
-                    <input
-                        id="signupPassword"
-                        type="password"
-                        className={controls.input}
-                        placeholder={t("auth.minLengthPlaceholder")}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                    />
-                </div>
+                    <div className={controls.field}>
+                        <label className={controls.label} htmlFor="otp">
+                            {t("auth.otpLabel")}
+                        </label>
+                        <input
+                            id="otp"
+                            type="text"
+                            inputMode="numeric"
+                            autoComplete="one-time-code"
+                            maxLength={6}
+                            className={controls.input}
+                            placeholder={t("auth.otpPlaceholder")}
+                            value={otp}
+                            onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, ""))}
+                            autoFocus
+                        />
+                    </div>
 
-                <div className={controls.field}>
-                    <label className={controls.label} htmlFor="confirmPassword">
-                        {t("auth.confirmPasswordLabel")}
-                    </label>
-                    <input
-                        id="confirmPassword"
-                        type="password"
-                        className={controls.input}
-                        placeholder="••••••••"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                    />
-                </div>
+                    {error && <p className={controls.error}>{error}</p>}
 
-                <label className={form.checkboxRow} htmlFor="agree">
-                    <input
-                        id="agree"
-                        type="checkbox"
-                        checked={agreed}
-                        onChange={(e) => setAgreed(e.target.checked)}
-                    />
-                    <span>
-                        {t("auth.agreeTermsPrefix")} <strong>{t("auth.termsOfService")}</strong>{" "}
-                        {t("auth.and")} <strong>{t("auth.privacyPolicy")}</strong>{" "}
-                        {t("auth.ofWenGo")}
-                    </span>
-                </label>
+                    <button type="submit" className={controls.button} disabled={submitting}>
+                        {submitting ? t("auth.submitting") : t("auth.signupSubmitCreate")}
+                    </button>
 
-                {error && <p className={controls.error}>{error}</p>}
+                    <div className={form.checkboxRow} style={{ justifyContent: "space-between" }}>
+                        <button
+                            type="button"
+                            className={controls.buttonGhost}
+                            disabled={cooldown > 0 || submitting}
+                            onClick={requestOtp}
+                        >
+                            {cooldown > 0 ? t("auth.otpResendIn", { seconds: cooldown }) : t("auth.otpResend")}
+                        </button>
+                        <button type="button" className={controls.buttonGhost} onClick={() => setStep("info")}>
+                            {t("auth.otpChangeEmail")}
+                        </button>
+                    </div>
+                </form>
+            )}
 
-                <button type="submit" className={controls.button} disabled={submitting}>
-                    {submitting ? t("auth.submitting") : t("nav.signup")}
-                </button>
-            </form>
+            {step === "info" && (
+                <>
+                    <div className={form.divider}>
+                        <span>{t("auth.or")}</span>
+                    </div>
 
-            <div className={form.divider}>
-                <span>{t("auth.or")}</span>
-            </div>
-
-            <SocialAuthLinks />
+                    <SocialAuthLinks />
+                </>
+            )}
         </AuthShell>
     );
 }

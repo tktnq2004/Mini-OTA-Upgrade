@@ -4,7 +4,15 @@ import { useEffect, useState } from "react";
 import controls from "@/styles/controls.module.css";
 import styles from "@/components/admin/adminPage.module.css";
 import { AdminApiError } from "@/lib/admin/apiClient";
-import { createUser, deleteUser, listHotels, listRoles, listUsers, updateUser } from "@/lib/admin/resources";
+import {
+    createUser,
+    deleteUser,
+    listHotels,
+    listRoles,
+    listUsers,
+    sendUserPasswordResetLink,
+    updateUser,
+} from "@/lib/admin/resources";
 import type { AppUser, Hotel, Role, UserInput } from "@/lib/admin/types";
 
 const EMPTY_FORM: UserInput = { fullName: "", username: "", email: "", password: "", phone: "", hotelId: null, roleId: null };
@@ -33,6 +41,13 @@ export default function UsersPage() {
     // đủ dùng cho quy mô demo hiện tại, cần đổi cách lấy nếu số khách sạn
     // vượt quá 100.
     const [hotels, setHotels] = useState<Hotel[]>([]);
+
+    // Quyền thứ 2 để reset mật khẩu (bên cạnh gõ thẳng mật khẩu mới vào field
+    // password ở form) — gửi link đổi mật khẩu tới đúng email đang sửa, user
+    // tự đổi ở trang /reset-password. Chỉ hiện khi đang Sửa (cần có email
+    // thật đã tồn tại).
+    const [resetLinkStatus, setResetLinkStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+    const [resetLinkError, setResetLinkError] = useState("");
 
     useEffect(() => {
         listRoles()
@@ -68,11 +83,13 @@ export default function UsersPage() {
         setForm(EMPTY_FORM);
         setOriginalForm(null);
         setFormError("");
+        setResetLinkStatus("idle");
         setShowForm(true);
     };
 
     const openEdit = (u: AppUser) => {
         setIsEditingUser(true);
+        setResetLinkStatus("idle");
         setEditingId(u.id);
         // fullName/username/phone có thể null (dữ liệu cũ/seed thiếu) —
         // input controlled không chấp nhận value=null, phải đổi về "".
@@ -163,6 +180,18 @@ export default function UsersPage() {
     const hotelName = (hotelId?: number | null) =>
         hotelId ? (hotels.find((h) => h.id === hotelId)?.name ?? `#${hotelId}`) : "—";
 
+    const handleSendResetLink = async () => {
+        setResetLinkStatus("sending");
+        setResetLinkError("");
+        try {
+            await sendUserPasswordResetLink(form.email);
+            setResetLinkStatus("sent");
+        } catch (e) {
+            setResetLinkStatus("error");
+            setResetLinkError(e instanceof AdminApiError ? e.message : "Gửi link thất bại");
+        }
+    };
+
     const handleDelete = async (id: number) => {
         if (!confirm("Xoá người dùng này?")) return;
         try {
@@ -227,6 +256,36 @@ export default function UsersPage() {
                                 value={form.password}
                                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                             />
+                            {/* Quyền reset mật khẩu THỨ 2: thay vì gõ thẳng mật khẩu mới ở
+                                trên (admin tự chọn, có hiệu lực ngay), gửi link để chính user
+                                tự đổi qua email (dùng chung luồng "quên mật khẩu" công khai —
+                                xem lib/admin/resources.ts:sendUserPasswordResetLink). Chỉ hiện
+                                khi Sửa vì cần email đã tồn tại thật. */}
+                            {isEditingUser && (
+                                <div style={{ marginTop: 6 }}>
+                                    {resetLinkStatus === "sent" ? (
+                                        <span style={{ fontSize: 11.5, color: "var(--color-success)" }}>
+                                            Đã gửi link đặt lại mật khẩu tới {form.email}
+                                        </span>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            className={styles.linkButton}
+                                            disabled={resetLinkStatus === "sending" || !form.email}
+                                            onClick={handleSendResetLink}
+                                        >
+                                            {resetLinkStatus === "sending"
+                                                ? "Đang gửi..."
+                                                : "Gửi link đặt lại mật khẩu"}
+                                        </button>
+                                    )}
+                                    {resetLinkStatus === "error" && (
+                                        <p className={controls.error} style={{ marginTop: 4 }}>
+                                            {resetLinkError}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
                         </div>
                         <div className={controls.field}>
                             <label className={controls.label}>Khách sạn phụ trách</label>

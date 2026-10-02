@@ -1,11 +1,22 @@
 export class AccountApiError extends Error {
   status: number;
   payload: unknown;
+  // Chỉ có giá trị ở lỗi 429 (gửi OTP quá nhanh) — số giây còn lại trước khi
+  // được gửi lại, lấy từ RestResponse.data.retryAfter (xem
+  // Global_exception.too_many_request bên backend).
+  retryAfter?: number;
 
   constructor(message: string, status: number, payload: unknown) {
     super(message);
     this.status = status;
     this.payload = payload;
+    if (payload && typeof payload === "object" && "data" in payload) {
+      const data = (payload as { data: unknown }).data;
+      if (data && typeof data === "object" && "retryAfter" in data) {
+        const retryAfter = (data as { retryAfter: unknown }).retryAfter;
+        if (typeof retryAfter === "number") this.retryAfter = retryAfter;
+      }
+    }
   }
 }
 

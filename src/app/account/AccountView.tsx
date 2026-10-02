@@ -7,7 +7,7 @@ import SiteHeader from "@/components/SiteHeader/SiteHeader";
 import { useAccount } from "@/components/auth/AccountProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { AccountApiError } from "@/lib/auth/apiClient";
-import { getMyProfile, updateMyProfile } from "@/lib/auth/resources";
+import { getMyProfile, requestPasswordChange, updateMyProfile } from "@/lib/auth/resources";
 import type { AccountProfile } from "@/lib/auth/types";
 import controls from "@/styles/controls.module.css";
 import styles from "./account.module.css";
@@ -27,12 +27,44 @@ export default function AccountView() {
     const [phone, setPhone] = useState("");
     // Không phải mật khẩu MỚI — backend (UserService.update_own) dùng field
     // này để xác thực lại đúng mật khẩu HIỆN TẠI trước khi cho sửa bất kỳ
-    // field nào. Đổi mật khẩu là API khác (/users/me/password), chưa nối FE.
+    // field nào. Đổi mật khẩu MỚI là luồng khác hẳn, qua email (xem
+    // handleChangePassword bên dưới).
     const [currentPassword, setCurrentPassword] = useState("");
 
     const [formError, setFormError] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
     const [saving, setSaving] = useState(false);
+
+    // "Đổi mật khẩu": không đổi ngay tại chỗ — backend gửi link qua email
+    // (POST /users/me/password-change-request), bấm link đó mới thật sự đổi
+    // (ở trang /reset-password). Tách trạng thái riêng khỏi form hồ sơ phía
+    // trên vì đây là 1 hành động độc lập. Cooldown 60s thuần phía FE (backend
+    // không giới hạn tần suất gọi) — chỉ để tránh bấm gửi liên tục khi nghi
+    // mail bị lỗi/chưa tới, xem thêm app/forgot-password/page.tsx.
+    const [changePasswordError, setChangePasswordError] = useState("");
+    const [changePasswordSent, setChangePasswordSent] = useState(false);
+    const [changingPassword, setChangingPassword] = useState(false);
+    const [changePasswordCooldown, setChangePasswordCooldown] = useState(0);
+
+    useEffect(() => {
+        if (changePasswordCooldown <= 0) return;
+        const id = setInterval(() => setChangePasswordCooldown((c) => Math.max(0, c - 1)), 1000);
+        return () => clearInterval(id);
+    }, [changePasswordCooldown]);
+
+    const handleChangePassword = async () => {
+        setChangePasswordError("");
+        setChangingPassword(true);
+        try {
+            await requestPasswordChange();
+            setChangePasswordSent(true);
+            setChangePasswordCooldown(60);
+        } catch (e) {
+            setChangePasswordError(e instanceof AccountApiError ? e.message : t("account.changePasswordError"));
+        } finally {
+            setChangingPassword(false);
+        }
+    };
 
     const loadProfile = () => {
         if (!ready) return;
@@ -216,6 +248,37 @@ export default function AccountView() {
                         </button>
                     </div>
                 </form>
+
+                <div className={styles.card}>
+                    <h2 className={styles.sectionLabel}>{t("account.changePasswordTitle")}</h2>
+                    <p className={styles.hint}>{t("account.changePasswordHint")}</p>
+
+                    {changePasswordSent && (
+                        <>
+                            <p className={styles.success}>
+                                {t("account.changePasswordSentTitle")} — {t("account.changePasswordSentBody")}
+                            </p>
+                            <p className={styles.hint}>{t("auth.checkSpamWarning")}</p>
+                        </>
+                    )}
+
+                    {changePasswordError && <p className={controls.error}>{changePasswordError}</p>}
+
+                    <button
+                        type="button"
+                        className={controls.buttonGhost}
+                        disabled={changingPassword || changePasswordCooldown > 0}
+                        onClick={handleChangePassword}
+                    >
+                        {changingPassword
+                            ? t("account.changePasswordSending")
+                            : changePasswordCooldown > 0
+                              ? t("auth.resendLinkIn", { seconds: changePasswordCooldown })
+                              : changePasswordSent
+                                ? t("auth.resendLink")
+                                : t("account.changePasswordButton")}
+                    </button>
+                </div>
             </div>
         </div>
     );

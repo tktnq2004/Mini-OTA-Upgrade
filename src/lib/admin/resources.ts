@@ -140,6 +140,13 @@ export const updateUser = (id: number, input: UserInput) =>
   });
 export const deleteUser = (id: number) => adminDelete<void>(`admin/users/${id}`);
 
+// "Gửi link đặt lại mật khẩu" ở form Sửa — quyền đặt mật khẩu THỨ 2 của
+// admin, bên cạnh gõ thẳng mật khẩu mới vào field password ở trên. Gọi chung
+// endpoint public /auth/forgot-password (chỉ cần email, backend tự tìm đúng
+// user đó) — adminFetch vẫn đính kèm Bearer token của admin, vô hại vì
+// endpoint này permitAll và không đọc token.
+export const sendUserPasswordResetLink = (email: string) => adminPost<void>("auth/forgot-password", { email });
+
 export const listDiscounts = () => adminGet<Discount[]>("discounts");
 export const getDiscount = (id: number) => adminGet<Discount>(`discounts/${id}`);
 export const createDiscount = (input: DiscountInput) => adminPost<Discount>("discounts", input);
