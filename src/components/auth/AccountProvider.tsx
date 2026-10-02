@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { AccountApiError } from "@/lib/auth/apiClient";
 import type { CompleteRegisterInput, LoginInput, SessionUser } from "@/lib/auth/types";
-import { sendRegisterOtp as apiSendRegisterOtp } from "@/lib/auth/resources";
+import { sendLoginOtp as apiSendLoginOtp, sendRegisterOtp as apiSendRegisterOtp } from "@/lib/auth/resources";
 
 interface AuthResult {
     ok: boolean;
@@ -27,6 +27,9 @@ interface AccountContextValue {
     // tạo tài khoản thật + đăng nhập luôn) — xem SignupPage.
     sendRegisterOtp: (email: string) => Promise<SendOtpResult>;
     register: (input: CompleteRegisterInput) => Promise<AuthResult>;
+    // Đăng nhập không cần mật khẩu, cũng 2 bước — xem LoginForm.
+    sendLoginOtp: (email: string) => Promise<SendOtpResult>;
+    loginWithOtp: (email: string, otp: string) => Promise<AuthResult>;
     logout: () => Promise<void>;
     patchUser: (patch: Partial<SessionUser>) => void;
 }
@@ -88,6 +91,33 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         return { ok: true };
     };
 
+    // Bước 1: gửi OTP đăng nhập — cố tình trả cùng kết quả cho mọi email (xem
+    // sendLoginOtp ở resources.ts), lỗi "không có tài khoản" chỉ lộ ra ở bước 2.
+    const requestLoginOtp = async (email: string): Promise<SendOtpResult> => {
+        try {
+            await apiSendLoginOtp(email);
+            return { ok: true };
+        } catch (e) {
+            if (e instanceof AccountApiError) {
+                return { ok: false, message: e.message, retryAfter: e.retryAfter };
+            }
+            return { ok: false, message: "Gửi mã thất bại, vui lòng thử lại" };
+        }
+    };
+
+    // Bước 2: kèm mã OTP, đăng nhập thẳng không cần mật khẩu.
+    const loginWithOtp = async (email: string, otp: string): Promise<AuthResult> => {
+        const res = await fetch("/api/account/auth/login-mail", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, otp }),
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok) return { ok: false, message: data?.message ?? "Đăng nhập thất bại" };
+        setUser(data.user ?? null);
+        return { ok: true };
+    };
+
     const logout = async () => {
         await fetch("/api/account/auth/logout", { method: "POST" }).catch(() => null);
         setUser(null);
@@ -99,7 +129,17 @@ export function AccountProvider({ children }: { children: ReactNode }) {
 
     return (
         <AccountContext.Provider
-            value={{ user, ready, login, sendRegisterOtp: requestRegisterOtp, register, logout, patchUser }}
+            value={{
+                user,
+                ready,
+                login,
+                sendRegisterOtp: requestRegisterOtp,
+                register,
+                sendLoginOtp: requestLoginOtp,
+                loginWithOtp,
+                logout,
+                patchUser,
+            }}
         >
             {children}
         </AccountContext.Provider>

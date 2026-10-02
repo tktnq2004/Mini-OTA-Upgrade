@@ -17,6 +17,12 @@ export const updateMyProfile = (input: UpdateProfileInput) => accountPut<unknown
 export const sendRegisterOtp = (email: string) =>
   accountPost<OtpSession>("auth/register/send-otp-register", { email });
 
+// Đăng nhập không cần mật khẩu — gửi OTP 6 số về email đã có tài khoản. Backend
+// (AuthService.sendOtpLogin) cố tình trả 200 + {exp} y hệt dù email chưa có
+// tài khoản (không lộ email nào tồn tại) — lỗi "User not found" chỉ xuất hiện
+// sau, ở bước nhập OTP (loginWithOtp).
+export const sendLoginOtp = (email: string) => accountPost<OtpSession>("auth/login/send-otp-login", { email });
+
 // Quên mật khẩu (CHƯA đăng nhập) — backend luôn trả 200 dù email có tồn tại
 // hay không, không có cách nào biết "gửi thành công" theo nghĩa email đã tới
 // nơi, UI chỉ nên hiện 1 thông báo chung chung.
@@ -34,6 +40,5 @@ export const resetPassword = (input: ResetPasswordInput) => accountPost<void>("u
 
 // Tự đổi mật khẩu KHI ĐÃ đăng nhập (trang tài khoản) — khác hẳn luồng trên:
 // gọi này cần Bearer token thật (đi qua catch-all [...path], không phải route
-// public vừa thêm), backend gửi link đổi mật khẩu về đúng email của chính
-// mình, requireOldPassword sẽ là true khi bấm link đó.
+// public ở trên), backend gửi link đổi mật khẩu về đúng email của chính mình.
 export const requestPasswordChange = () => accountFetch<void>("users/me/password-change-request", { method: "POST" });
