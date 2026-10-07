@@ -1,8 +1,19 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CompassIcon, SunIcon, MoonIcon, HeartIcon, UserCircleIcon } from "@phosphor-icons/react";
+import {
+    CompassIcon,
+    SunIcon,
+    MoonIcon,
+    HeartIcon,
+    UserCircleIcon,
+    CaretDownIcon,
+    UserIcon,
+    SuitcaseRollingIcon,
+    CreditCardIcon,
+} from "@phosphor-icons/react";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { useWishlist } from "@/components/wishlist/WishlistProvider";
@@ -15,6 +26,25 @@ export default function SiteHeader() {
     const { count: wishlistCount } = useWishlist();
     const { user, ready, logout } = useAccount();
     const router = useRouter();
+
+    // Menu tài khoản: bấm ra ngoài hoặc Esc thì đóng.
+    const [menuOpen, setMenuOpen] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        if (!menuOpen) return;
+        const onPointerDown = (e: PointerEvent) => {
+            if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+        };
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape") setMenuOpen(false);
+        };
+        document.addEventListener("pointerdown", onPointerDown);
+        document.addEventListener("keydown", onKeyDown);
+        return () => {
+            document.removeEventListener("pointerdown", onPointerDown);
+            document.removeEventListener("keydown", onKeyDown);
+        };
+    }, [menuOpen]);
 
     const handleLogout = async () => {
         await logout();
@@ -75,10 +105,54 @@ export default function SiteHeader() {
 
                     {ready && user ? (
                         <>
-                            <Link href="/account" className={styles.ghostButton}>
-                                <UserCircleIcon size={16} weight="bold" />
-                                {user.name}
-                            </Link>
+                            <div className={styles.accountMenu} ref={menuRef}>
+                                <button
+                                    type="button"
+                                    className={styles.ghostButton}
+                                    aria-haspopup="menu"
+                                    aria-expanded={menuOpen}
+                                    onClick={() => setMenuOpen((o) => !o)}
+                                >
+                                    <UserCircleIcon size={16} weight="bold" />
+                                    {user.name}
+                                    <CaretDownIcon
+                                        size={11}
+                                        weight="bold"
+                                        className={`${styles.caret} ${menuOpen ? styles.caretOpen : ""}`}
+                                    />
+                                </button>
+                                {menuOpen && (
+                                    <div className={styles.dropdown} role="menu">
+                                        <Link
+                                            href="/account"
+                                            role="menuitem"
+                                            className={styles.dropdownItem}
+                                            onClick={() => setMenuOpen(false)}
+                                        >
+                                            <UserIcon size={15} />
+                                            {t("nav.profile")}
+                                        </Link>
+                                        <Link
+                                            href="/account/bookings"
+                                            role="menuitem"
+                                            className={styles.dropdownItem}
+                                            onClick={() => setMenuOpen(false)}
+                                        >
+                                            <SuitcaseRollingIcon size={15} />
+                                            {t("nav.myBookings")}
+                                        </Link>
+                                        <Link
+                                            href="/account/payment-methods"
+                                            role="menuitem"
+                                            className={styles.dropdownItem}
+                                            onClick={() => setMenuOpen(false)}
+                                        >
+                                            <CreditCardIcon size={15} />
+                                            {t("nav.paymentMethods")}
+                                        </Link>
+                                    </div>
+                                )}
+                            </div>
                             <button type="button" className={styles.solidButton} onClick={handleLogout}>
                                 {t("nav.logout")}
                             </button>

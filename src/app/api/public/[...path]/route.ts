@@ -19,12 +19,16 @@ export async function GET(req: NextRequest, context: { params: Promise<{ path: s
   return new NextResponse(text, { status: backendRes.status, headers: { "content-type": contentType } });
 }
 
-// POST công khai — chỉ 2 path backend đã permitAll (SecurityConfig.PUBLIC_POST_ENDPOINTS).
+// POST công khai — chỉ các path backend đã permitAll (SecurityConfig.PUBLIC_POST_ENDPOINTS).
 // Không mở POST tuỳ ý để proxy này không thành đường vòng vào API cần quyền.
 //  - (ngày kín lấy qua GET rooms/{id} nên không cần POST riêng nữa)
 //  - bookings: gắn Bearer nếu khách đang đăng nhập (booking gắn vào tài khoản),
 //    không có/hỏng token thì đặt như khách vãng lai.
-const PUBLIC_POST_PATHS = new Set(["bookings"]);
+//  - payment/create-payment-intent: body { bookingId, paymentMethodId }, backend
+//    tự tính tiền theo booking và trả clientSecret để xác nhận thẻ. Booking gắn
+//    tài khoản thì backend đòi token của chủ booking -> cũng gắn Bearer.
+const PUBLIC_POST_PATHS = new Set(["bookings", "payment/create-payment-intent"]);
+const AUTH_OPTIONAL_PATHS = new Set(["bookings", "payment/create-payment-intent"]);
 
 async function postBackend(url: string, body: string, token?: string) {
   return fetch(url, {
@@ -44,7 +48,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ path: 
 
   const url = `${getApiBaseUrl()}/${joined}`;
   const body = await req.text();
-  let accessToken = joined === "bookings" ? req.cookies.get(ACCESS_COOKIE)?.value : undefined;
+  let accessToken = AUTH_OPTIONAL_PATHS.has(joined) ? req.cookies.get(ACCESS_COOKIE)?.value : undefined;
 
   let backendRes = await postBackend(url, body, accessToken);
   if (accessToken && backendRes.status === 401) {

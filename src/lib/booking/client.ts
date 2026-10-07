@@ -6,7 +6,8 @@ import { unwrapResponse } from "@/lib/hotels/envelope";
 // (check-in/check-out CHUNG) + N phòng. Muốn đặt khách sạn khác thì đặt thêm
 // lần nữa (xem WishlistView: khoá chọn chéo khách sạn).
 
-export type PaymentMethod = "payAtHotel" | "card";
+// momo: mới có giao diện, backend chưa có API thanh toán MoMo nên chưa đặt được.
+export type PaymentMethod = "payAtHotel" | "card" | "momo";
 
 export interface CreateBookingPayload {
   roomIds: number[];

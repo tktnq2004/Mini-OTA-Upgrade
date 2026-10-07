@@ -4,7 +4,7 @@ import type { SessionUser } from "./types";
 // (mota_admin_at/mota_admin_rt) để 2 phiên độc lập nhau.
 export const ACCESS_COOKIE = "mota_acc_at";
 export const REFRESH_COOKIE = "mota_acc_rt";
-const BACKEND_REFRESH_COOKIE_NAME = "refresh-token-Mini";
+export const BACKEND_REFRESH_COOKIE_NAME = "refresh-token-Mini";
 
 export interface AccountJwtClaims {
   sub: string;

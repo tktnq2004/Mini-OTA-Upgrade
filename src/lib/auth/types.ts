@@ -81,3 +81,26 @@ export interface UpdateProfileInput {
   phone?: string;
   password: string;
 }
+
+// 1 booking trong GET /bookings/me (entity Booking của backend, chỉ khai báo
+// các field trang dùng). amount là tổng giá 1 đêm của các phòng -> tổng tiền
+// = amount × số đêm (giống checkout).
+export interface MyBooking {
+  id: number;
+  amount: number;
+  bookingDate?: string; // ISO datetime
+  checkIn: string; // yyyy-mm-dd
+  checkOut: string; // yyyy-mm-dd
+  paymentStatus?: string; // "Pending" | "Completed" | ...
+  hotel?: { id: number; name?: string } | null; // chưa có trong response, có thì link thẳng tới phòng
+  bookingRooms?: {
+    id: number;
+    pricePerNight: number;
+    room?: {
+      id: number;
+      name: string;
+      thumbnail?: string | null;
+      roomType?: { roomTypeName?: string } | null;
+    } | null;
+  }[];
+}

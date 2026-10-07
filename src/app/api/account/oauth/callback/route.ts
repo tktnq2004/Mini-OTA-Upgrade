@@ -1,48 +1,74 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ACCESS_COOKIE, REFRESH_COOKIE, exchangeOAuth2Code } from "@/lib/auth/session";
+import {
+  ACCESS_COOKIE,
+  BACKEND_REFRESH_COOKIE_NAME,
+  REFRESH_COOKIE,
+  exchangeOAuth2Code,
+  refreshBackendSession,
+  type RefreshResult,
+} from "@/lib/auth/session";
 
 // Backend (Spring Security oauth2Login) redirect trình duyệt về đây sau khi
-// Google/Facebook login thành công, kèm 1 code dùng 1 lần (không phải access
-// token thật — xem OAuth2SuccessHandler bên backend). Route này chạy
-// server-side, đổi code lấy token thật rồi tự set cookie httpOnly
-// mota_acc_at/mota_acc_rt — giống hệt /api/account/auth/login — access token
-// không bao giờ chạm tới JS phía trình duyệt.
+// Google/Facebook login thành công. Backend chỉ set cookie refresh token
+// (refresh-token-Mini) chứ không trả access token. Cookie không phân biệt cổng
+// nên trình duyệt gửi kèm nó tới đây (localhost:3000) -> route này gọi
+// GET /auth/refresh server-to-server (backend chặn CORS từ trình duyệt) để lấy
+// access token, rồi set cookie httpOnly mota_acc_at/mota_acc_rt giống
+// /api/account/auth/login — access token không bao giờ chạm tới JS.
+// Vẫn nhận ?code= của luồng handoff cũ để không gãy nếu backend còn dùng.
 export async function GET(req: NextRequest) {
-  const code = req.nextUrl.searchParams.get("code");
   const origin = req.nextUrl.origin;
+  const code = req.nextUrl.searchParams.get("code");
 
-  if (!code) {
-    return NextResponse.redirect(`${origin}/login?social_error=missing_code`);
+  let session: RefreshResult | null = null;
+
+  if (code) {
+    const result = await exchangeOAuth2Code(code);
+    if (result?.status === "REGISTER_REQUIRED") {
+      const params = new URLSearchParams({
+        sessionId: result.sessionId ?? "",
+        email: result.email ?? "",
+        name: result.name ?? "",
+      });
+      return NextResponse.redirect(`${origin}/complete-profile?${params.toString()}`);
+    }
+    if (result?.accessToken) {
+      session = {
+        accessToken: result.accessToken,
+        accessMaxAge: result.accessMaxAge ?? 60,
+        refreshToken: result.refreshToken,
+        refreshMaxAge: result.refreshMaxAge,
+      };
+    }
+  } else {
+    const backendRefreshToken = req.cookies.get(BACKEND_REFRESH_COOKIE_NAME)?.value;
+    if (backendRefreshToken) {
+      session = await refreshBackendSession(backendRefreshToken);
+      // Backend không xoay refresh token -> giữ token cũ làm mota_acc_rt.
+      if (session && !session.refreshToken) session.refreshToken = backendRefreshToken;
+    }
   }
 
-  const result = await exchangeOAuth2Code(code);
-  if (!result) {
+  if (!session) {
     return NextResponse.redirect(`${origin}/login?social_error=1`);
   }
 
-  if (result.status === "REGISTER_REQUIRED") {
-    const params = new URLSearchParams({
-      sessionId: result.sessionId ?? "",
-      email: result.email ?? "",
-      name: result.name ?? "",
-    });
-    return NextResponse.redirect(`${origin}/complete-profile?${params.toString()}`);
-  }
-
   const res = NextResponse.redirect(`${origin}/`);
-  res.cookies.set(ACCESS_COOKIE, result.accessToken!, {
+  res.cookies.set(ACCESS_COOKIE, session.accessToken, {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
-    maxAge: result.accessMaxAge,
+    maxAge: session.accessMaxAge,
   });
-  if (result.refreshToken) {
-    res.cookies.set(REFRESH_COOKIE, result.refreshToken, {
+  if (session.refreshToken) {
+    res.cookies.set(REFRESH_COOKIE, session.refreshToken, {
       httpOnly: true,
       sameSite: "lax",
       path: "/",
-      maxAge: result.refreshMaxAge ?? result.accessMaxAge,
+      maxAge: session.refreshMaxAge ?? session.accessMaxAge,
     });
   }
+  // Refresh token đã chuyển sang mota_acc_rt -> bỏ bản backend để lại.
+  res.cookies.delete(BACKEND_REFRESH_COOKIE_NAME);
   return res;
 }
