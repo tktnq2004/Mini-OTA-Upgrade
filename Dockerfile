@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# Image production cho wen-go (Next.js 16). Giải thích từng dòng: docs/docker-lesson/03-ap-dung-wen-go.md
+# Image production cho wen-go (Next.js 16). Giải thích từng dòng: D:\docs\docker-lesson\03-ap-dung-wen-go.md
 
 # ---------- Stage 1: cài dependencies ----------
 FROM node:20-alpine AS deps

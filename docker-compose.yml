@@ -1,8 +1,16 @@
-# Chạy: docker compose up -d --build   ->   http://localhost:3000
-# Compose tự đọc file .env cạnh file này để thay các ${BIẾN} bên dưới.
-# Buổi sau: thêm service api (Spring Boot), mysql, redis vào đây.
+# Toàn bộ hệ thống: web (Next.js) + api (Spring Boot) + mysql + redis
+#
+#   docker compose up -d --build              chạy tất cả       -> http://localhost:3000
+#   docker compose --profile tools up -d      thêm Adminer       -> http://localhost:8081
+#   docker compose down                       dừng (GIỮ dữ liệu) | down -v: XOÁ cả dữ liệu
+#
+# Biến ${...} lấy từ file .env cạnh file này. Secret của backend lấy từ ../Mini-OTA/.env.
+# Giải thích chi tiết: D:\docs\docker-lesson\buoi-2\03-ap-dung-mini-ota.md
+
+name: wen-go
 
 services:
+  # ---------------------------------------------------------------- Frontend
   web:
     build:
       context: .
@@ -15,10 +23,115 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # Server Next.js (trong container) gọi backend đang chạy trên máy host.
-      # Trong container "localhost" là chính container, nên phải dùng host.docker.internal.
-      ADMIN_API_BASE_URL: ${DOCKER_ADMIN_API_BASE_URL:-http://host.docker.internal:8080/api/v1}
-    extra_hosts:
-      # Docker Desktop (Windows/Mac) đã có sẵn tên này; dòng này để chạy được cả trên Linux
-      - "host.docker.internal:host-gateway"
+      # Server Next.js gọi backend qua TÊN SERVICE trong network "frontend"
+      ADMIN_API_BASE_URL: http://api:8080/api/v1
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [frontend]
     restart: unless-stopped
+
+  # ---------------------------------------------------------------- Backend
+  api:
+    build: ../Mini-OTA
+    image: mini-ota:latest
+    container_name: mini-ota-api
+    # Toàn bộ secret (JWT, Google, R2, mail...) - cùng file dùng khi chạy gradlew local
+    env_file: ../Mini-OTA/.env
+    # environment: được ưu tiên hơn env_file -> chỉ ghi những gì KHÁC khi chạy trong Docker
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/Mini_OTA?allowPublicKeyRetrieval=true&useSSL=false
+      DB_USERNAME: ${MYSQL_USER:?Thiếu MYSQL_USER trong .env}
+      DB_PASSWORD: ${MYSQL_PASSWORD:?Thiếu MYSQL_PASSWORD trong .env}
+      REDIS_HOST: redis
+      TZ: Asia/Ho_Chi_Minh
+      # application.properties bật log TRACE/DEBUG cho lúc dev -> giảm bớt trong Docker
+      SPRING_JPA_SHOW_SQL: "false"
+      LOGGING_LEVEL_ORG_HIBERNATE_SQL: INFO
+      LOGGING_LEVEL_ORG_HIBERNATE_ORM_JDBC_BIND: INFO
+      LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY: INFO
+      LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY_OAUTH2: INFO
+      LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_CACHE: INFO
+    ports:
+      # Trình duyệt cần gọi thẳng backend (đăng nhập Google, NEXT_PUBLIC_BACKEND_ORIGIN)
+      - "8080:8080"
+    volumes:
+      - api-uploads:/app/uploads
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      # /actuator/health cần đăng nhập -> dùng một API GET public có truy vấn DB
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/api/v1/provinces || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 120s # Spring Boot + seed dữ liệu lần đầu khá lâu
+    networks: [frontend, backend]
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------- Database
+  mysql:
+    image: mysql:8.4
+    container_name: mini-ota-mysql
+    # Các biến MYSQL_* CHỈ có tác dụng ở lần khởi tạo đầu tiên (khi volume còn trống)
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Thiếu MYSQL_ROOT_PASSWORD trong .env}
+      MYSQL_DATABASE: Mini_OTA
+      MYSQL_USER: ${MYSQL_USER:?Thiếu MYSQL_USER trong .env}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Thiếu MYSQL_PASSWORD trong .env}
+      TZ: Asia/Ho_Chi_Minh
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql-data:/var/lib/mysql
+    ports:
+      # Chỉ mở cho chính máy này (127.0.0.1), cổng 3307 để không đụng MySQL 8.0 cài trên Windows (3306)
+      - "127.0.0.1:3307:3306"
+    healthcheck:
+      # $$ = ký tự $ thật, để biến được đọc BÊN TRONG container chứ không bị compose thay
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks: [backend]
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------- Cache
+  redis:
+    image: redis:7-alpine
+    container_name: mini-ota-redis-docker # tránh trùng container "mini-ota-redis" bạn tạo bằng tay
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks: [backend] # không mở cổng: chỉ api dùng được
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------- Công cụ (tuỳ chọn)
+  adminer:
+    image: adminer:5
+    profiles: [tools] # chỉ chạy khi có --profile tools
+    ports:
+      - "8081:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: mysql
+    depends_on: [mysql]
+    networks: [backend]
+
+networks:
+  frontend: # web <-> api
+  backend:  # api <-> mysql, redis (web KHÔNG vào được mạng này)
+
+volumes:
+  mysql-data:
+  redis-data:
+  api-uploads:
