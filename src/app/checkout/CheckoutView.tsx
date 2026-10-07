@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -25,7 +25,9 @@ import { getHotel, PublicApiError } from "@/lib/hotels/client";
 import type { Hotel, Room } from "@/lib/hotels/types";
 import { nightsBetween } from "@/lib/searchFilters";
 import { getRoomsAvailability, isRangeBookable, type RoomsAvailability } from "@/lib/booking/availability";
-import { createBooking, simulateCardPayment, type PaymentMethod } from "@/lib/booking/client";
+import { createBooking, type PaymentMethod } from "@/lib/booking/client";
+import { CardPaymentError } from "@/lib/booking/payment";
+import CardPayment, { type PaymentFormHandle } from "./PaymentForm";
 import controls from "@/styles/controls.module.css";
 import styles from "./checkout.module.css";
 
@@ -119,10 +121,7 @@ export default function CheckoutView() {
     const [phone, setPhone] = useState("");
     const [note, setNote] = useState("");
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("payAtHotel");
-    const [cardNumber, setCardNumber] = useState("");
-    const [cardName, setCardName] = useState("");
-    const [cardExpiry, setCardExpiry] = useState("");
-    const [cardCvv, setCardCvv] = useState("");
+    const paymentForm = useRef<PaymentFormHandle>(null);
     const [error, setError] = useState("");
     const [submitting, setSubmitting] = useState(false);
     const [order, setOrder] = useState<{ code: string; rooms: number; total: number } | null>(null);
@@ -139,9 +138,17 @@ export default function CheckoutView() {
             setError(t("checkout.errorRequired"));
             return;
         }
-        if (paymentMethod === "card" && (!cardNumber || !cardName || !cardExpiry || !cardCvv)) {
-            setError(t("checkout.errorCardRequired"));
+        if (paymentMethod === "momo") {
+            setError(t("checkout.momoComingSoon"));
             return;
+        }
+        if (paymentMethod === "card") {
+            const form = paymentForm.current;
+            const cardError = form ? form.validate() : t("checkout.errorCardUnavailable");
+            if (cardError) {
+                setError(cardError);
+                return;
+            }
         }
         if (!hotelId || rooms.length === 0) return;
 
@@ -153,12 +160,14 @@ export default function CheckoutView() {
                 checkOut,
                 guest: { fullName, email, phone },
             });
-            if (paymentMethod === "card") await simulateCardPayment();
+            const total = result.totalAmount * nights;
+            if (paymentMethod === "card") await paymentForm.current?.pay(result.bookingId, { name: fullName.trim(), email, phone });
             // Đặt xong thì bỏ các phòng vừa đặt khỏi wishlist (nếu có).
             rooms.forEach((r) => removeFromWishlist(hotelId, r.id));
-            setOrder({ code: `MO-${result.bookingId}`, rooms: rooms.length, total: result.totalAmount * nights });
+            setOrder({ code: `MO-${result.bookingId}`, rooms: rooms.length, total });
         } catch (err) {
-            setError(err instanceof PublicApiError && err.message ? err.message : t("checkout.errorSubmit"));
+            if (err instanceof CardPaymentError) setError(err.message || t("checkout.errorPayment"));
+            else setError(err instanceof PublicApiError && err.message ? err.message : t("checkout.errorSubmit"));
         } finally {
             setSubmitting(false);
         }
@@ -320,72 +329,31 @@ export default function CheckoutView() {
                                     <CreditCardIcon size={18} />
                                     <span>{t("checkout.payByCard")}</span>
                                 </label>
+                                <label
+                                    className={`${styles.paymentOption} ${paymentMethod === "momo" ? styles.paymentOptionActive : ""}`}
+                                >
+                                    <input
+                                        type="radio"
+                                        name="paymentMethod"
+                                        checked={paymentMethod === "momo"}
+                                        onChange={() => setPaymentMethod("momo")}
+                                    />
+                                    <span className={styles.momoBadge} aria-hidden="true">
+                                        mo
+                                    </span>
+                                    <span>{t("checkout.payByMomo")}</span>
+                                </label>
                             </div>
 
                             {paymentMethod === "payAtHotel" && (
                                 <p className={styles.paymentNote}>{t("checkout.payAtHotelNote")}</p>
                             )}
 
-                            {paymentMethod === "card" && (
-                                <div className={styles.cardFields}>
-                                    <div className={controls.field}>
-                                        <label className={controls.label} htmlFor="co-card-number">
-                                            {t("checkout.cardNumber")}
-                                        </label>
-                                        <input
-                                            id="co-card-number"
-                                            type="text"
-                                            inputMode="numeric"
-                                            className={controls.input}
-                                            placeholder="4242 4242 4242 4242"
-                                            value={cardNumber}
-                                            onChange={(e) => setCardNumber(e.target.value)}
-                                        />
-                                    </div>
-                                    <div className={controls.field}>
-                                        <label className={controls.label} htmlFor="co-card-name">
-                                            {t("checkout.cardName")}
-                                        </label>
-                                        <input
-                                            id="co-card-name"
-                                            type="text"
-                                            className={controls.input}
-                                            placeholder="NGUYEN VAN A"
-                                            value={cardName}
-                                            onChange={(e) => setCardName(e.target.value)}
-                                        />
-                                    </div>
-                                    <div className={styles.fieldRow}>
-                                        <div className={controls.field}>
-                                            <label className={controls.label} htmlFor="co-card-expiry">
-                                                {t("checkout.cardExpiry")}
-                                            </label>
-                                            <input
-                                                id="co-card-expiry"
-                                                type="text"
-                                                className={controls.input}
-                                                placeholder="MM/YY"
-                                                value={cardExpiry}
-                                                onChange={(e) => setCardExpiry(e.target.value)}
-                                            />
-                                        </div>
-                                        <div className={controls.field}>
-                                            <label className={controls.label} htmlFor="co-card-cvv">
-                                                CVV
-                                            </label>
-                                            <input
-                                                id="co-card-cvv"
-                                                type="text"
-                                                inputMode="numeric"
-                                                className={controls.input}
-                                                placeholder="123"
-                                                value={cardCvv}
-                                                onChange={(e) => setCardCvv(e.target.value)}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
+                            {paymentMethod === "momo" && (
+                                <p className={styles.paymentNote}>{t("checkout.momoComingSoon")}</p>
                             )}
+
+                            {paymentMethod === "card" && <CardPayment ref={paymentForm} />}
                         </section>
 
                         {error && <p className={controls.error}>{error}</p>}

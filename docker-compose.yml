@@ -16,6 +16,7 @@ services:
       context: .
       args:
         NEXT_PUBLIC_MAPTILER_KEY: ${NEXT_PUBLIC_MAPTILER_KEY}
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
         # Trình duyệt của người dùng gọi URL này -> vẫn là localhost của máy host
         NEXT_PUBLIC_BACKEND_ORIGIN: ${NEXT_PUBLIC_BACKEND_ORIGIN:-http://localhost:8080}
     image: wen-go:latest

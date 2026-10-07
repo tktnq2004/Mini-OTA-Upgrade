@@ -1,0 +1,282 @@
+/* Thẻ thanh toán dùng chung: form nhập thẻ, thêm thẻ, danh sách thẻ đã lưu
+   (checkout + /account/payment-methods). */
+.cardFields {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    background: var(--color-inset);
+    border-radius: var(--radius-sm);
+}
+
+.fieldRow {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+@media (max-width: 560px) {
+    .fieldRow {
+        grid-template-columns: 1fr;
+    }
+}
+
+.note {
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+    background: var(--color-inset);
+    border-radius: var(--radius-sm);
+}
+
+/* ----- Thẻ của bạn (đã đăng nhập) ----- */
+.cardSection {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.cardSectionTitle {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+}
+
+.noCards {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px;
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 12.5px;
+    color: var(--color-text-muted);
+}
+
+.addCardButton {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 12px;
+    border: 1px solid var(--color-accent);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--color-accent);
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.addCardButton:hover {
+    background: var(--color-accent-soft);
+}
+
+.savedCard {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    align-items: center;
+    column-gap: 12px;
+    row-gap: 2px;
+    padding: 12px 14px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.savedCard:hover {
+    border-color: var(--color-text-faint);
+}
+
+.savedCard input {
+    grid-row: span 2;
+    accent-color: var(--color-accent);
+}
+
+.savedCardActive {
+    border-color: var(--color-accent);
+    background: var(--color-accent-soft);
+}
+
+.savedCardBrand {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.savedCardNumber {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text);
+    font-variant-numeric: tabular-nums;
+}
+
+.savedCardMeta {
+    grid-column: 2;
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+.savedCardDefault {
+    grid-column: 3;
+    justify-self: end;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-accent);
+}
+
+.addAnotherCard {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 2px;
+    border: none;
+    background: none;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--color-accent);
+    cursor: pointer;
+}
+
+.addAnotherCard:hover {
+    text-decoration: underline;
+}
+
+.savedCardActions {
+    grid-column: 4;
+    grid-row: 1 / span 2;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.removeCardIcon {
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--color-text-faint);
+    cursor: pointer;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+
+.removeCardIcon:hover {
+    color: var(--color-error);
+    background: var(--color-error-soft);
+}
+
+.removeQuestion {
+    font-size: 12px;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+}
+
+.removeCardButton,
+.keepCardButton {
+    height: 28px;
+    padding: 0 10px;
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.removeCardButton {
+    border: 1px solid var(--color-error);
+    background: var(--color-error-soft);
+    color: var(--color-error);
+}
+
+.keepCardButton {
+    border: 1px solid var(--color-border);
+    background: transparent;
+    color: var(--color-text-muted);
+}
+
+.removeCardButton:disabled,
+.keepCardButton:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+.newCardActions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.addCardButton:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+.cancelNewCard {
+    padding: 0;
+    border: none;
+    background: none;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--color-text-muted);
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+/* Khung ngoài của ô thẻ bảo mật (iframe) — giống controls.input. */
+.cardInput {
+    width: 100%;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    background: var(--color-inset);
+    padding: 0 10px;
+    transition: border-color 0.15s ease;
+}
+
+.cardInput > * {
+    flex: 1;
+}
+
+.cardInputFocus {
+    border-color: var(--color-accent);
+}
+
+.cardInputInvalid {
+    border-color: var(--color-error);
+}
+
+/* Hàng thẻ không có nút chọn (trang quản lý thẻ). */
+.savedCardStatic {
+    grid-template-columns: 1fr auto auto;
+    cursor: default;
+}
+
+.savedCardStatic:hover {
+    border-color: var(--color-border);
+}
+
+.savedCardStatic .savedCardMeta {
+    grid-column: 1;
+}
+
+.savedCardStatic .savedCardDefault {
+    grid-column: 2;
+}
+
+.savedCardStatic .savedCardActions {
+    grid-column: 3;
+}

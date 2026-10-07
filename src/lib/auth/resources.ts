@@ -1,6 +1,7 @@
 import { accountFetch, accountGet, accountPost, accountPut } from "./apiClient";
 import type {
   AccountProfile,
+  MyBooking,
   OtpSession,
   ResetPasswordInput,
   ResetTokenInfo,
@@ -42,3 +43,11 @@ export const resetPassword = (input: ResetPasswordInput) => accountPost<void>("u
 // gọi này cần Bearer token thật (đi qua catch-all [...path], không phải route
 // public ở trên), backend gửi link đổi mật khẩu về đúng email của chính mình.
 export const requestPasswordChange = () => accountFetch<void>("users/me/password-change-request", { method: "POST" });
+
+// GET /bookings/me — booking của user đang đăng nhập. Backend có thể trả mảng
+// thẳng hoặc dạng phân trang { meta, result } -> chuẩn hoá về mảng.
+export const getMyBookings = async (): Promise<MyBooking[]> => {
+  const data = await accountGet<MyBooking[] | { result?: MyBooking[]; content?: MyBooking[] }>("bookings/me");
+  if (Array.isArray(data)) return data;
+  return data?.result ?? data?.content ?? [];
+};

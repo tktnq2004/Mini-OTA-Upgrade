@@ -83,8 +83,10 @@ export function createHotelMarkerIcon(label: string): MarkerIconBitmap {
     const tailTipY = bodyBottom + tailHeight;
     const tailCenterX = shapeX + bodyWidth / 2;
 
-    const width = bodyWidth + margin * 2;
-    const height = tailTipY + margin;
+    // Canvas/ImageData chỉ nhận kích thước nguyên — measureText trả số lẻ, nếu
+    // không làm tròn thì data.length ≠ width*height*4 và map.addImage sẽ throw.
+    const width = Math.ceil(bodyWidth + margin * 2);
+    const height = Math.ceil(tailTipY + margin);
 
     const canvas = document.createElement("canvas");
     canvas.width = width;
