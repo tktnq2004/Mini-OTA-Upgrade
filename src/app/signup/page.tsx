@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState, type SubmitEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AuthShell from "@/components/auth/AuthShell";
 import SocialAuthLinks from "@/components/auth/SocialAuthLinks";
 import { useAccount } from "@/components/auth/AccountProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { useCountdown } from "@/hooks/useCountdown";
 import controls from "@/styles/controls.module.css";
 import form from "@/components/auth/AuthForm.module.css";
 
@@ -43,13 +44,7 @@ export default function SignupPage() {
     const [submitting, setSubmitting] = useState(false);
     // Giây còn lại trước khi được bấm "Gửi lại mã" — khớp với exp backend trả
     // (hạn hiệu lực OTP, dùng luôn làm cooldown gửi lại cho đơn giản).
-    const [cooldown, setCooldown] = useState(0);
-
-    useEffect(() => {
-        if (cooldown <= 0) return;
-        const id = setInterval(() => setCooldown((c) => Math.max(0, c - 1)), 1000);
-        return () => clearInterval(id);
-    }, [cooldown]);
+    const [cooldown, setCooldown] = useCountdown();
 
     const validateInfoStep = (): boolean => {
         if (!fullName || !email || !phone || !password || !confirmPassword) {

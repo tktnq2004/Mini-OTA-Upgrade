@@ -10,7 +10,7 @@ import SearchWidget from "@/components/SearchWidget/SearchWidget";
 import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
 import HotelMiniCard from "@/components/HotelMiniCard/HotelMiniCard";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
-import { listHotels } from "@/lib/hotels/client";
+import { listHotels } from "@/lib/hotels/resources";
 import type { Hotel } from "@/lib/hotels/types";
 import { loadRecentlyViewed, type RecentlyViewedHotel } from "@/lib/recentlyViewed";
 import { provinces } from "@/data/locations.data";

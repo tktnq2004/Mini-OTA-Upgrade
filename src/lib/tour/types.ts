@@ -1,6 +1,4 @@
-// Kiểu dữ liệu khớp đúng response/request của module tour ở backend
-// (com.Mini_OTA.rebuild.tour). Vị trí hotspot là yaw/pitch (độ), cùng quy ước
-// lon/lat của viewer three.js — xem geometry.ts.
+
 export type HotspotType = "NAVIGATION" | "INFO";
 
 export interface TourHotspot {

@@ -15,7 +15,7 @@ import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { AccountApiError } from "@/lib/auth/apiClient";
 import { getMyBookings } from "@/lib/auth/resources";
 import type { MyBooking } from "@/lib/auth/types";
-import { formatVnd } from "@/lib/format";
+import { formatDateVn, formatVnd } from "@/lib/format";
 import { nightsBetween } from "@/lib/searchFilters";
 import controls from "@/styles/controls.module.css";
 import styles from "../account.module.css";
@@ -28,8 +28,6 @@ const STATUS_CLASS: Record<string, string> = {
   Cancelled: styles.statusCancelled,
 };
 
-// Có hotelId thì vào thẳng trang phòng, không thì qua /room/{id} để server tự
-// tra khách sạn (booking chưa trả hotelId).
 const roomHref = (b: MyBooking, roomId?: number) =>
   !roomId
     ? "#"
@@ -37,12 +35,8 @@ const roomHref = (b: MyBooking, roomId?: number) =>
       ? `/hotel/${b.hotel.id}/room/${roomId}`
       : `/room/${roomId}`;
 
-// yyyy-mm-dd -> dd/mm/yyyy
-const formatDate = (iso: string) =>
-  iso.slice(0, 10).split("-").reverse().join("/");
-
 export default function BookingsView() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { user, ready } = useAccount();
   const router = useRouter();
 
@@ -113,7 +107,7 @@ export default function BookingsView() {
                     {b.bookingDate && (
                       <span className={styles.bookedOn}>
                         {t("bookings.bookedOn", {
-                          date: formatDate(b.bookingDate),
+                          date: formatDateVn(b.bookingDate, language),
                         })}
                       </span>
                     )}
@@ -127,7 +121,7 @@ export default function BookingsView() {
 
                 <p className={styles.bookingMeta}>
                   <CalendarBlankIcon size={14} />
-                  {formatDate(b.checkIn)} → {formatDate(b.checkOut)}
+                  {formatDateVn(b.checkIn, language)} → {formatDateVn(b.checkOut, language)}
                   <span className={styles.dot}>·</span>
                   {t("hotel.nightsSuffix", { count: nights })}
                 </p>

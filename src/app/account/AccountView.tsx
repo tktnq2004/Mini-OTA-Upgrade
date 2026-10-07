@@ -6,6 +6,7 @@ import { UserCircleIcon } from "@phosphor-icons/react";
 import SiteHeader from "@/components/SiteHeader/SiteHeader";
 import { useAccount } from "@/components/auth/AccountProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { useCountdown } from "@/hooks/useCountdown";
 import { AccountApiError } from "@/lib/auth/apiClient";
 import { getMyProfile, requestPasswordChange, updateMyProfile } from "@/lib/auth/resources";
 import type { AccountProfile } from "@/lib/auth/types";
@@ -44,13 +45,7 @@ export default function AccountView() {
     const [changePasswordError, setChangePasswordError] = useState("");
     const [changePasswordSent, setChangePasswordSent] = useState(false);
     const [changingPassword, setChangingPassword] = useState(false);
-    const [changePasswordCooldown, setChangePasswordCooldown] = useState(0);
-
-    useEffect(() => {
-        if (changePasswordCooldown <= 0) return;
-        const id = setInterval(() => setChangePasswordCooldown((c) => Math.max(0, c - 1)), 1000);
-        return () => clearInterval(id);
-    }, [changePasswordCooldown]);
+    const [changePasswordCooldown, setChangePasswordCooldown] = useCountdown();
 
     const handleChangePassword = async () => {
         setChangePasswordError("");

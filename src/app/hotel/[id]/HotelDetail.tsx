@@ -13,12 +13,11 @@ import {
     ArrowsClockwiseIcon,
 } from "@phosphor-icons/react";
 import type { Hotel } from "@/lib/hotels/types";
-import { formatVnd } from "@/lib/format";
+import { formatDateVn, formatVnd } from "@/lib/format";
 import { rememberHotelView } from "@/lib/recentlyViewed";
 import {
     addDaysIso,
     defaultFilters,
-    formatDateVn,
     nightsBetween,
     parseFilters,
     todayIso,

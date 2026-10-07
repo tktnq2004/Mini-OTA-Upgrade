@@ -5,7 +5,7 @@
 // mới biết tên/giá phòng hiện tại. getHotel trả CẢ mảng rooms trong 1 lần gọi
 // nên chỉ cần gọi 1 lần cho mỗi hotelId.
 
-import { getHotel } from "@/lib/hotels/client";
+import { getHotel } from "@/lib/hotels/resources";
 import type { Hotel, Room } from "@/lib/hotels/types";
 import type { WishlistItem } from "./wishlistStorage";
 

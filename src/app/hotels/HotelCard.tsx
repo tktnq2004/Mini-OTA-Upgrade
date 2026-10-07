@@ -4,6 +4,7 @@ import { MapPinIcon, BuildingsIcon, NavigationArrowIcon } from "@phosphor-icons/
 import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
 import type { Hotel } from "@/lib/hotels/types";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { formatDistanceKm } from "@/lib/format";
 import styles from "./HotelCard.module.css";
 
 interface HotelCardProps {
@@ -13,7 +14,7 @@ interface HotelCardProps {
 }
 
 export default function HotelCard({ hotel, distanceKm, onBook }: HotelCardProps) {
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
 
     return (
         <article className={styles.card}>
@@ -28,7 +29,7 @@ export default function HotelCard({ hotel, distanceKm, onBook }: HotelCardProps)
                 {distanceKm !== null && (
                     <span className={styles.distanceBadge}>
                         <NavigationArrowIcon size={11} weight="fill" />
-                        {t("hotels.distanceAway", { distance: distanceKm.toFixed(1) })}
+                        {t("hotels.distanceAway", { distance: formatDistanceKm(distanceKm, language) })}
                     </span>
                 )}
             </div>

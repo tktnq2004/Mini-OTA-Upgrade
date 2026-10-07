@@ -1,19 +1,12 @@
 "use client";
 
-import { unwrapResponse } from "./envelope";
+import { publicGet } from "./apiClient";
 import type { Amenity, Hotel, Paginated, Review, Room, RoomType, View } from "./types";
-
-async function publicGet<T>(path: string): Promise<T> {
-  const res = await fetch(`/api/public/${path}`, { cache: "no-store" });
-  return unwrapResponse<T>(res);
-}
 
 export interface ListHotelsParams {
   page?: number;
   size?: number;
   query?: string;
-  // Lọc theo ward.province.id / ward.id (turkraft filter, id giờ là mã hành
-  // chính VN thật — string, phải bọc nháy đơn trong câu filter).
   provinceId?: string | null;
   wardId?: string | null;
 }

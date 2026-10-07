@@ -13,7 +13,7 @@
 // phòng chưa có trong bảng thì dò qua danh sách khách sạn (resolveHotelIds).
 
 import { unwrapResponse } from "@/lib/hotels/envelope";
-import { listHotels } from "@/lib/hotels/client";
+import { listHotels } from "@/lib/hotels/resources";
 
 export interface WishlistItem {
     hotelId: number;

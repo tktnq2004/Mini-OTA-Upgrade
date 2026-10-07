@@ -8,7 +8,7 @@ import type { HotspotItem } from "@/components/panorama/types";
 import { AdminApiError } from "@/lib/admin/apiClient";
 import { getHotel } from "@/lib/admin/resources";
 import type { Hotel } from "@/lib/admin/types";
-import { saveHotspots, syncTour, updateScene } from "@/lib/tour/api";
+import { saveHotspots, syncTour, updateScene } from "@/lib/tour/resources";
 import { normalizeYaw, yawPitchToVector } from "@/lib/tour/geometry";
 import type { HotspotInput, HotspotType, TourScene, UpdateSceneInput } from "@/lib/tour/types";
 import { computeCoverage } from "./coverage";

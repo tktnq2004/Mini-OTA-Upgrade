@@ -1,9 +1,4 @@
-// Toán học giữa yaw/pitch (độ) và không gian 3D của viewer three.js.
-//
-// Quy ước (khớp usePanoramaScene.ts): camera nhìn về hướng
-//   (cos(lat)·cos(lon), sin(lat), cos(lat)·sin(lon))
-// với lon = yaw, lat = pitch. yaw 0 = hướng +X, tăng dần về phía +Z; pitch
-// −90 thẳng xuống, 0 ngang tầm mắt, +90 thẳng lên.
+
 const RAD = Math.PI / 180;
 
 export type Vec3 = [number, number, number];

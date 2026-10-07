@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, type SubmitEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import Link from "next/link";
 import AuthShell from "@/components/auth/AuthShell";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { useCountdown } from "@/hooks/useCountdown";
 import { sendForgotPasswordLink } from "@/lib/auth/resources";
 import { AccountApiError } from "@/lib/auth/apiClient";
 import controls from "@/styles/controls.module.css";
@@ -25,13 +26,7 @@ export default function ForgotPasswordPage() {
     const [error, setError] = useState("");
     const [submitting, setSubmitting] = useState(false);
     const [sent, setSent] = useState(false);
-    const [cooldown, setCooldown] = useState(0);
-
-    useEffect(() => {
-        if (cooldown <= 0) return;
-        const id = setInterval(() => setCooldown((c) => Math.max(0, c - 1)), 1000);
-        return () => clearInterval(id);
-    }, [cooldown]);
+    const [cooldown, setCooldown] = useCountdown();
 
     const send = async () => {
         setError("");

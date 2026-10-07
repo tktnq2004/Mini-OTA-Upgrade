@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { AdminApiError, conflictLines } from "@/lib/admin/apiClient";
-import { confirmMediaUpload, deleteMedia, listMedia, presignMediaUpload } from "@/lib/media/api";
+import { confirmMediaUpload, deleteMedia, listMedia, presignMediaUpload } from "@/lib/media/resources";
 import { confirmPanoramaRatio } from "@/lib/media/imageSize";
 import type { MediaAsset, MediaKind, MediaOwnerType } from "@/lib/media/types";
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, type ReadonlyURLSearchParams } from "next/navigation";
-import { listHotels } from "@/lib/hotels/client";
+import { listHotels } from "@/lib/hotels/resources";
 import type { Hotel } from "@/lib/hotels/types";
 import { getProvinceById } from "@/data/locations.data";
 import {

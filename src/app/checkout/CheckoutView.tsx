@@ -18,14 +18,16 @@ import SiteHeader from "@/components/SiteHeader/SiteHeader";
 import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
 import GuestsField from "@/components/GuestsField/GuestsField";
 import DateRangeField from "@/components/DateRangePicker/DateRangeField";
+import { useAccount } from "@/components/auth/AccountProvider";
 import { useWishlist } from "@/components/wishlist/WishlistProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { formatVnd } from "@/lib/format";
-import { getHotel, PublicApiError } from "@/lib/hotels/client";
+import { getMyProfile } from "@/lib/auth/resources";
+import { getHotel, PublicApiError } from "@/lib/hotels/resources";
 import type { Hotel, Room } from "@/lib/hotels/types";
 import { nightsBetween } from "@/lib/searchFilters";
 import { getRoomsAvailability, isRangeBookable, type RoomsAvailability } from "@/lib/booking/availability";
-import { createBooking, type PaymentMethod } from "@/lib/booking/client";
+import { createBooking, type PaymentMethod } from "@/lib/booking/resources";
 import { CardPaymentError } from "@/lib/booking/payment";
 import CardPayment, { type PaymentFormHandle } from "./PaymentForm";
 import controls from "@/styles/controls.module.css";
@@ -35,6 +37,7 @@ export default function CheckoutView() {
     const { t } = useLanguage();
     const searchParams = useSearchParams();
     const { remove: removeFromWishlist } = useWishlist();
+    const { user, ready: accountReady } = useAccount();
 
     // 1 lần đặt = 1 khách sạn + N phòng của khách sạn đó (xem quyết định 3a).
     // Đọc từ query: ?hotelId=..&roomIds=1,2,3  (tương thích ngược: ?roomId=1).
@@ -120,6 +123,31 @@ export default function CheckoutView() {
     const [email, setEmail] = useState("");
     const [phone, setPhone] = useState("");
     const [note, setNote] = useState("");
+
+    // Đã đăng nhập (customer) -> tự điền tên/email/sđt từ hồ sơ, đỡ phải gõ
+    // lại. SessionUser (useAccount().user) chỉ có id/email/name từ JWT,
+    // thiếu phone, nên vẫn phải gọi GET /users/me riêng (getMyProfile) lấy
+    // đủ hồ sơ. Chỉ điền vào field còn trống (prev || ...) để không đè chữ
+    // khách đã tự gõ nếu profile về chậm hơn; lỗi tải hồ sơ thì bỏ qua, cứ
+    // để khách tự điền tay như khách vãng lai.
+    useEffect(() => {
+        if (!accountReady || !user) return;
+        let alive = true;
+        getMyProfile()
+            .then((profile) => {
+                if (!alive) return;
+                setFullName((prev) => prev || profile.fullName || "");
+                setEmail((prev) => prev || profile.email || "");
+                setPhone((prev) => prev || profile.phone || "");
+            })
+            .catch(() => {
+                // Không lấy được hồ sơ thì thôi, không chặn checkout.
+            });
+        return () => {
+            alive = false;
+        };
+    }, [accountReady, user]);
+
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("payAtHotel");
     const paymentForm = useRef<PaymentFormHandle>(null);
     const [error, setError] = useState("");

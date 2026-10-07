@@ -9,6 +9,7 @@ import ThumbnailUploader from "@/components/media/ThumbnailUploader";
 import { AdminApiError, conflictLines } from "@/lib/admin/apiClient";
 import { deleteRoom, removeRoomAmenity, removeRoomView, updateRoom } from "@/lib/admin/resources";
 import type { Amenity, Room, View } from "@/lib/admin/types";
+import { formatVnd } from "@/lib/format";
 
 interface RoomCardProps {
     room: Room;
@@ -139,7 +140,7 @@ export default function RoomCard({ room, allAmenities, allViews, onChanged }: Ro
                         #{room.id} — {room.name}
                     </strong>
                     <div style={{ fontSize: 12.5, color: "var(--color-text-muted)" }}>
-                        {room.price.toLocaleString("vi-VN")} đ / đêm · {room.capacity} khách
+                        {formatVnd(room.price)} / đêm · {room.capacity} khách
                     </div>
                 </div>
                 <div className={styles.rowActions}>

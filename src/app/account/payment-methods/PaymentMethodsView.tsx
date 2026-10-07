@@ -18,8 +18,6 @@ import cardStyles from "@/components/payment/cards.module.css";
 import controls from "@/styles/controls.module.css";
 import styles from "../account.module.css";
 
-// Quản lý thẻ đã lưu: xem, thêm (SetupIntent), gỡ. Cùng component với phần
-// "Thẻ của bạn" ở checkout, chỉ là hàng thẻ không có nút chọn.
 export default function PaymentMethodsView() {
     const { t } = useLanguage();
     const { user, ready } = useAccount();

@@ -1,6 +1,6 @@
 "use client";
 
-import { getRoom } from "@/lib/hotels/client";
+import { getRoom } from "@/lib/hotels/resources";
 import type { Room } from "@/lib/hotels/types";
 
 // Ngày không đặt được ("bôi xám" trong DateRangePicker) lấy từ GET /rooms/{id}:

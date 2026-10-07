@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { CalendarBlankIcon, MoonIcon } from "@phosphor-icons/react";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
-import { formatDateVn, nightsBetween } from "@/lib/searchFilters";
+import { formatDateVn } from "@/lib/format";
+import { nightsBetween } from "@/lib/searchFilters";
 import DateRangePicker from "./DateRangePicker";
 import styles from "./DateRangeField.module.css";
 

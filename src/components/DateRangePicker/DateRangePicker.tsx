@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { formatMonthYear } from "@/lib/format";
 import { todayIso } from "@/lib/searchFilters";
 import styles from "./DateRangePicker.module.css";
 
@@ -107,11 +108,7 @@ export default function DateRangePicker({
 
   const [view, setView] = useState(() => firstOfMonth(checkIn ?? min));
 
-  const monthLabel = (year: number, month: number) =>
-    new Date(year, month - 1, 1).toLocaleDateString(language === "en" ? "en-US" : "vi-VN", {
-      month: "long",
-      year: "numeric",
-    });
+  const monthLabel = (year: number, month: number) => formatMonthYear(year, month, language);
 
   const weekdayLabels =
     language === "en"
