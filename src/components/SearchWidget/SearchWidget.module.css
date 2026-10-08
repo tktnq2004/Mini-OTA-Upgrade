@@ -84,8 +84,15 @@
         align-items: stretch;
     }
 
-    .hero .field {
+    /* Xếp dọc thì flex-basis (130px/140px) thành chiều cao — trả về auto để các ô không bị giãn. */
+    .hero .field,
+    .hero .submit {
         min-width: 0;
+        flex-basis: auto;
+    }
+
+    .hero .submit {
+        min-height: 40px;
     }
 }
 

@@ -1,0 +1,191 @@
+.page {
+    min-height: 100vh;
+    background: var(--color-bg);
+}
+
+.layout {
+    min-height: calc(100vh - 56px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.card {
+    max-width: 440px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    text-align: center;
+    padding: 32px 24px;
+    background: var(--color-panel);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.statusBlock {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.statusBlock h1 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.statusHint {
+    font-size: 12.5px;
+    color: var(--color-text-muted);
+    max-width: 340px;
+}
+
+.successIcon {
+    color: var(--color-success);
+    /* Hiệu ứng "nở ra" nhẹ khi vừa chuyển từ spinner sang tick xanh — báo rõ
+       cho mắt người dùng đây là 1 sự kiện vừa xảy ra, không phải trạng thái
+       tĩnh từ đầu. */
+    animation: success-pop 0.35s ease-out;
+}
+
+.processingIcon {
+    color: var(--color-accent-strong);
+}
+
+.mutedIcon {
+    color: var(--color-text-faint);
+}
+
+.errorIcon {
+    color: var(--color-error);
+}
+
+.spin {
+    animation: success-spin 0.9s linear infinite;
+}
+
+@keyframes success-spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes success-pop {
+    from {
+        transform: scale(0.6);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.invoice {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px;
+    background: var(--color-inset);
+    border-radius: var(--radius-sm);
+    text-align: left;
+}
+
+.invoiceTitle {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--color-text);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.invoiceHotel {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    color: var(--color-text-muted);
+}
+
+.invoiceHotelName {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.invoiceHotelAddress {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11.5px;
+    color: var(--color-text-muted);
+}
+
+.invoiceDates {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    color: var(--color-text);
+}
+
+.invoiceNights {
+    margin-left: auto;
+    color: var(--color-text-muted);
+    font-size: 11.5px;
+}
+
+.invoiceRooms {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--color-border);
+}
+
+.invoiceRoomRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    color: var(--color-text-muted);
+}
+
+.invoiceRoomName {
+    flex: 1;
+    color: var(--color-text);
+}
+
+.invoiceRoomPrice {
+    white-space: nowrap;
+}
+
+.invoiceTotalRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 8px;
+    border-top: 1px solid var(--color-border);
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.invoiceTotalRow strong {
+    font-size: 15px;
+    color: var(--color-accent-strong);
+}
+
+.invoiceCode {
+    font-size: 11.5px;
+    color: var(--color-text-faint);
+}

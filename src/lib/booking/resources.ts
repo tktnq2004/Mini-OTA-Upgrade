@@ -22,7 +22,6 @@ export interface CreateBookingPayload {
   };
 }
 
-// Khớp ResBookingDTO. Booking mới luôn ở trạng thái Pending.
 export interface CreateBookingResult {
   bookingId: number;
   checkIn: string;
@@ -30,6 +29,8 @@ export interface CreateBookingResult {
   status: "Pending" | "Completed" | "Cancelled";
   totalAmount: number;
   rooms: { roomId: number; roomName: string; pricePerNight: number }[];
+  hotelName?: string;
+  hotelAddress?: string;
 }
 
 // POST /api/v1/bookings (qua proxy /api/public/bookings, tự gắn token nếu đã
@@ -51,9 +52,16 @@ export async function createBooking(payload: CreateBookingPayload): Promise<Crea
   return unwrapResponse<CreateBookingResult>(res);
 }
 
-// DEMO thanh toán thẻ: backend chưa có endpoint thanh toán / xác nhận, booking
-// dừng ở Pending. Hàm này chỉ giả lập cổng thanh toán (không gửi/lưu số thẻ đi
-// đâu). Khi có API, thay bằng lời gọi thật ở đây.
-export async function simulateCardPayment(): Promise<void> {
-  await new Promise((r) => setTimeout(r, 800));
+// GET /api/v1/bookings/lookup (qua proxy /api/public, public — không cần
+// đăng nhập) — dùng cho trang success poll trạng thái thanh toán trong lúc
+// chờ webhook Stripe + webhook backend xác nhận (xem checkout/success).
+// email phải khớp guestEmail (khách vãng lai) hoặc email tài khoản (đã đăng
+// nhập) của chính booking đó, không thì backend trả lỗi "not found".
+export async function getBookingStatus(bookingId: number, email: string): Promise<CreateBookingResult> {
+  const params = new URLSearchParams({ id: String(bookingId), email });
+  const res = await fetch(`/api/public/bookings/lookup?${params.toString()}`, {
+    method: "GET",
+    cache: "no-store",
+  });
+  return unwrapResponse<CreateBookingResult>(res);
 }

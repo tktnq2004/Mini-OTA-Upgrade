@@ -1,0 +1,230 @@
+.grid {
+    max-width: 1160px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+.newsletter,
+.app {
+    position: relative;
+    overflow: hidden;
+    padding: 28px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+}
+
+.newsletter {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--color-panel);
+}
+
+.app {
+    display: flex;
+    gap: 20px;
+    background:
+        radial-gradient(circle at 100% 100%, rgba(255, 255, 255, 0.18), transparent 50%),
+        linear-gradient(135deg, var(--color-accent), color-mix(in srgb, var(--color-accent) 65%, #000000));
+    border-color: transparent;
+    color: #ffffff;
+}
+
+.icon {
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+}
+
+.app .icon {
+    background: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+}
+
+.title {
+    margin-top: 4px;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text);
+}
+
+.app .title {
+    color: #ffffff;
+}
+
+.text {
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+}
+
+.app .text {
+    color: rgba(255, 255, 255, 0.86);
+}
+
+.form {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.input {
+    composes: input from "../../../styles/controls.module.css";
+    flex: 1;
+    min-width: 0;
+}
+
+.submit {
+    composes: button from "../../../styles/controls.module.css";
+}
+
+.thanks {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--color-success) 12%, transparent);
+    color: var(--color-success);
+    font-size: 13.5px;
+    font-weight: 600;
+}
+
+.note {
+    font-size: 11.5px;
+    color: var(--color-text-faint);
+}
+
+.appText {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.stores {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.store {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: var(--radius-sm);
+    background: rgba(0, 0, 0, 0.25);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: not-allowed;
+}
+
+.store > span {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.15;
+}
+
+.store small {
+    font-size: 9.5px;
+    font-weight: 500;
+    opacity: 0.8;
+}
+
+/* Mockup điện thoại lấp ló ở góc dưới phải. */
+.phone {
+    flex: none;
+    align-self: flex-end;
+    width: 132px;
+    height: 220px;
+    margin-bottom: -60px;
+    padding: 6px;
+    border-radius: 24px;
+    background: #14161c;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    rotate: -6deg;
+}
+
+.phoneScreen {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    padding: 12px 9px;
+    border-radius: 18px;
+    background: #ffffff;
+}
+
+.phoneLogo {
+    font-size: 11px;
+    font-weight: 800;
+    color: #2563eb;
+}
+
+.phoneSearch {
+    height: 16px;
+    border-radius: 8px;
+    background: #eef2f7;
+}
+
+.phoneCard {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 5px;
+    border: 1px solid #e3e5e8;
+    border-radius: 8px;
+}
+
+.phoneImg {
+    height: 38px;
+    border-radius: 5px;
+    background: linear-gradient(135deg, #8ecae6, #2563eb);
+}
+
+.phoneLine {
+    width: 70%;
+    height: 5px;
+    border-radius: 3px;
+    background: #d4d8de;
+}
+
+.phoneStars {
+    display: inline-flex;
+    gap: 1px;
+    color: #f5a524;
+}
+
+@media (max-width: 900px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .newsletter,
+    .app {
+        padding: 20px;
+    }
+
+    .form {
+        flex-direction: column;
+    }
+
+    .phone {
+        display: none;
+    }
+}

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
     ArrowLeftIcon,
     BuildingsIcon,
@@ -11,7 +11,6 @@ import {
     CalendarBlankIcon,
     CreditCardIcon,
     HandCoinsIcon,
-    CheckCircleIcon,
     ShoppingBagIcon,
 } from "@phosphor-icons/react";
 import SiteHeader from "@/components/SiteHeader/SiteHeader";
@@ -35,6 +34,7 @@ import styles from "./checkout.module.css";
 
 export default function CheckoutView() {
     const { t } = useLanguage();
+    const router = useRouter();
     const searchParams = useSearchParams();
     const { remove: removeFromWishlist } = useWishlist();
     const { user, ready: accountReady } = useAccount();
@@ -152,7 +152,6 @@ export default function CheckoutView() {
     const paymentForm = useRef<PaymentFormHandle>(null);
     const [error, setError] = useState("");
     const [submitting, setSubmitting] = useState(false);
-    const [order, setOrder] = useState<{ code: string; rooms: number; total: number } | null>(null);
 
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -188,40 +187,27 @@ export default function CheckoutView() {
                 checkOut,
                 guest: { fullName, email, phone },
             });
-            const total = result.totalAmount * nights;
+            // Thanh toán thẻ xong NGAY TRÊN trang này (cần context Stripe
+            // Elements của CardPayment) — xác nhận client-side (stripe.js) chỉ
+            // là bước đầu, DB còn đang chờ webhook Stripe + webhook backend
+            // (StripeController -> BookingService.markPaid) xác nhận thật. Trang
+            // success (điều hướng ngay bên dưới) tự poll GET /bookings/lookup để
+            // biết lúc nào webhook đó xử lý xong.
             if (paymentMethod === "card") await paymentForm.current?.pay(result.bookingId, { name: fullName.trim(), email, phone });
             // Đặt xong thì bỏ các phòng vừa đặt khỏi wishlist (nếu có).
             rooms.forEach((r) => removeFromWishlist(hotelId, r.id));
-            setOrder({ code: `MO-${result.bookingId}`, rooms: rooms.length, total });
+            const params = new URLSearchParams({
+                bookingId: String(result.bookingId),
+                email,
+                method: paymentMethod,
+            });
+            router.push(`/checkout/success?${params.toString()}`);
         } catch (err) {
             if (err instanceof CardPaymentError) setError(err.message || t("checkout.errorPayment"));
             else setError(err instanceof PublicApiError && err.message ? err.message : t("checkout.errorSubmit"));
-        } finally {
             setSubmitting(false);
         }
     };
-
-    if (order) {
-        return (
-            <div className={styles.page}>
-                <SiteHeader />
-                <div className={styles.successLayout}>
-                    <div className={styles.successCard}>
-                        <CheckCircleIcon size={40} weight="fill" className={styles.successIcon} />
-                        <h1>{t("checkout.successTitle")}</h1>
-                        <p>{t("checkout.successSubtitle", { code: order.code })}</p>
-                        <div className={styles.successSummary}>
-                            <span>{t("checkout.roomsBooked", { count: order.rooms })}</span>
-                            <strong>{formatVnd(order.total)}</strong>
-                        </div>
-                        <Link href="/" className={controls.button}>
-                            {t("checkout.backHome")}
-                        </Link>
-                    </div>
-                </div>
-            </div>
-        );
-    }
 
     if (loadingHotel) {
         return (

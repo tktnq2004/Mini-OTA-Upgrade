@@ -1,0 +1,194 @@
+.card {
+    max-width: 1160px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 40px;
+    align-items: center;
+    padding: 28px;
+    background: var(--color-panel);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-panel);
+}
+
+.text {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.eyebrow {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: var(--radius-pill);
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.title {
+    font-size: clamp(1.25rem, 2.2vw, 1.7rem);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.015em;
+    color: var(--color-text);
+}
+
+.lead {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+}
+
+.points {
+    list-style: none;
+    margin: 4px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.points li {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 13.5px;
+    line-height: 1.45;
+    color: var(--color-text);
+}
+
+.points svg {
+    flex: none;
+    margin-top: 1px;
+    color: var(--color-success);
+}
+
+.links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.primary {
+    composes: button from "../../../styles/controls.module.css";
+    height: 42px;
+}
+
+.ghost {
+    composes: buttonGhost from "../../../styles/controls.module.css";
+    height: 42px;
+}
+
+.viewer {
+    position: relative;
+    height: 420px;
+    overflow: hidden;
+    border-radius: var(--radius-md);
+    background: #000000;
+}
+
+/* Ảnh xem trước: dải ảnh 360° lặp 2 lần trượt ngang -50% là liền mạch. */
+.poster {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: none;
+    background: #000000;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.posterStrip {
+    position: absolute;
+    top: -25%;
+    left: 0;
+    height: 150%;
+    aspect-ratio: 4 / 1;
+    background-position: left center;
+    background-size: auto 100%;
+    background-repeat: repeat-x;
+    animation: pan 80s linear infinite;
+    will-change: transform;
+}
+
+@keyframes pan {
+    to {
+        transform: translateX(-50%);
+    }
+}
+
+.poster::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.45));
+    transition: background 0.2s ease;
+}
+
+.play {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-radius: var(--radius-pill);
+    background: rgba(255, 255, 255, 0.95);
+    color: #16181d;
+    font-size: 14px;
+    font-weight: 700;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    translate: -50% -50%;
+    transition: transform 0.2s ease;
+}
+
+.poster:hover .play {
+    transform: scale(1.05);
+}
+
+.dragHint {
+    position: absolute;
+    left: 12px;
+    bottom: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: var(--radius-pill);
+    background: rgba(15, 23, 42, 0.7);
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 600;
+    pointer-events: none;
+}
+
+@media (max-width: 900px) {
+    .card {
+        grid-template-columns: 1fr;
+        gap: 24px;
+        padding: 18px;
+    }
+
+    .viewer {
+        height: 300px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .posterStrip {
+        animation: none;
+    }
+}

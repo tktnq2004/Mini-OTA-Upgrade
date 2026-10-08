@@ -1,0 +1,34 @@
+/* Một khối hiện dần, hoặc (stagger) từng con trực tiếp hiện so le 60ms. */
+.reveal,
+.stagger > * {
+    opacity: 0;
+    transform: translateY(16px);
+    transition:
+        opacity 0.6s cubic-bezier(0.2, 0.7, 0.2, 1),
+        transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+    transition-delay: calc(var(--i, 0) * 60ms);
+}
+
+.reveal[data-visible="true"],
+.stagger[data-visible="true"] > * {
+    opacity: 1;
+    transform: none;
+}
+
+.stagger > :nth-child(2) { --i: 1; }
+.stagger > :nth-child(3) { --i: 2; }
+.stagger > :nth-child(4) { --i: 3; }
+.stagger > :nth-child(5) { --i: 4; }
+.stagger > :nth-child(6) { --i: 5; }
+.stagger > :nth-child(7) { --i: 6; }
+.stagger > :nth-child(8) { --i: 7; }
+.stagger > :nth-child(n + 9) { --i: 8; }
+
+@media (prefers-reduced-motion: reduce) {
+    .reveal,
+    .stagger > * {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+}

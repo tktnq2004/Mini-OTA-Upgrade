@@ -1,0 +1,68 @@
+.scroller {
+    position: relative;
+    max-width: 1160px;
+    margin: 0 auto;
+}
+
+.track {
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 2px;
+    padding: 4px 2px 12px;
+    scrollbar-width: none;
+    outline: none;
+}
+
+.track::-webkit-scrollbar {
+    display: none;
+}
+
+.track > * {
+    flex: 0 0 var(--item-w);
+    scroll-snap-align: start;
+}
+
+.nav {
+    position: absolute;
+    top: calc(50% - 6px);
+    z-index: 2;
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--color-border);
+    border-radius: 50%;
+    background: var(--color-panel);
+    color: var(--color-text);
+    box-shadow: var(--shadow-pop);
+    cursor: pointer;
+    translate: 0 -50%;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.nav:hover {
+    border-color: var(--color-text-faint);
+    transform: scale(1.06);
+}
+
+.nav[hidden] {
+    display: none;
+}
+
+.prev {
+    left: -18px;
+}
+
+.next {
+    right: -18px;
+}
+
+/* Màn hẹp: vuốt bằng tay, không cần nút. */
+@media (max-width: 780px) {
+    .nav {
+        display: none;
+    }
+}
