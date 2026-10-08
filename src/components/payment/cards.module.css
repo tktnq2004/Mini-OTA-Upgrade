@@ -280,3 +280,54 @@
 .savedCardStatic .savedCardActions {
     grid-column: 3;
 }
+
+/* Lựa chọn "Dùng thẻ mới" ở checkout: radio + số thẻ / hạn / CVC. */
+.newCardOption {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 14px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.newCardOption:hover {
+    border-color: var(--color-text-faint);
+}
+
+.newCardOptionActive,
+.newCardOptionActive:hover {
+    border-color: var(--color-accent);
+    background: var(--color-accent-soft);
+}
+
+.newCardOption .cardFields {
+    padding: 0;
+    background: none;
+}
+
+.newCardRadio {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text);
+    cursor: pointer;
+}
+
+.saveCardCheck {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12.5px;
+    color: var(--color-text-muted);
+    cursor: pointer;
+}
+
+.newCardRadio input,
+.saveCardCheck input {
+    margin: 0;
+    accent-color: var(--color-accent);
+}

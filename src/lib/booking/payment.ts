@@ -1,6 +1,6 @@
 "use client";
 
-import { loadStripe, type Stripe, type StripeCardNumberElement } from "@stripe/stripe-js";
+import { loadStripe, type ConfirmCardPaymentData, type Stripe, type StripeCardNumberElement } from "@stripe/stripe-js";
 import { PublicApiError, unwrapResponse } from "@/lib/hotels/envelope";
 import { AccountApiError, accountFetch } from "@/lib/auth/apiClient";
 
@@ -27,12 +27,18 @@ function pickClientSecret(data: unknown): string | null {
 
 // POST /api/v1/payment/create-payment-intent (qua proxy /api/public, tự gắn
 // token nếu đã đăng nhập). Body khớp ReqCreatePaymentIntentDTO
-// { bookingId, paymentMethodId }; backend tự tính số tiền theo booking.
-async function createPaymentIntent(bookingId: number, paymentMethodId: string): Promise<string> {
+// { bookingId, paymentMethodId, saveCard }; backend tự tính số tiền theo booking.
+// paymentMethodId = null: thẻ mới nhập, trình duyệt tự confirm với ô thẻ;
+// saveCard = true: backend đặt setup_future_usage để lưu thẻ sau khi trả.
+async function createPaymentIntent(
+  bookingId: number,
+  paymentMethodId: string | null,
+  saveCard: boolean,
+): Promise<string> {
   const res = await fetch("/api/public/payment/create-payment-intent", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ bookingId, paymentMethodId }),
+    body: JSON.stringify({ bookingId, paymentMethodId, saveCard }),
   });
   try {
     const secret = pickClientSecret(await unwrapResponse<unknown>(res));
@@ -86,35 +92,34 @@ export async function removeSavedCard(id: string): Promise<void> {
 
 interface PayByCardArgs {
   stripe: Stripe;
-  // Thẻ mới nhập (ô số thẻ) hoặc id thẻ đã lưu.
-  method: { card: StripeCardNumberElement } | { savedCardId: string };
+  // Thẻ mới nhập (ô số thẻ, save = lưu luôn vào tài khoản) hoặc id thẻ đã lưu.
+  method: { card: StripeCardNumberElement; save?: boolean } | { savedCardId: string };
   bookingId: number;
   billing: { name: string; email: string; phone: string };
 }
 
 // Thanh toán thẻ cho booking đã tạo:
-// 1. Có paymentMethodId: thẻ đã lưu dùng luôn id; thẻ mới nhập (khách vãng
-//    lai) thì tạo payment method từ ô thẻ ngay trên trình duyệt (số thẻ không
-//    đi qua server mình).
-// 2. Gửi { bookingId, paymentMethodId } lên backend -> clientSecret.
-// 3. Backend có thể đã tự confirm -> xem trạng thái trước, chưa xong mới
-//    confirm ở trình duyệt (thẻ cần 3DS thì cổng tự bật popup xác thực).
+// - Thẻ đã lưu: gửi { bookingId, paymentMethodId, saveCard: false } -> clientSecret.
+//   Backend có thể đã tự confirm -> xem trạng thái trước, chưa xong mới
+//   confirm ở trình duyệt (thẻ cần 3DS thì cổng tự bật popup xác thực).
+// - Thẻ mới nhập: gửi { paymentMethodId: null, saveCard: tick "Lưu thẻ" } ->
+//   clientSecret, rồi confirm ở trình duyệt thẳng với ô thẻ (số thẻ không đi
+//   qua server mình).
 export async function payByCard({ stripe, method, bookingId, billing }: PayByCardArgs): Promise<void> {
-  let paymentMethodId: string;
   if ("savedCardId" in method) {
-    paymentMethodId = method.savedCardId;
-  } else {
-    const created = await stripe.createPaymentMethod({ type: "card", card: method.card, billing_details: billing });
-    if (created.error) throw new CardPaymentError(created.error.message || "");
-    paymentMethodId = created.paymentMethod.id;
+    const clientSecret = await createPaymentIntent(bookingId, method.savedCardId, false);
+    const current = await stripe.retrievePaymentIntent(clientSecret);
+    if (current.paymentIntent?.status === "succeeded") return;
+    await confirm(stripe, clientSecret, { payment_method: method.savedCardId });
+    return;
   }
 
-  const clientSecret = await createPaymentIntent(bookingId, paymentMethodId);
+  const clientSecret = await createPaymentIntent(bookingId, null, Boolean(method.save));
+  await confirm(stripe, clientSecret, { payment_method: { card: method.card, billing_details: billing } });
+}
 
-  const current = await stripe.retrievePaymentIntent(clientSecret);
-  if (current.paymentIntent?.status === "succeeded") return;
-
-  const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, { payment_method: paymentMethodId });
+async function confirm(stripe: Stripe, clientSecret: string, data: ConfirmCardPaymentData): Promise<void> {
+  const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, data);
   if (error) throw new CardPaymentError(error.message || "");
   if (paymentIntent?.status !== "succeeded") throw new CardPaymentError("");
 }

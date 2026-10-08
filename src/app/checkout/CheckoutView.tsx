@@ -353,7 +353,7 @@ export default function CheckoutView() {
                                 <p className={styles.paymentNote}>{t("checkout.momoComingSoon")}</p>
                             )}
 
-                            {paymentMethod === "card" && <CardPayment ref={paymentForm} />}
+                            {paymentMethod === "card" && <CardPayment ref={paymentForm} amount={grandTotal} />}
                         </section>
 
                         {error && <p className={controls.error}>{error}</p>}
