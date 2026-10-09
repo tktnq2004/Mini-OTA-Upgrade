@@ -24,6 +24,11 @@
     "nav.themeToDark": "Chuyển sang giao diện tối",
     "nav.languageToggle": "Chuyển ngôn ngữ sang tiếng Anh",
     "nav.wishlistAria": "Phòng đã lưu ({count})",
+    "nav.menuOpen": "Mở menu",
+    "nav.menuClose": "Đóng menu",
+    "nav.wishlist": "Phòng đã lưu",
+    "nav.themeDark": "Giao diện tối",
+    "nav.themeLight": "Giao diện sáng",
 
     "search.provinceLabel": "Tỉnh / Thành phố",
     "search.provinceAllOption": "Tất cả điểm đến",
@@ -176,6 +181,16 @@
     "home.steps.ctaMap": "Xem bản đồ khách sạn",
 
     "footer.brandBlurb": "Nền tảng đặt phòng khách sạn khắp Việt Nam — so sánh giá, xem vị trí trên bản đồ và giữ phòng chỉ trong vài phút.",
+
+    "footer.legalTitle": "Pháp lý",
+
+    "footer.terms": "Điều khoản",
+
+    "footer.privacy": "Quyền riêng tư",
+
+    "legal.updated": "Cập nhật lần cuối: {date}",
+
+    "legal.toc": "Nội dung",
     "footer.exploreTitle": "Khám phá",
     "footer.home": "Trang chủ",
     "footer.accountTitle": "Tài khoản",
@@ -442,6 +457,18 @@
     "hotels.emptyState": "Không có khách sạn nào khớp với bộ lọc hiện tại.",
     "hotels.distanceAway": "Cách {distance} km",
     "hotels.clearSearchText": "Xoá từ khoá tìm kiếm",
+
+    "loadError.title": "Không tải được dữ liệu",
+
+    "loadError.description": "Máy chủ đang không phản hồi hoặc mạng của bạn bị gián đoạn. Vui lòng thử lại.",
+
+    "loadError.retry": "Thử lại",
+
+    "errorPage.title": "Trang đang gặp sự cố",
+
+    "errorPage.description": "Chúng tôi không tải được trang này lúc này. Bạn thử lại sau ít phút, hoặc quay về trang chủ.",
+
+    "errorPage.code": "Mã lỗi: {code}",
 
     "notFound.title": "Không tìm thấy trang",
     "notFound.description": "Trang bạn tìm không tồn tại hoặc đã được di chuyển sang nơi khác.",

@@ -137,11 +137,16 @@ export function useHotelFilters(
     // kính không gọi lại API, chỉ lọc tiếp trên tập đã tải).
     const [loadedHotels, setLoadedHotels] = useState<Hotel[]>([]);
     const [loading, setLoading] = useState(true);
+    // Lỗi tải (mạng/backend) — tách riêng với "không có kết quả" để trang báo đúng lỗi kèm nút
+    // thử lại, thay vì hiện "0 khách sạn" như thể bộ lọc không khớp. Tăng reloadKey = tải lại.
+    const [loadError, setLoadError] = useState(false);
+    const [reloadKey, setReloadKey] = useState(0);
 
     useEffect(() => {
         let cancelled = false;
         // eslint-disable-next-line react-hooks/set-state-in-effect -- tải khách sạn từ API theo phạm vi lọc hiện tại, một external system
         setLoading(true);
+        setLoadError(false);
 
         const scope: FetchScopeParams = { provinceId: filters.provinceId, wardId: filters.wardId, query };
 
@@ -158,6 +163,7 @@ export function useHotelFilters(
                         setLoadedHotels([]);
                         setServerTotal(0);
                         setServerTotalPages(1);
+                        setLoadError(true);
                     }
                 })
                 .finally(() => {
@@ -169,7 +175,10 @@ export function useHotelFilters(
                     if (!cancelled) setLoadedHotels(hotels);
                 })
                 .catch(() => {
-                    if (!cancelled) setLoadedHotels([]);
+                    if (!cancelled) {
+                        setLoadedHotels([]);
+                        setLoadError(true);
+                    }
                 })
                 .finally(() => {
                     if (!cancelled) setLoading(false);
@@ -178,7 +187,7 @@ export function useHotelFilters(
         return () => {
             cancelled = true;
         };
-    }, [filters.provinceId, filters.wardId, query, usePagination, serverPage]);
+    }, [filters.provinceId, filters.wardId, query, usePagination, serverPage, reloadKey]);
 
     const filteredHotels = useMemo(() => {
         switch (viewMode.type) {
@@ -224,6 +233,8 @@ export function useHotelFilters(
         selectedProvince,
         filteredHotels,
         loading,
+        loadError,
+        retry: () => setReloadKey((key) => key + 1),
         handleFilterSubmit,
         clearProvince,
         bookHotel,

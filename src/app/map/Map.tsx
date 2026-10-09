@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader/SiteHeader";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { useHotelFilters } from "@/hooks/useHotelFilters";
+import LoadError from "@/components/LoadError/LoadError";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { useMapInstance } from "./hooks/useMapInstance";
 import MapOverlay from "./components/MapOverlay";
@@ -21,6 +22,8 @@ export default function MapView() {
         setViewMode,
         selectedProvince,
         filteredHotels,
+        loadError,
+        retry,
         handleFilterSubmit,
         clearProvince,
         bookHotel,
@@ -97,6 +100,12 @@ export default function MapView() {
                         t={t}
                     />
                 </div>
+
+                {loadError && (
+                    <div className={styles.mapError}>
+                        <LoadError compact onRetry={retry} />
+                    </div>
+                )}
             </div>
         </div>
     );

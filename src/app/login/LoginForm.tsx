@@ -4,7 +4,7 @@ import { useState, type SubmitEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import AuthShell from "@/components/auth/AuthShell";
-import SocialAuthLinks from "@/components/auth/SocialAuthLinks";
+import GoogleAuthLink from "@/components/auth/GoogleAuthLink";
 import { useAccount } from "@/components/auth/AccountProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { useCountdown } from "@/hooks/useCountdown";
@@ -246,7 +246,7 @@ export default function LoginForm() {
                         <span>{t("auth.or")}</span>
                     </div>
 
-                    <SocialAuthLinks />
+                    <GoogleAuthLink />
                 </>
             )}
         </AuthShell>

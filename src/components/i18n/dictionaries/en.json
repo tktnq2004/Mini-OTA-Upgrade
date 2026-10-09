@@ -24,6 +24,11 @@
     "nav.themeToDark": "Switch to dark theme",
     "nav.languageToggle": "Switch language to Vietnamese",
     "nav.wishlistAria": "Saved rooms ({count})",
+    "nav.menuOpen": "Open menu",
+    "nav.menuClose": "Close menu",
+    "nav.wishlist": "Saved stays",
+    "nav.themeDark": "Dark mode",
+    "nav.themeLight": "Light mode",
 
     "search.provinceLabel": "Province / City",
     "search.provinceAllOption": "All destinations",
@@ -176,6 +181,16 @@
     "home.steps.ctaMap": "Browse the hotel map",
 
     "footer.brandBlurb": "A hotel booking platform across Vietnam — compare prices, see locations on the map, and book in just a few minutes.",
+
+    "footer.legalTitle": "Legal",
+
+    "footer.terms": "Terms",
+
+    "footer.privacy": "Privacy",
+
+    "legal.updated": "Last updated: {date}",
+
+    "legal.toc": "Contents",
     "footer.exploreTitle": "Explore",
     "footer.home": "Home",
     "footer.accountTitle": "Account",
@@ -442,6 +457,18 @@
     "hotels.emptyState": "No hotels match the current filters.",
     "hotels.distanceAway": "{distance} km away",
     "hotels.clearSearchText": "Clear search text",
+
+    "loadError.title": "Couldn't load data",
+
+    "loadError.description": "The server isn't responding or your connection dropped. Please try again.",
+
+    "loadError.retry": "Try again",
+
+    "errorPage.title": "Something went wrong",
+
+    "errorPage.description": "We couldn't load this page right now. Try again in a moment, or go back home.",
+
+    "errorPage.code": "Error code: {code}",
 
     "notFound.title": "Page not found",
     "notFound.description": "The page you're looking for doesn't exist or has been moved.",

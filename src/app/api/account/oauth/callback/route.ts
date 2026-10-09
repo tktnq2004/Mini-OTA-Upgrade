@@ -9,7 +9,7 @@ import {
 } from "@/lib/auth/session";
 
 // Backend (Spring Security oauth2Login) redirect trình duyệt về đây sau khi
-// Google/Facebook login thành công. Backend chỉ set cookie refresh token
+// Google login thành công. Backend chỉ set cookie refresh token
 // (refresh-token-Mini) chứ không trả access token. Cookie không phân biệt cổng
 // nên trình duyệt gửi kèm nó tới đây (localhost:3000) -> route này gọi
 // GET /auth/refresh server-to-server (backend chặn CORS từ trình duyệt) để lấy

@@ -4,7 +4,7 @@ import { useState, type SubmitEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AuthShell from "@/components/auth/AuthShell";
-import SocialAuthLinks from "@/components/auth/SocialAuthLinks";
+import GoogleAuthLink from "@/components/auth/GoogleAuthLink";
 import { useAccount } from "@/components/auth/AccountProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { useCountdown } from "@/hooks/useCountdown";
@@ -216,8 +216,14 @@ export default function SignupPage() {
                             onChange={(e) => setAgreed(e.target.checked)}
                         />
                         <span>
-                            {t("auth.agreeTermsPrefix")} <strong>{t("auth.termsOfService")}</strong>{" "}
-                            {t("auth.and")} <strong>{t("auth.privacyPolicy")}</strong>{" "}
+                            {t("auth.agreeTermsPrefix")}{" "}
+                            <Link href="/terms" target="_blank" rel="noopener">
+                                {t("auth.termsOfService")}
+                            </Link>{" "}
+                            {t("auth.and")}{" "}
+                            <Link href="/privacy" target="_blank" rel="noopener">
+                                {t("auth.privacyPolicy")}
+                            </Link>{" "}
                             {t("auth.ofWenGo")}
                         </span>
                     </label>
@@ -278,7 +284,7 @@ export default function SignupPage() {
                         <span>{t("auth.or")}</span>
                     </div>
 
-                    <SocialAuthLinks />
+                    <GoogleAuthLink />
                 </>
             )}
         </AuthShell>

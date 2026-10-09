@@ -96,17 +96,20 @@
     }
 }
 
+/* Thanh nổi trên bản đồ ở màn hẹp: lưới 2 cột (Tỉnh | Phường, Nhận | Trả, Khách | Tìm) thay
+   cho xếp dọc 6 hàng — xếp dọc kiểu flex còn làm flex-basis thành chiều cao, che gần hết bản đồ. */
 @media (max-width: 720px) {
     .bar {
-        flex-direction: column;
-        align-items: stretch;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        align-items: end;
     }
 
     .bar .field {
         min-width: 0;
     }
 
-    .submit {
-        flex: none;
+    .bar .submit {
+        height: 34px;
     }
 }

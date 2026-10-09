@@ -12,7 +12,7 @@
     scroll-padding-inline: 2px;
     padding: 4px 2px 12px;
     scrollbar-width: none;
-    outline: none;
+    border-radius: var(--radius-md);
 }
 
 .track::-webkit-scrollbar {

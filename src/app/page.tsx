@@ -22,6 +22,7 @@ import BookingJourney from "@/components/home/BookingJourney/BookingJourney";
 import SectionHeading from "@/components/home/SectionHeading/SectionHeading";
 import Reveal from "@/components/home/Reveal/Reveal";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { FEATURES } from "@/lib/features";
 import { listHotels } from "@/lib/hotels/resources";
 import type { Hotel } from "@/lib/hotels/types";
 import { loadRecentlyViewed, type RecentlyViewedHotel } from "@/lib/recentlyViewed";
@@ -190,14 +191,16 @@ export default function Home() {
                     </section>
                 )}
                 
-                <section className={styles.section}>
-                    <SectionHeading
-                        eyebrow={t("home.eyebrow.promo")}
-                        title={t("home.promo.title")}
-                        subtitle={t("home.promo.subtitle")}
-                    />
-                    <PromoCarousel />
-                </section>
+                {FEATURES.promoCodes && (
+                    <section className={styles.section}>
+                        <SectionHeading
+                            eyebrow={t("home.eyebrow.promo")}
+                            title={t("home.promo.title")}
+                            subtitle={t("home.promo.subtitle")}
+                        />
+                        <PromoCarousel />
+                    </section>
+                )}
 
 
 
@@ -300,9 +303,11 @@ export default function Home() {
                     <Faq />
                 </section>
 
-                <section className={styles.section}>
-                    <NewsletterApp />
-                </section>
+                {FEATURES.newsletterAndApp && (
+                    <section className={styles.section}>
+                        <NewsletterApp />
+                    </section>
+                )}
             </main>
 
             <SiteFooter destinations={destinations} />

@@ -10,8 +10,9 @@
   --color-border-soft: #ebedf0;
 
   --color-text: #16181d;
-  --color-text-muted: #6b7280;
-  --color-text-faint: #9aa1ab;
+  /* Tương phản WCAG AA (≥ 4.5:1) trên mọi nền sáng (bg, bg-alt, inset) — faint cũ #9aa1ab chỉ 2.6:1. */
+  --color-text-muted: #565d6a;
+  --color-text-faint: #6b7280;
 
   --color-accent: #2563eb;
   --color-accent-strong: #1d4ed8;
@@ -48,7 +49,8 @@
 
   --color-text: #f2f3f5;
   --color-text-muted: #9aa1ab;
-  --color-text-faint: #6b7280;
+  /* faint cũ #6b7280 chỉ 3.4–3.9:1 trên nền tối. */
+  --color-text-faint: #80878f;
 
   --color-accent: #3b82f6;
   --color-accent-strong: #60a5fa;

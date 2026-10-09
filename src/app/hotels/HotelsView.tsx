@@ -17,6 +17,7 @@ import { useHotelFilters } from "@/hooks/useHotelFilters";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { haversineDistanceKm } from "@/lib/geo";
 import HotelCard from "./HotelCard";
+import LoadError from "@/components/LoadError/LoadError";
 import styles from "./HotelsView.module.css";
 
 const PAGE_SIZE = 12;
@@ -49,6 +50,8 @@ export default function HotelsView() {
         selectedProvince,
         filteredHotels,
         loading,
+        loadError,
+        retry,
         handleFilterSubmit,
         clearProvince,
         bookHotel,
@@ -160,9 +163,14 @@ export default function HotelsView() {
                 </div>
 
                 <div className={styles.resultBar}>
+                    {/* Lỗi tải thì không hiện "0 khách sạn" — dễ hiểu nhầm là bộ lọc không khớp. */}
                     <span>
-                        <strong>{totalResultCount}</strong> {t("map.hotelsSuffix")}
-                        {resultLabel}
+                        {!loadError && (
+                            <>
+                                <strong>{totalResultCount}</strong> {t("map.hotelsSuffix")}
+                                {resultLabel}
+                            </>
+                        )}
                     </span>
                     {canClear && (
                         <button type="button" className={styles.clearButton} onClick={clearProvince}>
@@ -172,9 +180,13 @@ export default function HotelsView() {
                 </div>
 
                 {loading ? (
-                    <div className={styles.emptyState}>
-                        <p>{t("hotels.loading")}</p>
+                    <div className={styles.grid} aria-busy="true" aria-label={t("hotels.loading")}>
+                        {Array.from({ length: 8 }, (_, i) => (
+                            <div key={i} className={styles.skeleton} />
+                        ))}
                     </div>
+                ) : loadError ? (
+                    <LoadError onRetry={retry} />
                 ) : pageHotels.length > 0 ? (
                     <div className={styles.grid}>
                         {pageHotels.map((hotel) => (

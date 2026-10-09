@@ -12,7 +12,19 @@ interface HotelPageProps {
 export async function generateMetadata({ params }: HotelPageProps): Promise<Metadata> {
     const { id } = await params;
     const hotel = await getHotelServer(Number(id));
-    return { title: hotel ? `${hotel.name} — WenGo` : "Không tìm thấy khách sạn — WenGo" };
+    if (!hotel) return { title: "Không tìm thấy khách sạn", robots: { index: false } };
+    const description = `Đặt phòng ${hotel.name} tại ${hotel.address}. Xem phòng, giá và đặt nhanh trên WenGo.`;
+    return {
+        title: hotel.name,
+        description,
+        alternates: { canonical: `/hotel/${hotel.id}` },
+        openGraph: {
+            title: hotel.name,
+            description,
+            type: "website",
+            images: hotel.image ? [{ url: hotel.image, alt: hotel.name }] : undefined,
+        },
+    };
 }
 
 export default async function HotelPage({ params }: HotelPageProps) {

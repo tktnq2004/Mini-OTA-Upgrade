@@ -14,6 +14,7 @@
 
 .input:focus {
     border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px var(--color-accent-soft);
 }
 
 .input::placeholder {

@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: RoomPageProps): Promise<Metad
     const { id, roomId } = await params;
     const [hotel, room] = await Promise.all([getHotelServer(Number(id)), getRoomServer(Number(roomId))]);
     return {
-        title: hotel && room ? `${room.name} — ${hotel.name} — WenGo` : "Không tìm thấy phòng — WenGo",
+        title: hotel && room ? `${room.name} — ${hotel.name}` : "Không tìm thấy phòng",
     };
 }
 

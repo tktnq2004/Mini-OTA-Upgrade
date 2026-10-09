@@ -98,8 +98,14 @@
     color: #16181d;
 }
 
+/* Ô nhập bỏ outline riêng — khung bao ngoài hiện viền màu nhấn khi đang gõ/focus bằng bàn phím. */
+.searchBox:focus-within {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
 .searchInput::placeholder {
-    color: #9aa1ab;
+    color: #6b7280;
 }
 
 .searchClear {
@@ -109,7 +115,7 @@
     border: none;
     background: none;
     padding: 0;
-    color: #9aa1ab;
+    color: #6b7280;
     cursor: pointer;
 }
 
@@ -213,4 +219,14 @@
         left: 10px;
         right: 10px;
     }
+}
+
+/* Báo lỗi tải khách sạn: nổi ở đáy bản đồ, không che thanh tìm kiếm. */
+.mapError {
+    position: absolute;
+    left: 50%;
+    bottom: 24px;
+    z-index: 15;
+    width: min(520px, calc(100% - 32px));
+    transform: translateX(-50%);
 }

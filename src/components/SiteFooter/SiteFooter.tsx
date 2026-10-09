@@ -88,6 +88,10 @@ export default function SiteFooter({ destinations = [] }: SiteFooterProps) {
         <span className={styles.copyright}>
           © {new Date().getFullYear()} WenGo. {t("home.footerTagline")}
         </span>
+        <nav className={styles.legalLinks} aria-label={t("footer.legalTitle")}>
+          <Link href="/terms">{t("footer.terms")}</Link>
+          <Link href="/privacy">{t("footer.privacy")}</Link>
+        </nav>
         <div className={styles.bottomActions}>
           <button type="button" className={styles.iconButton} onClick={toggleLanguage} aria-label={t("nav.languageToggle")}>
             {language === "vi" ? "EN" : "VI"}

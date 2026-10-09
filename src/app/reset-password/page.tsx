@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import ResetPasswordView from "./ResetPasswordView";
+
+export const metadata: Metadata = {
+    title: "Đặt lại mật khẩu",
+    robots: { index: false, follow: false },
+};
 
 export default function ResetPasswordPage() {
     return (

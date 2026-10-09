@@ -107,10 +107,10 @@ export interface OAuth2ExchangeResult {
   name?: string;
 }
 
-// Đổi 1 lần "handoff code" (backend tạo sau khi Google/Facebook redirect
-// login thành công qua Spring Security oauth2Login — xem OAuth2SuccessHandler
-// bên backend) lấy access_token thật. Gọi server-to-server nên không đụng
-// CORS. Không bao giờ đưa access_token thẳng vào URL redirect cho browser.
+// Đổi 1 lần "handoff code" (backend tạo sau khi Google redirect login thành
+// công qua Spring Security oauth2Login — xem OAuth2SuccessHandler bên
+// backend) lấy access_token thật. Gọi server-to-server nên không đụng CORS.
+// Không bao giờ đưa access_token thẳng vào URL redirect cho browser.
 export async function exchangeOAuth2Code(code: string): Promise<OAuth2ExchangeResult | null> {
   const res = await fetch(`${getApiBaseUrl()}/auth/oauth2/exchange`, {
     method: "POST",

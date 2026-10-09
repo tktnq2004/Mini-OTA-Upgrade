@@ -61,6 +61,12 @@
     color: var(--color-text);
 }
 
+/* Ô nhập bỏ outline riêng — khung bao ngoài hiện viền màu nhấn khi đang gõ/focus bằng bàn phím. */
+.searchBox:focus-within {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
 .searchInput::placeholder {
     color: var(--color-text-faint);
 }
@@ -175,6 +181,27 @@
     border-radius: var(--radius-md);
 }
 
+/* Khung xương khi đang tải — cùng tỉ lệ với HotelCard để trang không nhảy khi dữ liệu về. */
+.skeleton {
+    height: 300px;
+    border-radius: var(--radius-md);
+    background: linear-gradient(90deg, var(--color-inset), var(--color-panel-raised), var(--color-inset));
+    background-size: 200% 100%;
+    animation: shimmer 1.4s linear infinite;
+}
+
+@keyframes shimmer {
+    to {
+        background-position: -200% 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton {
+        animation: none;
+    }
+}
+
 @media (max-width: 1080px) {
     .grid {
         grid-template-columns: repeat(3, 1fr);
@@ -195,5 +222,10 @@
     .toolRow {
         flex-direction: column;
         align-items: stretch;
+    }
+
+    /* Xếp dọc thì flex-basis 220px thành chiều cao — giữ đúng 38px. */
+    .searchBox {
+        flex: none;
     }
 }
