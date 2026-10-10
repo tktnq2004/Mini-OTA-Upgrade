@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from "react";
 import { CardCvcElement, CardExpiryElement, CardNumberElement, Elements, useElements, useStripe } from "@stripe/react-stripe-js";
-import type { StripeCardNumberElement, StripeElementChangeEvent } from "@stripe/stripe-js";
+import type { StripeElementChangeEvent } from "@stripe/stripe-js";
 import { PlusIcon, TrashIcon } from "@phosphor-icons/react";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
@@ -350,15 +350,12 @@ function readFieldStyle() {
     };
 }
 
-// Số thẻ / hạn / CVC. Phải nằm trong 1 <Elements>. onNumberReady: trả ô số
-// thẻ ra ngoài cho chỗ nằm ngoài <Elements> này (không dùng được useElements).
+// Số thẻ / hạn / CVC. Phải nằm trong 1 <Elements>.
 export function NewCardFields({
     onChange,
-    onNumberReady,
     children,
 }: {
     onChange: (field: CardField, status: CardStatus[CardField]) => void;
-    onNumberReady?: (element: StripeCardNumberElement) => void;
     children?: ReactNode;
 }) {
     const { t } = useLanguage();
@@ -379,7 +376,6 @@ export function NewCardFields({
                 <CardNumberElement
                     options={{ style, classes: fieldClasses, placeholder: "4242 4242 4242 4242", disableLink: true }}
                     onChange={handle("number")}
-                    onReady={onNumberReady}
                 />
             </div>
             <div className={styles.fieldRow}>

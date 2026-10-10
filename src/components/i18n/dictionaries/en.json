@@ -294,7 +294,6 @@
     "checkout.orderSummaryTitle": "Booking summary",
     "checkout.roomQuantity": "× {count} rooms",
     "checkout.pickDatesForTotal": "Pick dates to see",
-    "checkout.pickDatesForCard": "Pick your dates first to enter a card",
     "checkout.nothingToBook": "No rooms to book.",
     "checkout.errorDates": "Please pick check-in and check-out dates",
     "checkout.errorRequired": "Please fill in your full name, email and phone number",

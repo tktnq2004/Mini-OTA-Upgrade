@@ -294,7 +294,6 @@
     "checkout.orderSummaryTitle": "Đơn đặt phòng",
     "checkout.roomQuantity": "× {count} phòng",
     "checkout.pickDatesForTotal": "Chọn ngày để tính",
-    "checkout.pickDatesForCard": "Chọn ngày trước để nhập thẻ",
     "checkout.nothingToBook": "Không có phòng nào để đặt.",
     "checkout.errorDates": "Vui lòng chọn ngày nhận và trả phòng",
     "checkout.errorRequired": "Vui lòng điền đầy đủ họ tên, email và số điện thoại",

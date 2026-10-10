@@ -25,7 +25,11 @@ export default function LoginForm() {
     const [password, setPassword] = useState("");
     const [otpStep, setOtpStep] = useState<OtpStep>("email");
     const [otp, setOtp] = useState("");
-    const [error, setError] = useState(searchParams.get("social_error") ? t("auth.socialLoginError") : "");
+    // social_error: route callback cũ; error=oauth_failed: backend
+    // (app.frontend.login-failed-url) khi Google login thất bại.
+    const socialFailed =
+        searchParams.get("social_error") !== null || searchParams.get("error") === "oauth_failed";
+    const [error, setError] = useState(socialFailed ? t("auth.socialLoginError") : "");
     const [submitting, setSubmitting] = useState(false);
     const [cooldown, setCooldown] = useState(0);
 

@@ -1,14 +1,12 @@
 "use client";
 
-import { useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from "react";
-import { Elements, useElements } from "@stripe/react-stripe-js";
-import type { StripeCardNumberElement } from "@stripe/stripe-js";
+import { useImperativeHandle, useRef, useState, type Ref } from "react";
+import { CardNumberElement, Elements, useElements, useStripe } from "@stripe/react-stripe-js";
 import { useAccount } from "@/components/auth/AccountProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import {
     AddAnotherCard,
     AddCardForm,
-    CARD_FONTS,
     EMPTY_CARD_STATUS,
     NewCardFields,
     NoCards,
@@ -30,31 +28,12 @@ export interface PaymentFormHandle {
     pay: (bookingId: number, billing: { name: string; email: string; phone: string }) => Promise<void>;
 }
 
-// amount = tổng tiền đơn (VND không có phần lẻ nên truyền thẳng), đổi ngày ->
-// amount đổi -> <Elements> của ô thẻ tự cập nhật.
-interface CardPaymentProps {
-    ref?: Ref<PaymentFormHandle>;
-    amount: number;
-}
-
-export default function CardPayment({ ref, amount }: CardPaymentProps) {
+export default function CardPayment({ ref }: { ref?: Ref<PaymentFormHandle> }) {
     const { t } = useLanguage();
     const available = usePaymentAvailable();
 
     if (!available) return <p className={styles.paymentNote}>{t("checkout.errorCardUnavailable")}</p>;
-    return <PaymentForm ref={ref} amount={amount} />;
-}
-
-// <Elements> của ô thẻ không truyền options: đặt hết ở đây qua elements.update().
-// Đổi ngày trên lịch -> tổng tiền đổi -> amount mới được đẩy vào <Elements>.
-function ElementsAmount({ amount }: { amount: number }) {
-    const elements = useElements();
-    useEffect(() => {
-        if (!elements) return;
-        elements.update({ mode: "payment", currency: "vnd", amount, fonts: CARD_FONTS, locale: "auto" });
-        console.log("[card elements] amount changed ->", amount); // TEST: xoá khi test xong
-    }, [elements, amount]);
-    return null;
+    return <CardChooser ref={ref} />;
 }
 
 const preferredCard = (list: SavedCard[]) => (list.find((c) => c.isDefault) ?? list[0])?.id ?? null;
@@ -63,21 +42,17 @@ const preferredCard = (list: SavedCard[]) => (list.find((c) => c.isDefault) ?? l
 const NEW_CARD = "new";
 
 // Đã đăng nhập: "Thẻ của bạn" (chọn 1 thẻ đã lưu hoặc "Dùng thẻ mới" = nhập
-// thẻ ngay, tick "Lưu thẻ" thì lưu luôn vào tài khoản — xem payByCard) + nút
+// thẻ ngay trong <PaymentForm>, tick "Lưu thẻ" thì backend lưu luôn) + nút
 // "Thêm thẻ" (thẻ thêm vào được lưu luôn vào tài khoản qua SetupIntent, xem
-// AddCardForm). Khách vãng lai: nhập thẻ
-// trực tiếp, chỉ dùng cho lần thanh toán này.
-function PaymentForm({ ref, amount }: CardPaymentProps) {
+// AddCardForm). Khách vãng lai: chỉ có <PaymentForm>, thẻ dùng cho lần này.
+function CardChooser({ ref }: { ref?: Ref<PaymentFormHandle> }) {
     const { t } = useLanguage();
     const { user } = useAccount();
 
     const { cards, add, remove, error: removeError } = useSavedCards(Boolean(user));
     const [picked, setPicked] = useState<string | null>(null);
     const [addOpen, setAddOpen] = useState(false);
-    const [status, setStatus] = useState<CardStatus>(EMPTY_CARD_STATUS); // ô thẻ mới
-    const [saveCard, setSaveCard] = useState(false);
-    // Ô số thẻ của "Dùng thẻ mới" (nằm trong <Elements> riêng, xem newCardFields).
-    const cardElement = useRef<StripeCardNumberElement | null>(null);
+    const newCard = useRef<PaymentFormHandle>(null);
 
     // Lựa chọn hiện tại: cái user bấm (nếu thẻ còn trong danh sách), không thì
     // thẻ mặc định / thẻ đầu, chưa có thẻ nào thì "Dùng thẻ mới" — gỡ đúng thẻ
@@ -88,31 +63,14 @@ function PaymentForm({ ref, amount }: CardPaymentProps) {
             : ((cards && preferredCard(cards)) ?? NEW_CARD);
     const useNewCard = !user || selected === NEW_CARD;
 
-    const pickNewCard = () => {
-        // Ô thẻ mount lại: trạng thái + ô số thẻ cũ không còn đúng.
-        setStatus(EMPTY_CARD_STATUS);
-        cardElement.current = null;
-        setPicked(NEW_CARD);
-    };
-
     // Chỉ "Dùng thẻ mới" (và khách vãng lai) mới cần ô thẻ -> <Elements> bọc
-    // riêng 3 ô; thẻ đã lưu trả bằng stripe lấy thẳng từ stripePromise.
-    // Chưa chọn ngày = chưa có số tiền, cổng không nhận amount 0.
-    const newCardFields = (children?: ReactNode) =>
-        amount <= 0 ? (
-            <p className={styles.paymentNote}>{t("checkout.pickDatesForCard")}</p>
-        ) : (
-                <Elements stripe={stripePromise}>
-                    <ElementsAmount amount={amount} />
-                    <NewCardFields
-                        onChange={(field, next) => setStatus((prev) => ({ ...prev, [field]: next }))}
-                        onNumberReady={(el) => (cardElement.current = el)}
-                    >
-                        {children}
-                    </NewCardFields>
-                    
-                </Elements>
-        );
+    // riêng <PaymentForm>; thẻ đã lưu trả bằng stripe lấy thẳng từ stripePromise.
+    // Bỏ chọn rồi chọn lại = mount lại, ô thẻ + checkbox về trạng thái đầu.
+    const newCardForm = (
+        <Elements stripe={stripePromise}>
+            <PaymentForm ref={newCard} showSave={Boolean(user)} />
+        </Elements>
+    );
 
     const handleAdded = (card: SavedCard) => {
         add(card);
@@ -123,37 +81,25 @@ function PaymentForm({ ref, amount }: CardPaymentProps) {
     useImperativeHandle(ref, () => ({
         validate: () => {
             if (user && addOpen) return t("checkout.errorFinishAddCard");
-            if (!useNewCard) return selected ? null : t("checkout.errorAddCard");
-            if (!cardElement.current) return t("checkout.errorCardUnavailable");
-            return fieldsError(status, t);
+            if (useNewCard) return newCard.current ? newCard.current.validate() : t("checkout.errorCardUnavailable");
+            return selected ? null : t("checkout.errorAddCard");
         },
         pay: async (bookingId, billing) => {
-            const stripe = await stripePromise;
-            if (!stripe) throw new CardPaymentError(t("checkout.errorCardUnavailable"));
-            if (!useNewCard) {
-                if (!selected) throw new CardPaymentError(t("checkout.errorAddCard"));
-                await payByCard({
-                    stripe,
-                    method: { savedCardId: selected },
-                    bookingId,
-                    billing,
-                });
+            if (useNewCard) {
+                if (!newCard.current) throw new CardPaymentError(t("checkout.errorCardUnavailable"));
+                await newCard.current.pay(bookingId, billing);
                 return;
             }
-            const card = cardElement.current;
-            if (!card) throw new CardPaymentError(t("checkout.errorCardUnavailable"));
-            await payByCard({
-                stripe,
-                method: { card, save: Boolean(user) && saveCard },
-                bookingId,
-                billing,
-            });
+            const stripe = await stripePromise;
+            if (!stripe) throw new CardPaymentError(t("checkout.errorCardUnavailable"));
+            if (!selected) throw new CardPaymentError(t("checkout.errorAddCard"));
+            await payByCard({ stripe, method: { savedCardId: selected }, bookingId, billing });
         },
     }));
 
     if (!cards) return <p className={styles.paymentNote}>{t("checkout.cardsLoading")}</p>;
 
-    if (!user) return newCardFields();
+    if (!user) return newCardForm;
 
     return (
         <div className={cardStyles.cardSection}>
@@ -166,25 +112,16 @@ function PaymentForm({ ref, amount }: CardPaymentProps) {
                     key={c.id}
                     card={c}
                     onRemove={remove}
-                    select={{
-                        checked: selected === c.id,
-                        onSelect: () => setPicked(c.id),
-                    }}
+                    select={{ checked: selected === c.id, onSelect: () => setPicked(c.id) }}
                 />
             ))}
 
             <div className={`${cardStyles.newCardOption} ${useNewCard ? cardStyles.newCardOptionActive : ""}`}>
                 <label className={cardStyles.newCardRadio}>
-                    <input type="radio" name="savedCard" checked={useNewCard} onChange={pickNewCard} />
+                    <input type="radio" name="savedCard" checked={useNewCard} onChange={() => setPicked(NEW_CARD)} />
                     {t("checkout.useNewCard")}
                 </label>
-                {useNewCard &&
-                    newCardFields(
-                        <label className={cardStyles.saveCardCheck}>
-                            <input type="checkbox" checked={saveCard} onChange={(e) => setSaveCard(e.target.checked)} />
-                            {t("checkout.saveCard")}
-                        </label>,
-                    )}
+                {useNewCard && newCardForm}
             </div>
 
             {removeError && <p className={controls.error}>{removeError}</p>}
@@ -193,5 +130,45 @@ function PaymentForm({ ref, amount }: CardPaymentProps) {
 
             {addOpen && <AddCardForm onAdded={handleAdded} onCancel={() => setAddOpen(false)} />}
         </div>
+    );
+}
+
+// "Dùng thẻ mới": số thẻ / hạn / CVC (+ "Lưu thẻ" khi đã đăng nhập). Phải nằm
+// trong <Elements>; lấy ô số thẻ bằng elements.getElement(CardNumberElement).
+// Trả: { bookingId, paymentMethodId: null, saveCard } -> clientSecret ->
+// stripe.confirmCardPayment() với ô thẻ (xem payByCard).
+function PaymentForm({ ref, showSave }: { ref?: Ref<PaymentFormHandle>; showSave: boolean }) {
+    const { t } = useLanguage();
+    const stripe = useStripe();
+    const elements = useElements();
+    const [status, setStatus] = useState<CardStatus>(EMPTY_CARD_STATUS);
+    const [saveCard, setSaveCard] = useState(false);
+
+    useImperativeHandle(ref, () => ({
+        validate: () => {
+            if (!stripe || !elements?.getElement(CardNumberElement)) return t("checkout.errorCardUnavailable");
+            return fieldsError(status, t);
+        },
+        pay: async (bookingId, billing) => {
+            const cardNumber = elements?.getElement(CardNumberElement);
+            if (!stripe || !cardNumber) throw new CardPaymentError(t("checkout.errorCardUnavailable"));
+            await payByCard({
+                stripe,
+                method: { card: cardNumber, save: showSave && saveCard },
+                bookingId,
+                billing,
+            });
+        },
+    }));
+
+    return (
+        <NewCardFields onChange={(field, next) => setStatus((prev) => ({ ...prev, [field]: next }))}>
+            {showSave && (
+                <label className={cardStyles.saveCardCheck}>
+                    <input type="checkbox" checked={saveCard} onChange={(e) => setSaveCard(e.target.checked)} />
+                    {t("checkout.saveCard")}
+                </label>
+            )}
+        </NewCardFields>
     );
 }
