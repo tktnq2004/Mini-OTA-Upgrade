@@ -168,6 +168,7 @@ export default function WishlistView() {
                                                 );
                                                 if (!room) return null;
                                                 const checked = selected.has(item.roomId);
+                                                const roomHref = `/hotel/${item.hotelId}/room/${item.roomId}`;
 
                                                 return (
                                                     <li key={item.roomId} className={styles.roomRow}>
@@ -184,22 +185,32 @@ export default function WishlistView() {
                                                             />
                                                         </label>
 
-                                                        <ImageWithFallback
-                                                            src={room.thumbnail}
-                                                            alt={room.name}
-                                                            className={styles.roomThumb}
-                                                            fallbackClassName={styles.roomThumbFallback}
-                                                            fallback={<BedIcon size={18} weight="light" />}
-                                                        />
+                                                        <Link
+                                                            href={roomHref}
+                                                            className={styles.roomThumbLink}
+                                                            tabIndex={-1}
+                                                            aria-hidden="true"
+                                                        >
+                                                            <ImageWithFallback
+                                                                src={room.thumbnail}
+                                                                alt={room.name}
+                                                                className={styles.roomThumb}
+                                                                fallbackClassName={styles.roomThumbFallback}
+                                                                fallback={<BedIcon size={18} weight="light" />}
+                                                            />
+                                                        </Link>
 
-                                                        <div className={styles.roomInfo}>
+                                                        <Link
+                                                            href={roomHref}
+                                                            className={`${styles.roomInfo} ${styles.roomLink}`}
+                                                        >
                                                             {room.roomType && (
                                                                 <span className={styles.roomType}>
                                                                     {room.roomType.roomTypeName}
                                                                 </span>
                                                             )}
                                                             <span className={styles.roomName}>{room.name}</span>
-                                                        </div>
+                                                        </Link>
 
                                                         <div className={styles.roomPrice}>
                                                             {formatVnd(room.price)}

@@ -195,6 +195,16 @@
     gap: 2px;
 }
 
+.roomThumbLink {
+    flex: none;
+    display: flex;
+}
+
+.roomLink:hover .roomName {
+    color: var(--color-accent);
+    text-decoration: underline;
+}
+
 .roomType {
     font-size: 10.5px;
     font-weight: 700;

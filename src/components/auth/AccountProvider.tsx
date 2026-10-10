@@ -44,9 +44,19 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         // Access token là cookie httpOnly (JS không đọc được) — phải hỏi
         // ngược server đang đăng nhập là ai qua route riêng, giống cách
         // ThemeProvider/WishlistProvider tự hydrate từ 1 nguồn ngoài React.
-        fetch("/api/account/session")
-            .then((res) => res.json())
-            .then((data) => setUser(data?.user ?? null))
+        // Chưa đăng nhập thì thử nhận phiên Google login (backend để lại
+        // cookie refresh-token-Mini rồi redirect về đây) — xem
+        // app/api/v1/account/oauth-session/route.ts.
+        const loadUser = async (): Promise<SessionUser | null> => {
+            const data = await fetch("/api/account/session").then((res) => res.json());
+            if (data?.user) return data.user;
+            const oauth = await fetch("/api/v1/account/oauth-session", { method: "POST" }).then((res) =>
+                res.json()
+            );
+            return oauth?.user ?? null;
+        };
+        loadUser()
+            .then(setUser)
             .catch(() => setUser(null))
             .finally(() => setReady(true));
     }, []);
