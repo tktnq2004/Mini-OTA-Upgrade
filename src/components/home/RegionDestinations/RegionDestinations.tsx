@@ -20,8 +20,8 @@ const REGIONS = [
     { key: "south", inRegion: (code: number) => code >= 75 },
 ] as const;
 
-// Số thẻ tỉnh tối đa mỗi vùng.
-const PER_REGION = 10;
+// Số thẻ tỉnh tối đa mỗi vùng (đã gộp mục "Khám phá thêm điểm đến" cũ vào đây).
+const PER_REGION = 12;
 
 interface RegionDestinationsProps {
     hotels: Hotel[];

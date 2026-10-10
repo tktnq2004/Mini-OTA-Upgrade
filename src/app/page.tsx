@@ -8,10 +8,11 @@ import SiteHeader from "@/components/SiteHeader/SiteHeader";
 import SiteFooter from "@/components/SiteFooter/SiteFooter";
 import SearchWidget from "@/components/SearchWidget/SearchWidget";
 import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
-import HotelMiniCard from "@/components/HotelMiniCard/HotelMiniCard";
 import TrustStrip from "@/components/home/TrustStrip/TrustStrip";
 import PromoCarousel from "@/components/home/PromoCarousel/PromoCarousel";
 import RegionDestinations from "@/components/home/RegionDestinations/RegionDestinations";
+import WeekendGetaways from "@/components/home/WeekendGetaways/WeekendGetaways";
+import ForYou from "@/components/home/ForYou/ForYou";
 import FeaturedHotels from "@/components/home/FeaturedHotels/FeaturedHotels";
 import TourShowcase from "@/components/home/TourShowcase/TourShowcase";
 import GuestReviews from "@/components/home/GuestReviews/GuestReviews";
@@ -27,7 +28,7 @@ import { listHotels } from "@/lib/hotels/resources";
 import type { Hotel } from "@/lib/hotels/types";
 import { loadRecentlyViewed, type RecentlyViewedHotel } from "@/lib/recentlyViewed";
 import { provinces } from "@/data/locations.data";
-import { locationSearchParams, type SearchFilters } from "@/lib/searchFilters";
+import { filtersToSearchParams, type SearchFilters } from "@/lib/searchFilters";
 import styles from "./page.module.css";
 
 interface Destination {
@@ -40,8 +41,6 @@ interface Destination {
 const SECTION_SIZE = 6;
 // Số khách sạn mỗi tab "Giá tốt"/"Cao cấp" ở mục Khách sạn nổi bật (2 hàng × 4 cột).
 const FEATURED_SIZE = 8;
-// Số điểm đến phụ (chip) hiện thêm bên dưới, ngoài SECTION_SIZE điểm đến nổi bật đã có ảnh riêng.
-const MORE_DESTINATIONS_SIZE = 12;
 
 export default function Home() {
     const router = useRouter();
@@ -53,7 +52,6 @@ export default function Home() {
     // gần đúng nếu tổng khách sạn vượt size — trang chủ chỉ cần vài mục nổi bật, không cần
     // chính xác tuyệt đối như trang danh sách/bộ lọc thật.
     const [destinations, setDestinations] = useState<Destination[]>([]);
-    const [moreDestinations, setMoreDestinations] = useState<Destination[]>([]);
     const [budgetHotels, setBudgetHotels] = useState<Hotel[]>([]);
     const [luxuryHotels, setLuxuryHotels] = useState<Hotel[]>([]);
     // Cả trang khách sạn đã tải (cho chủ đề, tab theo tỉnh, review, banner bản đồ) + số liệu
@@ -78,13 +76,7 @@ export default function Home() {
                 const byCount = provinces
                     .map((province) => ({ ...province, hotelCount: counts.get(province.id) ?? 0 }))
                     .sort((a, b) => b.hotelCount - a.hotelCount);
-                setDestinations(byCount.slice(0, SECTION_SIZE));
-                // Vài điểm đến TIẾP THEO (ít khách sạn hơn top nổi bật, nhưng vẫn có ít nhất 1)
-                // — hiện dạng danh sách gọn (chip) thay vì ảnh lớn, để khách vẫn duyệt được thêm
-                // tỉnh/thành khác ngoài top 6 đã có ảnh riêng.
-                setMoreDestinations(
-                    byCount.slice(SECTION_SIZE, SECTION_SIZE + MORE_DESTINATIONS_SIZE).filter((p) => p.hotelCount > 0)
-                );
+                setDestinations(byCount.slice(0, SECTION_SIZE).filter((p) => p.hotelCount > 0));
 
                 // averagePrice null = khách sạn chưa có room nào, chưa tính được giá — loại khỏi
                 // cả 2 dải "giá tốt" và "cao cấp".
@@ -103,7 +95,6 @@ export default function Home() {
             })
             .catch(() => {
                 setDestinations([]);
-                setMoreDestinations([]);
                 setBudgetHotels([]);
                 setLuxuryHotels([]);
             });
@@ -115,25 +106,16 @@ export default function Home() {
         setRecentlyViewed(loadRecentlyViewed());
     }, []);
 
+    // Mang theo cả ngày nhận/trả + số khách (trước đây chỉ tỉnh/xã nên ngày vừa chọn bị mất).
     const handleSearch = (filters: SearchFilters) => {
-        const params = locationSearchParams(filters);
+        const params = filtersToSearchParams(filters);
         router.push(`/map?${params.toString()}`);
     };
 
-    const hotelCards = (hotels: { id: number; name: string; image: string; address: string; averagePrice: number | null }[]) => (
-        <Reveal stagger className={styles.hotelGrid}>
-            {hotels.map((hotel) => (
-                <HotelMiniCard
-                    key={hotel.id}
-                    id={hotel.id}
-                    name={hotel.name}
-                    image={hotel.image}
-                    address={hotel.address}
-                    averagePrice={hotel.averagePrice}
-                />
-            ))}
-        </Reveal>
-    );
+    // Ảnh đại diện điểm đến: ảnh khách sạn thật đầu tiên trong tỉnh; chưa có thì ảnh picsum cố định.
+    const destinationImage = (provinceId: string) =>
+        allHotels.find((h) => h.ward.province.id === provinceId && h.image)?.image ??
+        `https://picsum.photos/seed/wengo-dest-${provinceId}/640/480`;
 
     return (
         <div className={styles.page}>
@@ -184,62 +166,12 @@ export default function Home() {
                     <section className={styles.section}>
                         <SectionHeading
                             eyebrow={t("home.eyebrow.recent")}
-                            title={t("home.recentlyViewedTitle")}
-                            subtitle={t("home.recentlyViewedSubtitle")}
+                            title={t("home.forYou.title")}
+                            subtitle={t("home.forYou.subtitle")}
                         />
-                        {hotelCards(recentlyViewed)}
+                        <ForYou recentlyViewed={recentlyViewed} hotels={allHotels} />
                     </section>
                 )}
-                
-                {FEATURES.promoCodes && (
-                    <section className={styles.section}>
-                        <SectionHeading
-                            eyebrow={t("home.eyebrow.promo")}
-                            title={t("home.promo.title")}
-                            subtitle={t("home.promo.subtitle")}
-                        />
-                        <PromoCarousel />
-                    </section>
-                )}
-
-
-
-                {destinations.length > 0 && (
-                    <section className={styles.section}>
-                        <SectionHeading
-                            eyebrow={t("home.eyebrow.destinations")}
-                            title={t("home.destinationsTitle")}
-                            subtitle={t("home.destinationsSubtitle")}
-                            action={{ href: "/map", label: t("home.viewAll") }}
-                        />
-                        <Reveal stagger className={styles.destGrid}>
-                            {destinations.map((destination) => (
-                                <Link
-                                    key={destination.id}
-                                    href={`/map?province=${destination.id}`}
-                                    className={styles.destCard}
-                                >
-                                    <ImageWithFallback
-                                        src={`https://picsum.photos/seed/wengo-dest-${destination.id}/640/480`}
-                                        alt={destination.name}
-                                        className={styles.destImg}
-                                        fallbackClassName={styles.destImgFallback}
-                                        fallback={<BuildingsIcon size={24} weight="light" />}
-                                    />
-                                    <div className={styles.destOverlay} />
-                                    <div className={styles.destInfo}>
-                                        <span className={styles.destName}>{destination.name}</span>
-                                        <span className={styles.destCount}>
-                                            {t("home.hotelsCount", { count: destination.hotelCount })}
-                                        </span>
-                                    </div>
-                                </Link>
-                            ))}
-                        </Reveal>
-                    </section>
-                )}
-
-                <RegionDestinations hotels={allHotels} sectionClassName={styles.section} />
 
                 {budgetHotels.length > 0 && (
                     <section className={styles.section}>
@@ -258,9 +190,72 @@ export default function Home() {
                     </section>
                 )}
 
+                {FEATURES.promoCodes && (
+                    <section className={styles.section}>
+                        <SectionHeading
+                            eyebrow={t("home.eyebrow.promo")}
+                            title={t("home.promo.title")}
+                            subtitle={t("home.promo.subtitle")}
+                        />
+                        <PromoCarousel />
+                    </section>
+                )}
+
+                {destinations.length > 0 && (
+                    <section className={styles.section}>
+                        <SectionHeading
+                            eyebrow={t("home.eyebrow.destinations")}
+                            title={t("home.destinationsTitle")}
+                            subtitle={t("home.destinationsSubtitle")}
+                            action={{ href: "/map", label: t("home.viewAll") }}
+                        />
+                        <Reveal stagger className={styles.destGrid}>
+                            {destinations.map((destination) => (
+                                <Link
+                                    key={destination.id}
+                                    href={`/map?province=${destination.id}`}
+                                    className={styles.destCard}
+                                >
+                                    <ImageWithFallback
+                                        src={destinationImage(destination.id)}
+                                        alt={destination.name}
+                                        className={styles.destImg}
+                                        fallbackClassName={styles.destImgFallback}
+                                        fallback={<BuildingsIcon size={24} weight="light" />}
+                                    />
+                                    <div className={styles.destOverlay} />
+                                    <div className={styles.destInfo}>
+                                        <span className={styles.destName}>{destination.name}</span>
+                                        <span className={styles.destCount}>
+                                            {t("home.hotelsCount", { count: destination.hotelCount })}
+                                        </span>
+                                    </div>
+                                </Link>
+                            ))}
+                        </Reveal>
+                    </section>
+                )}
+
+                <WeekendGetaways
+                    hotels={allHotels}
+                    destinations={destinations}
+                    sectionClassName={styles.section}
+                    heading={
+                        <SectionHeading
+                            eyebrow={t("home.eyebrow.weekend")}
+                            title={t("home.weekend.title")}
+                            subtitle={t("home.weekend.subtitle")}
+                        />
+                    }
+                />
+
+                <RegionDestinations hotels={allHotels} sectionClassName={styles.section} />
+
                 <section className={styles.section}>
                     <TourShowcase hotels={allHotels} />
                 </section>
+
+                <GuestReviews hotels={[...luxuryHotels, ...budgetHotels]} sectionClassName={styles.section} />
 
                 <section className={styles.section}>
                     <SectionHeading
@@ -271,28 +266,9 @@ export default function Home() {
                     <BookingJourney hotels={[...budgetHotels, ...luxuryHotels]} destinations={destinations} />
                 </section>
 
-                <GuestReviews hotels={[...luxuryHotels, ...budgetHotels]} sectionClassName={styles.section} />
-
                 <section className={styles.section}>
                     <MapBanner hotels={budgetHotels} />
                 </section>
-
-                {moreDestinations.length > 0 && (
-                    <section className={styles.section}>
-                        <SectionHeading eyebrow={t("home.eyebrow.more")} title={t("home.moreDestinationsTitle")} />
-                        <Reveal stagger className={styles.chipRow}>
-                            {moreDestinations.map((destination) => (
-                                <Link
-                                    key={destination.id}
-                                    href={`/map?province=${destination.id}`}
-                                    className={styles.chip}
-                                >
-                                    {destination.name}
-                                </Link>
-                            ))}
-                        </Reveal>
-                    </section>
-                )}
 
                 <section className={styles.section}>
                     <SectionHeading

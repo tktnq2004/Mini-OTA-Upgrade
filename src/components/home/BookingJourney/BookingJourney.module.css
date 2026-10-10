@@ -30,7 +30,7 @@
 }
 
 .step {
-    min-height: 60vh;
+    min-height: 46vh;
     display: flex;
     align-items: center;
     gap: 16px;
@@ -41,7 +41,7 @@
 }
 
 .step:first-child {
-    min-height: 44vh;
+    min-height: 34vh;
     align-items: flex-start;
     padding-top: 8px;
 }

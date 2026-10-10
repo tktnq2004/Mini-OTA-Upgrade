@@ -1,0 +1,15 @@
+.wrap {
+    max-width: 1160px;
+    margin: 0 auto;
+}
+
+.subTitle {
+    margin: 0 0 10px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+}
+
+.subTitle:not(:first-child) {
+    margin-top: 22px;
+}

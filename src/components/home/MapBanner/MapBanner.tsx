@@ -55,7 +55,7 @@ export default function MapBanner({ hotels }: { hotels: Hotel[] }) {
                 </span>
                 <h2 className={styles.title}>{t("home.mapBanner.title")}</h2>
                 <p className={styles.text}>{t("home.mapBanner.text")}</p>
-                <Link href="/map" className={styles.cta}>
+                <Link href="/map?nearby=1" className={styles.cta}>
                     <CrosshairIcon size={16} weight="bold" />
                     {t("home.mapBanner.cta")}
                 </Link>

@@ -52,6 +52,16 @@ export default function MapView() {
         flyTo,
     });
 
+    // /map?nearby=1 (vd. nút "Tìm quanh tôi" ở trang chủ): tự chạy "Tìm quanh đây" đúng 1 lần.
+    const wantsNearby = searchParams.get("nearby") === "1";
+    const nearbyStartedRef = useRef(false);
+    useEffect(() => {
+        if (!wantsNearby || nearbyStartedRef.current) return;
+        nearbyStartedRef.current = true;
+        findNearby();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [wantsNearby]);
+
     // Bay bản đồ tới tỉnh/thành khi bộ lọc địa điểm đổi (chế độ "province").
     // Phụ thuộc cả wardId — trước đây effect chỉ theo dõi provinceId nên đổi
     // xã (giữ nguyên tỉnh) không kích hoạt lại flyTo. Dữ liệu xã chưa có

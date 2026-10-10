@@ -244,51 +244,11 @@
     color: rgba(255, 255, 255, 0.75);
 }
 
-.hotelGrid {
-    max-width: 1160px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 14px;
-}
 
-.chipRow {
-    max-width: 1160px;
-    margin: 0 auto;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
 
-.chip {
-    display: inline-flex;
-    align-items: center;
-    padding: 7px 14px;
-    border-radius: var(--radius-pill);
-    border: 1px solid var(--color-border);
-    background: var(--color-panel);
-    color: var(--color-text);
-    font-size: 12.5px;
-    font-weight: 600;
-    transition: border-color 0.15s ease, background 0.15s ease;
-}
 
-.chip:hover {
-    border-color: var(--color-text-faint);
-    background: var(--color-panel-raised);
-}
 
-@media (max-width: 1080px) {
-    .hotelGrid {
-        grid-template-columns: repeat(3, 1fr);
-    }
-}
 
-@media (max-width: 780px) {
-    .hotelGrid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
 
 @media (max-width: 720px) {
     .heroInner {
@@ -310,11 +270,6 @@
     }
 }
 
-@media (max-width: 520px) {
-    .hotelGrid {
-        grid-template-columns: 1fr;
-    }
-}
 
 @media (max-width: 480px) {
     .destGrid {
