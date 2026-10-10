@@ -1,0 +1,339 @@
+.page {
+    min-height: 100vh;
+    background: var(--color-bg);
+}
+
+.layout {
+    min-height: calc(100vh - 56px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.card {
+    max-width: 520px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    text-align: center;
+    padding: 36px 28px;
+    background: var(--color-panel);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.statusBlock {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.statusBlock h1 {
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.statusHint {
+    font-size: 12.5px;
+    color: var(--color-text-muted);
+    max-width: 360px;
+}
+
+/* Vòng tròn nền màu đặt sau icon trạng thái — trước đây icon trơ trọi 1
+   mình ngay dưới header, cảm giác "đơn giản"/thiếu trọng lượng so với phần
+   hoá đơn bên dưới (nhiều chữ, nhiều dòng). Khoanh tròn + nền màu nhạt cùng
+   tông với icon tạo điểm nhấn thị giác đầu trang mà không cần thêm chữ. */
+.statusIconWrap {
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 2px;
+}
+
+.statusIconWrapSuccess {
+    background: var(--color-success-soft);
+}
+
+.statusIconWrapProcessing {
+    background: var(--color-accent-soft);
+}
+
+.statusIconWrapError {
+    background: var(--color-error-soft);
+}
+
+.statusIconWrapMuted {
+    background: var(--color-inset);
+}
+
+.successIcon {
+    color: var(--color-success);
+    /* Hiệu ứng "nở ra" nhẹ khi vừa chuyển từ spinner sang tick xanh — báo rõ
+       cho mắt người dùng đây là 1 sự kiện vừa xảy ra, không phải trạng thái
+       tĩnh từ đầu. */
+    animation: payment-pop 0.35s ease-out;
+}
+
+.processingIcon {
+    color: var(--color-accent-strong);
+}
+
+.mutedIcon {
+    color: var(--color-text-faint);
+}
+
+.errorIcon {
+    color: var(--color-error);
+}
+
+.spin {
+    animation: payment-spin 0.9s linear infinite;
+}
+
+@keyframes payment-spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes payment-pop {
+    from {
+        transform: scale(0.6);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* ----- Đếm ngược giữ chỗ ----- */
+/* Lưu ý: đây là đếm ngược HIỂN THỊ, FE tự tính từ createdAt (truyền qua URL
+   lúc tạo booking) + 15 phút — backend CHƯA thật sự giải phóng phòng khi hết
+   giờ (expirationTime thật trong DB đang là 30 ngày, xem BookingService.
+   create). Hết giờ không khoá nút thanh toán, chỉ đổi màu + câu chữ báo nhẹ
+   (xem checkoutPayment.countdownExpired). */
+.countdown {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: var(--color-inset);
+    border-radius: var(--radius-pill);
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+.countdownValue {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    color: var(--color-accent-strong);
+}
+
+.countdownExpired .countdownValue {
+    color: var(--color-error);
+}
+
+/* ----- Chọn phương thức thanh toán ----- */
+.methodSection {
+    width: 100%;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.methodSectionTitle {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.changeMethodButton {
+    align-self: flex-start;
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 12px;
+    color: var(--color-text-muted);
+    cursor: pointer;
+}
+
+.changeMethodButton:hover {
+    color: var(--color-text);
+}
+
+/* ----- Hoá đơn -----
+   Trước đây TOÀN BỘ thông tin (khách sạn, ngày, phòng, tổng tiền) dồn vào 1
+   khối nền xám duy nhất, cùng 1 mức nhấn — khó quét mắt, "rối". Giờ tách
+   theo khối ý nghĩa riêng (khách sạn / ngày ở dạng 2 ô / phòng / khách hàng
+   / tổng tiền), chỉ viền phân cách nhạt giữa các khối thay vì đóng khung
+   riêng từng cái — vẫn liền mạch nhưng dễ quét hơn. */
+.invoice {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 18px;
+    background: var(--color-inset);
+    border-radius: var(--radius-md);
+    text-align: left;
+}
+
+.invoiceSectionLabel {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--color-text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+}
+
+.invoiceHotel {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.invoiceHotelName {
+    display: block;
+    font-size: 14.5px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.invoiceHotelAddress {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11.5px;
+    color: var(--color-text-muted);
+    margin-top: 2px;
+}
+
+.invoiceDivider {
+    border-top: 1px solid var(--color-border);
+}
+
+/* 2 ô ngày nhận/trả cạnh nhau thay vì 1 dòng dài "icon + ngày -> ngày + số
+   đêm" — dễ quét hơn, khớp pattern quen thuộc của OTA (Agoda/Booking.com). */
+.dateChips {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dateChip {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 10px;
+    background: var(--color-panel);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+}
+
+.dateChipLabel {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--color-text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.dateChipValue {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.dateChipsArrow {
+    color: var(--color-text-faint);
+    flex-shrink: 0;
+}
+
+.nightsBadge {
+    text-align: center;
+    font-size: 11px;
+    color: var(--color-text-muted);
+}
+
+.invoiceRooms {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.invoiceRoomRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    color: var(--color-text-muted);
+}
+
+.invoiceRoomName {
+    flex: 1;
+    color: var(--color-text);
+}
+
+.invoiceRoomPrice {
+    white-space: nowrap;
+}
+
+/* ----- Thông tin khách hàng (MỚI) -----
+   Để khách tự đối chiếu lại tên/email/sđt đã gửi cho khách sạn — hữu ích
+   nhất với khách đăng nhập (backend tự điền từ hồ sơ, khách chưa chắc nhớ
+   đã gửi đúng thông tin tài khoản nào). */
+.guestInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.guestRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    color: var(--color-text);
+}
+
+.guestRow svg {
+    color: var(--color-text-faint);
+    flex-shrink: 0;
+}
+
+.invoiceTotalRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.invoiceTotalRow strong {
+    font-size: 16px;
+    color: var(--color-accent-strong);
+}
+
+.invoiceCode {
+    font-size: 11.5px;
+    color: var(--color-text-faint);
+}

@@ -31,6 +31,12 @@ export interface CreateBookingResult {
   rooms: { roomId: number; roomName: string; pricePerNight: number }[];
   hotelName?: string;
   hotelAddress?: string;
+  // Khách vãng lai: lấy từ Booking.guest*. Đã đăng nhập: backend tự lấy từ
+  // User liên kết (xem BookingService.toDTO) — luôn có giá trị dù đăng nhập
+  // hay không, trừ dữ liệu cũ thiếu sót.
+  guestFullName?: string;
+  guestEmail?: string;
+  guestPhone?: string;
 }
 
 // POST /api/v1/bookings (qua proxy /api/public/bookings, tự gắn token nếu đã

@@ -22,6 +22,7 @@
   --color-error: #dc2626;
   --color-error-soft: rgba(220, 38, 38, 0.08);
   --color-success: #16a34a;
+  --color-success-soft: rgba(22, 163, 74, 0.1);
 
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -60,6 +61,7 @@
   --color-error: #f87171;
   --color-error-soft: rgba(248, 113, 113, 0.12);
   --color-success: #4ade80;
+  --color-success-soft: rgba(74, 222, 128, 0.14);
 
   --shadow-panel: 0 8px 24px rgba(0, 0, 0, 0.45);
   --shadow-pop: 0 4px 16px rgba(0, 0, 0, 0.55);

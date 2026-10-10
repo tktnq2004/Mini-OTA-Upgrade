@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import SuccessView from "./SuccessView";
+import PaymentView from "./PaymentView";
 
 export const metadata: Metadata = {
-    title: "Đặt phòng thành công",
+    title: "Hoàn tất thanh toán",
     robots: { index: false, follow: false },
 };
 
-export default function CheckoutSuccessPage() {
+export default function CheckoutPaymentPage() {
     return (
         <Suspense fallback={<div style={{ minHeight: "100vh", background: "var(--color-bg)" }} />}>
-            <SuccessView />
+            <PaymentView />
         </Suspense>
     );
 }

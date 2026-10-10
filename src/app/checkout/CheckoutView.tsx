@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -9,8 +9,6 @@ import {
     BedIcon,
     MapPinIcon,
     CalendarBlankIcon,
-    CreditCardIcon,
-    HandCoinsIcon,
     ShoppingBagIcon,
 } from "@phosphor-icons/react";
 import SiteHeader from "@/components/SiteHeader/SiteHeader";
@@ -26,9 +24,7 @@ import { getHotel, PublicApiError } from "@/lib/hotels/resources";
 import type { Hotel, Room } from "@/lib/hotels/types";
 import { nightsBetween } from "@/lib/searchFilters";
 import { getRoomsAvailability, isRangeBookable, type RoomsAvailability } from "@/lib/booking/availability";
-import { createBooking, type PaymentMethod } from "@/lib/booking/resources";
-import { CardPaymentError } from "@/lib/booking/payment";
-import CardPayment, { type PaymentFormHandle } from "./PaymentForm";
+import { createBooking } from "@/lib/booking/resources";
 import controls from "@/styles/controls.module.css";
 import styles from "./checkout.module.css";
 
@@ -148,11 +144,15 @@ export default function CheckoutView() {
         };
     }, [accountReady, user]);
 
-    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("payAtHotel");
-    const paymentForm = useRef<PaymentFormHandle>(null);
     const [error, setError] = useState("");
     const [submitting, setSubmitting] = useState(false);
 
+    // Trang này giờ CHỈ tạo booking (giữ chỗ) — chọn phương thức + thanh toán
+    // chuyển hết sang /checkout/payment (trang riêng, nhận bookingId qua URL).
+    // Lý do tách: trước đây "tạo booking -> xin clientSecret -> confirm
+    // Stripe" dồn hết vào 1 lần submit, đứt mạng/đóng tab giữa chừng là mất
+    // trắng, không có gì để quay lại đúng chỗ. Giờ có 1 "điểm nghỉ" thật ở
+    // chỗ tạo booking xong — đã có bookingId, vào lại bằng URL vẫn đúng.
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError("");
@@ -165,18 +165,6 @@ export default function CheckoutView() {
             setError(t("checkout.errorRequired"));
             return;
         }
-        if (paymentMethod === "momo") {
-            setError(t("checkout.momoComingSoon"));
-            return;
-        }
-        if (paymentMethod === "card") {
-            const form = paymentForm.current;
-            const cardError = form ? form.validate() : t("checkout.errorCardUnavailable");
-            if (cardError) {
-                setError(cardError);
-                return;
-            }
-        }
         if (!hotelId || rooms.length === 0) return;
 
         setSubmitting(true);
@@ -187,24 +175,25 @@ export default function CheckoutView() {
                 checkOut,
                 guest: { fullName, email, phone },
             });
-            // Thanh toán thẻ xong NGAY TRÊN trang này (cần context Stripe
-            // Elements của CardPayment) — xác nhận client-side (stripe.js) chỉ
-            // là bước đầu, DB còn đang chờ webhook Stripe + webhook backend
-            // (StripeController -> BookingService.markPaid) xác nhận thật. Trang
-            // success (điều hướng ngay bên dưới) tự poll GET /bookings/lookup để
-            // biết lúc nào webhook đó xử lý xong.
-            if (paymentMethod === "card") await paymentForm.current?.pay(result.bookingId, { name: fullName.trim(), email, phone });
             // Đặt xong thì bỏ các phòng vừa đặt khỏi wishlist (nếu có).
             rooms.forEach((r) => removeFromWishlist(hotelId, r.id));
+            // createdAt: backend chưa có field này (ReqCreateBookingDTO/
+            // ResBookingDTO không trả) — FE tự gán mốc "vừa tạo xong" để trang
+            // /checkout/payment tính đếm ngược 15 phút (chỉ mang tính hiển
+            // thị, xem ghi chú HOLD_MS ở PaymentView). fullName/phone cũng
+            // truyền kèm vì trang payment cần cho billing_details của Stripe
+            // mà không có cách nào lấy lại từ GET /bookings/lookup (backend
+            // không trả 2 field này).
             const params = new URLSearchParams({
                 bookingId: String(result.bookingId),
                 email,
-                method: paymentMethod,
+                fullName: fullName.trim(),
+                phone,
+                createdAt: new Date().toISOString(),
             });
-            router.push(`/checkout/success?${params.toString()}`);
+            router.push(`/checkout/payment?${params.toString()}`);
         } catch (err) {
-            if (err instanceof CardPaymentError) setError(err.message || t("checkout.errorPayment"));
-            else setError(err instanceof PublicApiError && err.message ? err.message : t("checkout.errorSubmit"));
+            setError(err instanceof PublicApiError && err.message ? err.message : t("checkout.errorSubmit"));
             setSubmitting(false);
         }
     };
@@ -315,61 +304,6 @@ export default function CheckoutView() {
                             </div>
                         </section>
 
-                        <section className={styles.formSection}>
-                            <h2>{t("checkout.paymentTitle")}</h2>
-
-                            <div className={styles.paymentOptions}>
-                                <label
-                                    className={`${styles.paymentOption} ${paymentMethod === "payAtHotel" ? styles.paymentOptionActive : ""}`}
-                                >
-                                    <input
-                                        type="radio"
-                                        name="paymentMethod"
-                                        checked={paymentMethod === "payAtHotel"}
-                                        onChange={() => setPaymentMethod("payAtHotel")}
-                                    />
-                                    <HandCoinsIcon size={18} />
-                                    <span>{t("checkout.payAtHotel")}</span>
-                                </label>
-                                <label
-                                    className={`${styles.paymentOption} ${paymentMethod === "card" ? styles.paymentOptionActive : ""}`}
-                                >
-                                    <input
-                                        type="radio"
-                                        name="paymentMethod"
-                                        checked={paymentMethod === "card"}
-                                        onChange={() => setPaymentMethod("card")}
-                                    />
-                                    <CreditCardIcon size={18} />
-                                    <span>{t("checkout.payByCard")}</span>
-                                </label>
-                                <label
-                                    className={`${styles.paymentOption} ${paymentMethod === "momo" ? styles.paymentOptionActive : ""}`}
-                                >
-                                    <input
-                                        type="radio"
-                                        name="paymentMethod"
-                                        checked={paymentMethod === "momo"}
-                                        onChange={() => setPaymentMethod("momo")}
-                                    />
-                                    <span className={styles.momoBadge} aria-hidden="true">
-                                        mo
-                                    </span>
-                                    <span>{t("checkout.payByMomo")}</span>
-                                </label>
-                            </div>
-
-                            {paymentMethod === "payAtHotel" && (
-                                <p className={styles.paymentNote}>{t("checkout.payAtHotelNote")}</p>
-                            )}
-
-                            {paymentMethod === "momo" && (
-                                <p className={styles.paymentNote}>{t("checkout.momoComingSoon")}</p>
-                            )}
-
-                            {paymentMethod === "card" && <CardPayment ref={paymentForm} />}
-                        </section>
-
                         {error && <p className={controls.error}>{error}</p>}
                     </div>
 
@@ -455,9 +389,7 @@ export default function CheckoutView() {
                                 className={styles.submitButton}
                                 disabled={submitting}
                             >
-                                {submitting
-                                    ? t("checkout.submitting")
-                                    : t("checkout.submit", { total: formatVnd(grandTotal) })}
+                                {submitting ? t("checkout.submitting") : t("checkout.continueToPayment")}
                             </button>
                         </div>
                     </aside>
