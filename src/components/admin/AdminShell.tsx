@@ -2,6 +2,7 @@
 
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import BrandLogo from "@/components/BrandLogo/BrandLogo";
 import { useAdminAccess } from "./AdminAccessProvider";
 import styles from "./AdminShell.module.css";
 
@@ -37,7 +38,9 @@ export default function AdminShell({ user, children }: AdminShellProps) {
     return (
         <div className={styles.shell}>
             <aside className={styles.sidebar}>
-                <div className={styles.brand}>Mini-OTA Admin</div>
+                <div className={styles.brand}>
+                    <BrandLogo /> Admin
+                </div>
                 <nav className={styles.nav}>
                     {visibleNavItems.map((item) => {
                         const active = item.href === "/admin" ? pathname === "/admin" : pathname.startsWith(item.href);

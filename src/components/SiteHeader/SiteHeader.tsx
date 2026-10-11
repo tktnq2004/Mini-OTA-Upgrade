@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-    CompassIcon,
     SunIcon,
     MoonIcon,
     HeartIcon,
@@ -22,6 +21,7 @@ import { useTheme } from "@/components/theme/ThemeProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { useWishlist } from "@/components/wishlist/WishlistProvider";
 import { useAccount } from "@/components/auth/AccountProvider";
+import BrandLogo from "@/components/BrandLogo/BrandLogo";
 import styles from "./SiteHeader.module.css";
 
 export default function SiteHeader() {
@@ -84,11 +84,8 @@ export default function SiteHeader() {
     return (
         <header className={styles.header}>
             <div className={styles.inner}>
-                <Link href="/" className={styles.logo}>
-                    <span className={styles.mark}>
-                        <CompassIcon size={14} weight="bold" />
-                    </span>
-                    Wen<span className={styles.logoAccent}>Go</span>
+                <Link href="/" className={styles.logo} aria-label="Trạm OTA">
+                    <BrandLogo />
                 </Link>
 
                 <nav className={styles.nav}>

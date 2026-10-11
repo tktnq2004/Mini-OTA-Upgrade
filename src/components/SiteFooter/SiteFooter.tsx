@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CompassIcon, MoonIcon, SunIcon } from "@phosphor-icons/react";
+import { MoonIcon, SunIcon } from "@phosphor-icons/react";
+import BrandLogo from "@/components/BrandLogo/BrandLogo";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { useAccount } from "@/components/auth/AccountProvider";
@@ -38,11 +39,8 @@ export default function SiteFooter({ destinations = [] }: SiteFooterProps) {
     <footer className={styles.footer}>
       <div className={styles.top}>
         <div className={styles.brandCol}>
-          <Link href="/" className={styles.logo}>
-            <span className={styles.mark}>
-              <CompassIcon size={14} weight="bold" />
-            </span>
-            Wen<span className={styles.logoAccent}>Go</span>
+          <Link href="/" className={styles.logo} aria-label="Trạm OTA">
+            <BrandLogo />
           </Link>
           <p className={styles.blurb}>{t("footer.brandBlurb")}</p>
         </div>
@@ -86,7 +84,7 @@ export default function SiteFooter({ destinations = [] }: SiteFooterProps) {
 
       <div className={styles.bottom}>
         <span className={styles.copyright}>
-          © {new Date().getFullYear()} WenGo. {t("home.footerTagline")}
+          © {new Date().getFullYear()} Trạm OTA. {t("home.footerTagline")}
         </span>
         <nav className={styles.legalLinks} aria-label={t("footer.legalTitle")}>
           <Link href="/terms">{t("footer.terms")}</Link>

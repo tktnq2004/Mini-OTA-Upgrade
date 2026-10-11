@@ -9,12 +9,13 @@ import {
     GooglePlayLogoIcon,
     StarIcon,
 } from "@phosphor-icons/react";
+import BrandLogo from "@/components/BrandLogo/BrandLogo";
 import Reveal from "@/components/home/Reveal/Reveal";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import styles from "./NewsletterApp.module.css";
 
 /**
- * Nhận tin + tải app — GIAO DIỆN TĨNH: backend chưa có API nhận email, và WenGo chưa có app.
+ * Nhận tin + tải app — GIAO DIỆN TĨNH: backend chưa có API nhận email, và Trạm OTA chưa có app.
  * TODO: nối form với API đăng ký nhận tin; thay 2 nút "Sắp ra mắt" bằng link store khi có app.
  * Hiện tại gửi form chỉ hiện lời cảm ơn, KHÔNG lưu email ở đâu cả.
  */
@@ -85,7 +86,7 @@ export default function NewsletterApp() {
                 {/* Mockup điện thoại nhỏ — chỉ để trang trí. */}
                 <div className={styles.phone} aria-hidden>
                     <div className={styles.phoneScreen}>
-                        <span className={styles.phoneLogo}>WenGo</span>
+                        <BrandLogo className={styles.phoneLogo} />
                         <span className={styles.phoneSearch} />
                         {[0, 1].map((i) => (
                             <span key={i} className={styles.phoneCard}>

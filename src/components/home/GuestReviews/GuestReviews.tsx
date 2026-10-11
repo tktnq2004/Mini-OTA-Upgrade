@@ -29,7 +29,7 @@ interface QuotedReview extends Review {
 }
 
 /**
- * "Khách nói gì về WenGo" — trích review THẬT từ API của vài khách sạn nổi bật. Chỉ gọi API khi
+ * "Khách nói gì về Trạm OTA" — trích review THẬT từ API của vài khách sạn nổi bật. Chỉ gọi API khi
  * section cuộn tới gần (không làm chậm lần tải đầu), và ẩn hẳn nếu không có review đủ tốt.
  */
 export default function GuestReviews({ hotels, sectionClassName }: GuestReviewsProps) {

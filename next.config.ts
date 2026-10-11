@@ -6,9 +6,9 @@ import type { NextConfig } from "next";
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  // Không cho site khác nhúng WenGo vào iframe (chống clickjacking).
+  // Không cho site khác nhúng Trạm OTA vào iframe (chống clickjacking).
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
-  // Chỉ trang của WenGo được xin vị trí ("Tìm quanh đây"); tắt camera/micro không dùng tới.
+  // Chỉ trang của Trạm OTA được xin vị trí ("Tìm quanh đây"); tắt camera/micro không dùng tới.
   { key: "Permissions-Policy", value: "geolocation=(self), camera=(), microphone=(), payment=(self)" },
   // Chỉ có tác dụng khi chạy HTTPS; trình duyệt bỏ qua header này trên http://localhost.
   { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },

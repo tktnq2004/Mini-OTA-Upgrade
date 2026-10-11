@@ -45,7 +45,7 @@ export default function AdminLoginPage() {
     return (
         <div className={styles.page}>
             <div className={styles.card}>
-                <h1 className={styles.title}>Admin — Mini-OTA</h1>
+                <h1 className={styles.title}>Admin — Trạm OTA</h1>
                 <p className={styles.subtitle}>Đăng nhập bằng tài khoản có quyền ADMIN</p>
 
                 <form className={styles.form} onSubmit={handleSubmit}>

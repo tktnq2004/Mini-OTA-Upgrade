@@ -17,7 +17,7 @@ export default function AdminHomePage() {
             <div className={styles.pageHeader}>
                 <div>
                     <h1 className={styles.pageTitle}>Tổng quan</h1>
-                    <p className={styles.pageSubtitle}>Quản trị dữ liệu Mini-OTA — chọn một mục bên trái để bắt đầu.</p>
+                    <p className={styles.pageSubtitle}>Quản trị dữ liệu Trạm OTA — chọn một mục bên trái để bắt đầu.</p>
                 </div>
             </div>
 

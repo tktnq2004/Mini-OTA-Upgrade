@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import PanoramaReviewView from "@/components/media/review/PanoramaReviewView";
 
 export const metadata: Metadata = {
-    title: "Xem panorama 360° — Mini-OTA Admin",
+    title: "Xem panorama 360° — Admin",
 };
 
 export default function PanoramaReviewPage() {

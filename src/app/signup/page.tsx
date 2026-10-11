@@ -224,7 +224,7 @@ export default function SignupPage() {
                             <Link href="/privacy" target="_blank" rel="noopener">
                                 {t("auth.privacyPolicy")}
                             </Link>{" "}
-                            {t("auth.ofWenGo")}
+                            {t("auth.ofBrand")}
                         </span>
                     </label>
 

@@ -3,7 +3,7 @@ import LegalView from "@/components/legal/LegalView";
 
 export const metadata: Metadata = {
     title: "Điều khoản dịch vụ",
-    description: "Điều khoản sử dụng dịch vụ đặt phòng khách sạn WenGo: tài khoản, đặt phòng, thanh toán, huỷ phòng.",
+    description: "Điều khoản sử dụng dịch vụ đặt phòng khách sạn Trạm OTA: tài khoản, đặt phòng, thanh toán, huỷ phòng.",
     alternates: { canonical: "/terms" },
 };
 

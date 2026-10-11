@@ -22,7 +22,7 @@ export const PIN_COUNT = 5;
 // Khách sạn mẫu khi API chưa trả dữ liệu (backend lỗi/trống) — để section không bao giờ rỗng.
 // Ảnh dùng picsum có seed cố định giống thẻ điểm đến ở trang chủ.
 const DEMO_HOTELS: JourneyHotel[] = [
-    { id: 0, name: "WenGo Riverside Hotel", address: "Sơn Trà, Đà Nẵng", price: 850_000 },
+    { id: 0, name: "Trạm OTA Riverside Hotel", address: "Sơn Trà, Đà Nẵng", price: 850_000 },
     { id: 0, name: "Lotus Boutique Stay", address: "Hải Châu, Đà Nẵng", price: 1_150_000 },
     { id: 0, name: "Seabreeze Residence", address: "Ngũ Hành Sơn, Đà Nẵng", price: 1_480_000 },
     { id: 0, name: "Han Bridge Suites", address: "Hải Châu, Đà Nẵng", price: 1_920_000 },

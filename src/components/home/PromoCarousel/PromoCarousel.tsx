@@ -10,7 +10,7 @@ import styles from "./PromoCarousel.module.css";
 // Giao diện tĩnh: backend CHƯA có hệ thống mã giảm giá — mã ở đây chỉ để trình bày, chưa áp
 // dụng được ở bước thanh toán (mỗi thẻ có nhãn "Sắp áp dụng"). TODO: nối API khuyến mãi khi có.
 const VOUCHERS = [
-    { code: "WENGO10", key: "first" },
+    { code: "TRAM10", key: "first" },
     { code: "WEEKEND15", key: "weekend" },
     { code: "EARLY20", key: "early" },
     { code: "STAY3", key: "long" },

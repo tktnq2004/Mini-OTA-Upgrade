@@ -18,7 +18,7 @@ export default function GlobalError({ reset }: { error: Error & { digest?: strin
                 }}
             >
                 <div style={{ textAlign: "center", padding: 24, maxWidth: 420 }}>
-                    <h1 style={{ fontSize: 20, margin: "0 0 8px" }}>WenGo đang gặp sự cố</h1>
+                    <h1 style={{ fontSize: 20, margin: "0 0 8px" }}>Trạm OTA đang gặp sự cố</h1>
                     <p style={{ fontSize: 14, color: "#4b5563", margin: "0 0 20px", lineHeight: 1.6 }}>
                         Trang không tải được. Vui lòng thử lại sau ít phút.
                         <br />

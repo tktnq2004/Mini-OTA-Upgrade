@@ -2,7 +2,8 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { CompassIcon, CheckIcon } from "@phosphor-icons/react";
+import { CheckIcon } from "@phosphor-icons/react";
+import BrandLogo from "@/components/BrandLogo/BrandLogo";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import styles from "./AuthShell.module.css";
 
@@ -21,11 +22,8 @@ export default function AuthShell({ title, subtitle, children, footer }: AuthShe
         <div className={styles.page}>
             <div className={styles.formSide}>
                 <div className={styles.formInner}>
-                    <Link href="/" className={styles.logo}>
-                        <span className={styles.mark}>
-                            <CompassIcon size={13} weight="bold" />
-                        </span>
-                        Wen<span className={styles.logoAccent}>Go</span>
+                    <Link href="/" className={styles.logo} aria-label="Trạm OTA">
+                        <BrandLogo />
                     </Link>
 
                     <h1 className={styles.title}>{title}</h1>

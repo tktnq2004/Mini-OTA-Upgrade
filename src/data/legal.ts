@@ -23,19 +23,19 @@ export const LEGAL_DOCS: Record<LegalDocKey, Record<"vi" | "en", LegalDoc>> = {
     terms: {
         vi: {
             title: "Điều khoản dịch vụ",
-            intro: "Khi tạo tài khoản hoặc đặt phòng trên WenGo, bạn đồng ý với các điều khoản dưới đây. Vui lòng đọc kỹ trước khi sử dụng dịch vụ.",
+            intro: "Khi tạo tài khoản hoặc đặt phòng trên Trạm OTA, bạn đồng ý với các điều khoản dưới đây. Vui lòng đọc kỹ trước khi sử dụng dịch vụ.",
             sections: [
                 {
                     heading: "1. Về dịch vụ",
                     paragraphs: [
-                        "WenGo là nền tảng giúp bạn tìm, so sánh và đặt phòng tại các khách sạn ở Việt Nam. Thông tin khách sạn, phòng, giá và tiện nghi do khách sạn cung cấp; WenGo nỗ lực hiển thị chính xác nhưng không bảo đảm tuyệt đối mọi chi tiết luôn được cập nhật tức thời.",
+                        "Trạm OTA là nền tảng giúp bạn tìm, so sánh và đặt phòng tại các khách sạn ở Việt Nam. Thông tin khách sạn, phòng, giá và tiện nghi do khách sạn cung cấp; Trạm OTA nỗ lực hiển thị chính xác nhưng không bảo đảm tuyệt đối mọi chi tiết luôn được cập nhật tức thời.",
                     ],
                 },
                 {
                     heading: "2. Tài khoản",
                     paragraphs: [
                         "Bạn có thể đăng ký bằng email (kèm mã OTP xác thực) hoặc đăng nhập bằng Google. Bạn chịu trách nhiệm về tính chính xác của thông tin đã cung cấp và giữ an toàn quyền truy cập vào email, tài khoản Google dùng để đăng nhập.",
-                        "WenGo có thể tạm khoá tài khoản có dấu hiệu gian lận, lạm dụng hoặc vi phạm các điều khoản này.",
+                        "Trạm OTA có thể tạm khoá tài khoản có dấu hiệu gian lận, lạm dụng hoặc vi phạm các điều khoản này.",
                     ],
                 },
                 {
@@ -48,7 +48,7 @@ export const LEGAL_DOCS: Record<LegalDocKey, Record<"vi" | "en", LegalDoc>> = {
                 {
                     heading: "4. Thanh toán",
                     paragraphs: [
-                        "Thanh toán bằng thẻ được xử lý qua cổng Stripe. Thông tin thẻ được nhập trực tiếp vào biểu mẫu bảo mật của Stripe; WenGo không lưu số thẻ đầy đủ của bạn.",
+                        "Thanh toán bằng thẻ được xử lý qua cổng Stripe. Thông tin thẻ được nhập trực tiếp vào biểu mẫu bảo mật của Stripe; Trạm OTA không lưu số thẻ đầy đủ của bạn.",
                     ],
                 },
                 {
@@ -61,32 +61,32 @@ export const LEGAL_DOCS: Record<LegalDocKey, Record<"vi" | "en", LegalDoc>> = {
                 {
                     heading: "6. Trách nhiệm của người dùng",
                     paragraphs: [
-                        "Bạn đồng ý không sử dụng WenGo cho mục đích trái pháp luật, không cố tình gây gián đoạn hệ thống, không thu thập dữ liệu trái phép và không đăng đánh giá sai sự thật.",
+                        "Bạn đồng ý không sử dụng Trạm OTA cho mục đích trái pháp luật, không cố tình gây gián đoạn hệ thống, không thu thập dữ liệu trái phép và không đăng đánh giá sai sự thật.",
                     ],
                 },
                 {
                     heading: "7. Thay đổi điều khoản",
                     paragraphs: [
-                        "WenGo có thể cập nhật các điều khoản này. Ngày cập nhật gần nhất được ghi ở đầu trang; việc tiếp tục sử dụng dịch vụ sau khi cập nhật đồng nghĩa với việc bạn chấp nhận nội dung mới.",
+                        "Trạm OTA có thể cập nhật các điều khoản này. Ngày cập nhật gần nhất được ghi ở đầu trang; việc tiếp tục sử dụng dịch vụ sau khi cập nhật đồng nghĩa với việc bạn chấp nhận nội dung mới.",
                     ],
                 },
             ],
         },
         en: {
             title: "Terms of Service",
-            intro: "By creating an account or booking on WenGo, you agree to the terms below. Please read them carefully before using the service.",
+            intro: "By creating an account or booking on Trạm OTA, you agree to the terms below. Please read them carefully before using the service.",
             sections: [
                 {
                     heading: "1. The service",
                     paragraphs: [
-                        "WenGo helps you find, compare and book hotels across Vietnam. Hotel, room, price and amenity information is provided by the hotels; WenGo strives to display it accurately but cannot guarantee every detail is updated in real time.",
+                        "Trạm OTA helps you find, compare and book hotels across Vietnam. Hotel, room, price and amenity information is provided by the hotels; Trạm OTA strives to display it accurately but cannot guarantee every detail is updated in real time.",
                     ],
                 },
                 {
                     heading: "2. Accounts",
                     paragraphs: [
                         "You can sign up with email (verified by an OTP code) or log in with Google. You are responsible for the accuracy of the information you provide and for keeping access to your email and Google account secure.",
-                        "WenGo may suspend accounts showing signs of fraud, abuse or violation of these terms.",
+                        "Trạm OTA may suspend accounts showing signs of fraud, abuse or violation of these terms.",
                     ],
                 },
                 {
@@ -99,7 +99,7 @@ export const LEGAL_DOCS: Record<LegalDocKey, Record<"vi" | "en", LegalDoc>> = {
                 {
                     heading: "4. Payment",
                     paragraphs: [
-                        "Card payments are processed by Stripe. Card details are entered directly into Stripe's secure form; WenGo does not store your full card number.",
+                        "Card payments are processed by Stripe. Card details are entered directly into Stripe's secure form; Trạm OTA does not store your full card number.",
                     ],
                 },
                 {
@@ -112,13 +112,13 @@ export const LEGAL_DOCS: Record<LegalDocKey, Record<"vi" | "en", LegalDoc>> = {
                 {
                     heading: "6. Your responsibilities",
                     paragraphs: [
-                        "You agree not to use WenGo for unlawful purposes, deliberately disrupt the system, scrape data without permission, or post false reviews.",
+                        "You agree not to use Trạm OTA for unlawful purposes, deliberately disrupt the system, scrape data without permission, or post false reviews.",
                     ],
                 },
                 {
                     heading: "7. Changes to these terms",
                     paragraphs: [
-                        "WenGo may update these terms. The latest update date is shown at the top of this page; continuing to use the service after an update means you accept the new terms.",
+                        "Trạm OTA may update these terms. The latest update date is shown at the top of this page; continuing to use the service after an update means you accept the new terms.",
                     ],
                 },
             ],
@@ -127,14 +127,14 @@ export const LEGAL_DOCS: Record<LegalDocKey, Record<"vi" | "en", LegalDoc>> = {
     privacy: {
         vi: {
             title: "Chính sách quyền riêng tư",
-            intro: "Chính sách này giải thích WenGo thu thập những dữ liệu gì, dùng để làm gì và bạn có những quyền gì đối với dữ liệu của mình.",
+            intro: "Chính sách này giải thích Trạm OTA thu thập những dữ liệu gì, dùng để làm gì và bạn có những quyền gì đối với dữ liệu của mình.",
             sections: [
                 {
                     heading: "1. Dữ liệu chúng tôi thu thập",
                     paragraphs: [
                         "Thông tin tài khoản: họ tên, email và (nếu bạn đăng nhập bằng Google) thông tin hồ sơ cơ bản mà Google chia sẻ.",
                         "Thông tin đặt phòng: khách sạn, phòng, ngày nhận/trả phòng, số khách, trạng thái thanh toán.",
-                        "Thông tin thanh toán: do Stripe xử lý. WenGo chỉ nhận kết quả giao dịch và thông tin rút gọn của thẻ (vd. 4 số cuối), không nhận số thẻ đầy đủ.",
+                        "Thông tin thanh toán: do Stripe xử lý. Trạm OTA chỉ nhận kết quả giao dịch và thông tin rút gọn của thẻ (vd. 4 số cuối), không nhận số thẻ đầy đủ.",
                         "Vị trí: chỉ khi bạn chủ động bấm \"Tìm quanh đây\" và cho phép trình duyệt chia sẻ vị trí; vị trí dùng để lọc khách sạn gần bạn.",
                     ],
                 },
@@ -154,7 +154,7 @@ export const LEGAL_DOCS: Record<LegalDocKey, Record<"vi" | "en", LegalDoc>> = {
                 {
                     heading: "4. Chia sẻ dữ liệu",
                     paragraphs: [
-                        "WenGo chỉ chia sẻ dữ liệu cần thiết với: khách sạn bạn đặt (để giữ và phục vụ phòng), Stripe (để xử lý thanh toán), và cơ quan có thẩm quyền khi pháp luật yêu cầu. WenGo không bán dữ liệu cá nhân của bạn.",
+                        "Trạm OTA chỉ chia sẻ dữ liệu cần thiết với: khách sạn bạn đặt (để giữ và phục vụ phòng), Stripe (để xử lý thanh toán), và cơ quan có thẩm quyền khi pháp luật yêu cầu. Trạm OTA không bán dữ liệu cá nhân của bạn.",
                     ],
                 },
                 {
@@ -179,14 +179,14 @@ export const LEGAL_DOCS: Record<LegalDocKey, Record<"vi" | "en", LegalDoc>> = {
         },
         en: {
             title: "Privacy Policy",
-            intro: "This policy explains what data WenGo collects, why, and what rights you have over your data.",
+            intro: "This policy explains what data Trạm OTA collects, why, and what rights you have over your data.",
             sections: [
                 {
                     heading: "1. Data we collect",
                     paragraphs: [
                         "Account information: name, email and, if you log in with Google, the basic profile information Google shares.",
                         "Booking information: hotel, room, check-in/out dates, number of guests and payment status.",
-                        "Payment information: handled by Stripe. WenGo only receives the transaction result and limited card details (e.g. last 4 digits), never your full card number.",
+                        "Payment information: handled by Stripe. Trạm OTA only receives the transaction result and limited card details (e.g. last 4 digits), never your full card number.",
                         "Location: only when you tap \"Find nearby\" and allow your browser to share it; it is used to filter hotels near you.",
                     ],
                 },
@@ -206,7 +206,7 @@ export const LEGAL_DOCS: Record<LegalDocKey, Record<"vi" | "en", LegalDoc>> = {
                 {
                     heading: "4. Sharing",
                     paragraphs: [
-                        "WenGo only shares what is necessary with: the hotel you book (to hold and serve your room), Stripe (to process payment), and authorities when required by law. WenGo does not sell your personal data.",
+                        "Trạm OTA only shares what is necessary with: the hotel you book (to hold and serve your room), Stripe (to process payment), and authorities when required by law. Trạm OTA does not sell your personal data.",
                     ],
                 },
                 {

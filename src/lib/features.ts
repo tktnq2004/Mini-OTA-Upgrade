@@ -4,6 +4,6 @@
 export const FEATURES = {
     /** Băng chuyền mã ưu đãi ở trang chủ — cần API khuyến mãi + áp mã ở bước thanh toán. */
     promoCodes: false,
-    /** Khung "Nhận ưu đãi sớm nhất" + "Ứng dụng WenGo" — cần API nhận email và app trên store. */
+    /** Khung "Nhận ưu đãi sớm nhất" + "Ứng dụng Trạm OTA" — cần API nhận email và app trên store. */
     newsletterAndApp: false,
 } as const;

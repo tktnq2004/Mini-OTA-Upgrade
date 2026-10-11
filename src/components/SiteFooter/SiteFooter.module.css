@@ -22,25 +22,9 @@
 .logo {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 15px;
-    font-weight: 700;
+    align-self: flex-start;
+    font-size: 21px;
     color: var(--color-text);
-}
-
-.mark {
-    width: 26px;
-    height: 26px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: var(--radius-sm);
-    background: var(--color-accent-soft);
-    color: var(--color-accent);
-}
-
-.logoAccent {
-    color: var(--color-accent);
 }
 
 .blurb {

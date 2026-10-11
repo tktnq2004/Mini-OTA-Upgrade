@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: HotelPageProps): Promise<Meta
     const { id } = await params;
     const hotel = await getHotelServer(Number(id));
     if (!hotel) return { title: "Không tìm thấy khách sạn", robots: { index: false } };
-    const description = `Đặt phòng ${hotel.name} tại ${hotel.address}. Xem phòng, giá và đặt nhanh trên WenGo.`;
+    const description = `Đặt phòng ${hotel.name} tại ${hotel.address}. Xem phòng, giá và đặt nhanh trên Trạm OTA.`;
     return {
         title: hotel.name,
         description,

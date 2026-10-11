@@ -15,7 +15,7 @@ const PanoramaCanvas = dynamic(() => import("@/components/panorama/PanoramaCanva
 
 const PREVIEW_SCENE_ID = "main_room_101";
 
-// Section giới thiệu tour 360° — điểm khác biệt của WenGo so với OTA thường.
+// Section giới thiệu tour 360° — điểm khác biệt của Trạm OTA so với OTA thường.
 export default function TourShowcase({ hotels }: { hotels: Hotel[] }) {
     const { t } = useLanguage();
     const [interactive, setInteractive] = useState(false);
