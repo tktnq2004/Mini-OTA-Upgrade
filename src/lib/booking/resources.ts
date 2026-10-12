@@ -7,7 +7,9 @@ import { unwrapResponse } from "@/lib/hotels/envelope";
 // lần nữa (xem WishlistView: khoá chọn chéo khách sạn).
 
 // momo: mới có giao diện, backend chưa có API thanh toán MoMo nên chưa đặt được.
-export type PaymentMethod = "payAtHotel" | "card" | "momo";
+// bankTransfer: chuyển khoản qua SePay — khác payAtHotel/card ở chỗ không có
+// bước "xác nhận" nào tại chỗ, chỉ hiện QR rồi chờ webhook SePay báo về.
+export type PaymentMethod = "payAtHotel" | "card" | "momo" | "bankTransfer";
 
 export interface CreateBookingPayload {
   roomIds: number[];

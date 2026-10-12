@@ -26,6 +26,7 @@ import { getBookingStatus, type CreateBookingResult, type PaymentMethod } from "
 import { PublicApiError } from "@/lib/hotels/envelope";
 import { CardPaymentError } from "@/lib/booking/payment";
 import CardPayment, { type PaymentFormHandle } from "../PaymentForm";
+import SePayPanel from "../SePayPanel";
 import controls from "@/styles/controls.module.css";
 import checkoutStyles from "../checkout.module.css";
 import styles from "./payment.module.css";
@@ -137,6 +138,8 @@ export default function PaymentView() {
         if (!polling || !bookingId || !email) return;
         let alive = true;
         const startedAt = Date.now();
+        // method đọc trong closure bên dưới — thêm vào deps để không bị "cũ"
+        // nếu khách đổi phương thức trong lúc poll SePay đang chạy nền.
 
         const poll = () => {
             getBookingStatus(bookingId, email)
@@ -153,7 +156,14 @@ export default function PaymentView() {
                         setPolling(false);
                         return;
                     }
-                    setState(Date.now() - startedAt > SLOW_AFTER_MS ? "slow" : "processing");
+                    // Chuyển khoản SePay: còn Pending nghĩa là khách CHƯA chuyển
+                    // khoản xong (chưa hề "làm" gì ở trang này, khác thẻ đã
+                    // confirm xong phía Stripe) — giữ nguyên màn hình chọn
+                    // phương thức (đang hiện QR) thay vì nhảy sang màn
+                    // processing/spinner, kẻo khách mất luôn QR đang cần quét.
+                    if (method !== "bankTransfer") {
+                        setState(Date.now() - startedAt > SLOW_AFTER_MS ? "slow" : "processing");
+                    }
                 })
                 .catch(() => {
                     // Lỗi mạng tạm thời giữa các lần poll thì bỏ qua, giữ
@@ -167,7 +177,7 @@ export default function PaymentView() {
             alive = false;
             clearInterval(id);
         };
-    }, [polling, bookingId, email]);
+    }, [polling, bookingId, email, method]);
 
     const handlePayNow = async () => {
         if (!booking) return;
@@ -404,6 +414,20 @@ export default function PaymentView() {
                                         </span>
                                         <span>{t("checkout.payByMomo")}</span>
                                     </label>
+                                    <label
+                                        className={`${checkoutStyles.paymentOption} ${method === "bankTransfer" ? checkoutStyles.paymentOptionActive : ""}`}
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="paymentMethod"
+                                            checked={method === "bankTransfer"}
+                                            onChange={() => setMethod("bankTransfer")}
+                                        />
+                                        <span className={checkoutStyles.sepayBadge} aria-hidden="true">
+                                            qr
+                                        </span>
+                                        <span>{t("checkout.payBySepay")}</span>
+                                    </label>
                                 </div>
 
                                 {method === "payAtHotel" && (
@@ -416,6 +440,13 @@ export default function PaymentView() {
                                 )}
 
                                 {method === "momo" && <p className={checkoutStyles.paymentNote}>{t("checkout.momoComingSoon")}</p>}
+
+                                {method === "bankTransfer" && (
+                                    // Không có nút "xác nhận" nào ở đây — hiện QR xong là tự
+                                    // bật poll (onReady), khác hẳn thẻ cần bấm "Thanh toán"
+                                    // để confirm qua Stripe trước (xem handlePayNow).
+                                    <SePayPanel bookingId={booking.bookingId} onReady={() => setPolling(true)} />
+                                )}
 
                                 {method === "card" && (
                                     <>

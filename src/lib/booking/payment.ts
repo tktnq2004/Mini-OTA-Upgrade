@@ -14,6 +14,51 @@ export const stripePromise: Promise<Stripe | null> | null = publishableKey
 
 export class CardPaymentError extends Error {}
 
+// Chuyển khoản ngân hàng qua SePay — không có SDK, không "confirm" phía trình
+// duyệt như Stripe. Backend trả sẵn URL ảnh QR VietQR + nội dung chuyển khoản,
+// khách tự quét/gõ tay trên app ngân hàng của họ; xác nhận thật tới qua webhook
+// SePay (BookingService.markPaidIfAmountMatches) sau đó, trang payment chỉ việc
+// poll lại trạng thái booking y hệt cách đang làm cho Stripe.
+export class SePayError extends Error {}
+
+export interface SePayInfo {
+  qrImageUrl: string;
+  transferContent: string;
+  bankAccountNumber: string;
+  bankName: string;
+  amount: number;
+}
+
+// POST /api/v1/payment/create-payment-intent với provider="SEPAY" (cùng
+// endpoint với Stripe — StripeController tự chọn gateway theo field này).
+export async function createSePayInfo(bookingId: number): Promise<SePayInfo> {
+  const res = await fetch("/api/public/payment/create-payment-intent", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ bookingId, provider: "SEPAY" }),
+  });
+  try {
+    const data = await unwrapResponse<{
+      qrImageUrl?: string;
+      transferContent?: string;
+      bankAccountNumber?: string;
+      bankName?: string;
+      amount?: number;
+    }>(res);
+    if (!data.qrImageUrl || !data.transferContent) throw new SePayError("");
+    return {
+      qrImageUrl: data.qrImageUrl,
+      transferContent: data.transferContent,
+      bankAccountNumber: data.bankAccountNumber ?? "",
+      bankName: data.bankName ?? "",
+      amount: data.amount ?? 0,
+    };
+  } catch (err) {
+    if (err instanceof PublicApiError) throw new SePayError(err.message);
+    throw err;
+  }
+}
+
 // data trả về có thể là chuỗi clientSecret hoặc object chứa nó.
 function pickClientSecret(data: unknown): string | null {
   if (typeof data === "string") return data;
