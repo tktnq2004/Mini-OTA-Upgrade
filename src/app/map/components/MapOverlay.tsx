@@ -7,6 +7,7 @@ import {
     XCircleIcon,
 } from "@phosphor-icons/react";
 import SearchWidget from "@/components/SearchWidget/SearchWidget";
+import Skeleton from "@/components/Skeleton/Skeleton";
 import type { SearchFilters } from "@/lib/searchFilters";
 import styles from "../Map.module.css";
 
@@ -19,6 +20,8 @@ interface MapOverlayProps {
     onFindNearby: () => void;
     isLocating: boolean;
     geoError: string;
+    // Đang tải danh sách khách sạn — chip hiện số xương thay vì "0" sai.
+    loading: boolean;
     resultCount: number;
     resultLabel: string;
     canClear: boolean;
@@ -38,6 +41,7 @@ export default function MapOverlay({
     onFindNearby,
     isLocating,
     geoError,
+    loading,
     resultCount,
     resultLabel,
     canClear,
@@ -93,9 +97,10 @@ export default function MapOverlay({
 
             {geoError && <p className={styles.geoError}>{geoError}</p>}
 
-            <div className={styles.resultChip}>
-                <span>
-                    <strong>{resultCount}</strong> {t("map.hotelsSuffix")}
+            <div className={styles.resultChip} aria-busy={loading || undefined}>
+                <span className={styles.resultText}>
+                    {loading ? <Skeleton width={22} height={12} className={styles.resultCountSkeleton} /> : <strong>{resultCount}</strong>}{" "}
+                    {t("map.hotelsSuffix")}
                     {resultLabel}
                 </span>
                 {canClear && (

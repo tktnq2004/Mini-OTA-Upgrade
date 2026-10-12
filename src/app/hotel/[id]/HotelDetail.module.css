@@ -233,6 +233,11 @@
     color: var(--color-text-muted);
 }
 
+/* loading.tsx: dòng phụ dưới tiêu đề, cùng khoảng cách với .roomsHeader p */
+.skeletonSubline {
+    margin-top: 6px;
+}
+
 .roomsGrid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);

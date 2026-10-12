@@ -85,22 +85,12 @@
     font-weight: 600;
 }
 
-.skeleton {
-    height: 210px;
-    border-radius: var(--radius-md);
-    background: linear-gradient(90deg, var(--color-inset), var(--color-panel-raised), var(--color-inset));
-    background-size: 200% 100%;
-    animation: shimmer 1.4s linear infinite;
-}
-
-@keyframes shimmer {
-    to {
-        background-position: -200% 0;
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .skeleton {
-        animation: none;
-    }
+/* Thẻ xương: 4 dòng chữ giữ chỗ cho đoạn trích (.quote). */
+.skeletonLines {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    padding-top: 4px;
+    min-height: 108px;
 }

@@ -326,6 +326,7 @@
     "room.maxGuests": "Tối đa {count} khách",
     "room.moreAmenities": "+{count} tiện ích",
     "room.perNight": "/đêm",
+    "room.loading": "Đang tải phòng...",
     "room.totalForNights": "{total} cho {count} đêm",
     "room.selectButton": "Chọn phòng",
     "room.selected": "Đã chọn",
@@ -389,6 +390,7 @@
     "wishlist.bookThisHotel": "Đặt phòng ở khách sạn này",
 
     "checkout.title": "Đặt phòng",
+    "checkout.loading": "Đang tải thông tin phòng...",
     "checkout.backToHotel": "Quay lại khách sạn",
     "checkout.backToWishlist": "Quay lại phòng đã lưu",
     "checkout.datesTitle": "Chọn ngày",

@@ -24,6 +24,7 @@ import {
 } from "@/components/wishlist/wishlistUtils";
 import controls from "@/styles/controls.module.css";
 import styles from "./wishlist.module.css";
+import WishlistSkeleton from "./WishlistSkeleton";
 
 export default function WishlistView() {
     const { t } = useLanguage();
@@ -98,7 +99,7 @@ export default function WishlistView() {
                 </div>
 
                 {loading ? (
-                    <p className={styles.emptyState}>{t("wishlist.loading")}</p>
+                    <WishlistSkeleton label={t("wishlist.loading")} />
                 ) : groups.length === 0 ? (
                     <div className={styles.emptyState}>
                         <HeartIcon size={32} weight="light" />

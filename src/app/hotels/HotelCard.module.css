@@ -104,3 +104,8 @@
 .bookButton:active {
     transform: translateY(1px);
 }
+
+/* HotelCardSkeleton: giữ chỗ nút "Xem phòng" ở đáy thẻ như .bookButton */
+.skeletonButton {
+    margin-top: auto;
+}

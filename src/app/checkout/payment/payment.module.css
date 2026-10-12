@@ -70,10 +70,6 @@
     background: var(--color-error-soft);
 }
 
-.statusIconWrapMuted {
-    background: var(--color-inset);
-}
-
 .successIcon {
     color: var(--color-success);
     /* Hiệu ứng "nở ra" nhẹ khi vừa chuyển từ spinner sang tick xanh — báo rõ
@@ -84,10 +80,6 @@
 
 .processingIcon {
     color: var(--color-accent-strong);
-}
-
-.mutedIcon {
-    color: var(--color-text-faint);
 }
 
 .errorIcon {
@@ -208,6 +200,13 @@
     display: flex;
     align-items: flex-start;
     gap: 10px;
+}
+
+/* PaymentSkeleton: các dòng xương xếp dọc trong hoá đơn */
+.skeletonStack {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
 }
 
 .invoiceHotelName {

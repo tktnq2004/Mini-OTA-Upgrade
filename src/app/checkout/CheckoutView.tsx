@@ -27,6 +27,7 @@ import { getRoomsAvailability, isRangeBookable, type RoomsAvailability } from "@
 import { createBooking } from "@/lib/booking/resources";
 import controls from "@/styles/controls.module.css";
 import styles from "./checkout.module.css";
+import CheckoutSkeleton from "./CheckoutSkeleton";
 
 export default function CheckoutView() {
     const { t } = useLanguage();
@@ -202,8 +203,13 @@ export default function CheckoutView() {
         return (
             <div className={styles.page}>
                 <SiteHeader />
-                <div className={styles.layout}>
-                    <p className={styles.emptyState}>{t("wishlist.loading")}</p>
+                <div className={styles.layout} aria-busy="true" aria-label={t("checkout.loading")}>
+                    <Link href={backHref} className={styles.backLink}>
+                        <ArrowLeftIcon size={14} weight="bold" />
+                        {cameFromHotel ? t("checkout.backToHotel") : t("checkout.backToWishlist")}
+                    </Link>
+                    <h1 className={styles.title}>{t("checkout.title")}</h1>
+                    <CheckoutSkeleton />
                 </div>
             </div>
         );

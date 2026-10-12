@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { UserCircleIcon } from "@phosphor-icons/react";
 import SiteHeader from "@/components/SiteHeader/SiteHeader";
+import Skeleton from "@/components/Skeleton/Skeleton";
+import FieldSkeleton from "@/components/Skeleton/FieldSkeleton";
 import { useAccount } from "@/components/auth/AccountProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { useCountdown } from "@/hooks/useCountdown";
@@ -123,12 +125,44 @@ export default function AccountView() {
         }
     };
 
+    // Tiêu đề trang là chữ tĩnh — hiện thật ngay cả lúc đang tải, chỉ phần form là xương.
+    const pageHeader = (
+        <div className={styles.header}>
+            <span className={styles.avatar}>
+                <UserCircleIcon size={22} weight="bold" />
+            </span>
+            <div>
+                <h1>{t("account.title")}</h1>
+                <p>{t("account.subtitle")}</p>
+            </div>
+        </div>
+    );
+
     if (!ready || loading) {
         return (
             <div className={styles.page}>
                 <SiteHeader />
-                <div className={styles.layout}>
-                    <p className={styles.emptyState}>{t("account.loading")}</p>
+                <div className={styles.layout} aria-busy="true" aria-label={t("account.loading")}>
+                    {pageHeader}
+                    <div className={styles.card} aria-hidden>
+                        <div className={styles.grid}>
+                            <FieldSkeleton labelWidth={70} />
+                            <FieldSkeleton labelWidth={90} />
+                            <FieldSkeleton labelWidth={40} />
+                            <FieldSkeleton labelWidth={90} />
+                        </div>
+                        <div className={styles.divider} />
+                        <FieldSkeleton labelWidth={130} />
+                        <div className={styles.actions}>
+                            <Skeleton width={120} height={38} />
+                            <Skeleton width={100} height={38} />
+                        </div>
+                    </div>
+                    <div className={styles.card} aria-hidden>
+                        <Skeleton width={150} height={15} />
+                        <Skeleton width="80%" height={12} />
+                        <Skeleton width={160} height={38} />
+                    </div>
                 </div>
             </div>
         );
@@ -150,15 +184,7 @@ export default function AccountView() {
             <SiteHeader />
 
             <div className={styles.layout}>
-                <div className={styles.header}>
-                    <span className={styles.avatar}>
-                        <UserCircleIcon size={22} weight="bold" />
-                    </span>
-                    <div>
-                        <h1>{t("account.title")}</h1>
-                        <p>{t("account.subtitle")}</p>
-                    </div>
-                </div>
+                {pageHeader}
 
                 <form className={styles.card} onSubmit={handleSubmit}>
                     <div className={styles.grid}>

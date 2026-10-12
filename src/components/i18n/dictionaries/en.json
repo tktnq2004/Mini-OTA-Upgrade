@@ -326,6 +326,7 @@
     "room.maxGuests": "Up to {count} guests",
     "room.moreAmenities": "+{count} amenities",
     "room.perNight": "/night",
+    "room.loading": "Loading room...",
     "room.totalForNights": "{total} for {count} nights",
     "room.selectButton": "Select room",
     "room.selected": "Selected",
@@ -389,6 +390,7 @@
     "wishlist.bookThisHotel": "Book rooms at this hotel",
 
     "checkout.title": "Book your stay",
+    "checkout.loading": "Loading room details...",
     "checkout.backToHotel": "Back to hotel",
     "checkout.backToWishlist": "Back to saved rooms",
     "checkout.datesTitle": "Pick your dates",

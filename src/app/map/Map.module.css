@@ -44,6 +44,18 @@
     box-shadow: var(--shadow-pop);
 }
 
+.resultText {
+    display: inline-flex;
+    align-items: center;
+    /* inline-flex bỏ text chỉ có khoảng trắng — giữ dấu cách giữa số và chữ "khách sạn". */
+    white-space: pre-wrap;
+}
+
+/* Chip luôn nền trắng (đè lên bản đồ) nên số xương cũng cố định màu sáng, không theo theme. */
+.resultChip .resultCountSkeleton {
+    background-image: linear-gradient(90deg, #e5e7eb, #f3f4f6, #e5e7eb);
+}
+
 .resultChip strong {
     color: #16181d;
 }

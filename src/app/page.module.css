@@ -189,6 +189,14 @@
     transition: border-color 0.15s ease;
 }
 
+/* Ô điểm đến xương khi đang tải — cùng kích thước ô thật trong .destGrid. */
+.destSkeleton {
+    position: relative;
+    min-height: 140px;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
 .destCard:hover {
     border-color: var(--color-text-faint);
 }

@@ -11,6 +11,7 @@ import {
     NewCardFields,
     NoCards,
     SavedCardRow,
+    SavedCardsSkeleton,
     fieldsError,
     usePaymentAvailable,
     useSavedCards,
@@ -97,7 +98,7 @@ function CardChooser({ ref }: { ref?: Ref<PaymentFormHandle> }) {
         },
     }));
 
-    if (!cards) return <p className={styles.paymentNote}>{t("checkout.cardsLoading")}</p>;
+    if (!cards) return <SavedCardsSkeleton />;
 
     if (!user) return newCardForm;
 

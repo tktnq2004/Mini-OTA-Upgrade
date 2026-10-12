@@ -22,6 +22,7 @@ export default function MapView() {
         setViewMode,
         selectedProvince,
         filteredHotels,
+        loading,
         loadError,
         retry,
         handleFilterSubmit,
@@ -103,6 +104,7 @@ export default function MapView() {
                         onFindNearby={findNearby}
                         isLocating={isLocating}
                         geoError={geoError}
+                        loading={loading}
                         resultCount={filteredHotels.length}
                         resultLabel={resultLabel}
                         canClear={canClear}

@@ -1,51 +1,78 @@
 import { BuildingsIcon, LightningIcon, MapPinAreaIcon, ShieldCheckIcon, type Icon } from "@phosphor-icons/react";
 import CountUp from "@/components/home/CountUp/CountUp";
+import Skeleton from "@/components/Skeleton/Skeleton";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import styles from "./TrustStrip.module.css";
 
 interface TrustStripProps {
-    /** null = chưa có số liệu (API lỗi/đang tải) — hiện câu chữ thay cho con số. */
+    /** null = không có số liệu (API lỗi) — hiện câu chữ thay cho con số. */
     totalHotels: number | null;
     provinceCount: number | null;
+    /** Đang tải — 2 ô số liệu hiện số xương thay vì câu chữ rồi nhảy sang số. */
+    loading?: boolean;
 }
 
 interface Item {
     Icon: Icon;
+    /** Ô số liệu lấy từ API (2 ô đầu) — 2 ô cam kết dịch vụ còn lại luôn là câu chữ. */
+    isStat: boolean;
     value: number | null;
     title: string;
     caption: string;
 }
 
 // Dải tín hiệu tin cậy ngay dưới ô tìm kiếm: 2 con số thật từ API + 2 cam kết dịch vụ.
-export default function TrustStrip({ totalHotels, provinceCount }: TrustStripProps) {
+export default function TrustStrip({ totalHotels, provinceCount, loading = false }: TrustStripProps) {
     const { t } = useLanguage();
     const items: Item[] = [
         {
             Icon: BuildingsIcon,
+            isStat: true,
             value: totalHotels,
             title: t("home.trust.hotelsTitle"),
             caption: t("home.trust.hotels"),
         },
         {
             Icon: MapPinAreaIcon,
+            isStat: true,
             value: provinceCount,
             title: t("home.trust.provincesTitle"),
             caption: t("home.trust.provinces"),
         },
-        { Icon: ShieldCheckIcon, value: null, title: t("home.trust.secureTitle"), caption: t("home.trust.secure") },
-        { Icon: LightningIcon, value: null, title: t("home.trust.instantTitle"), caption: t("home.trust.instant") },
+        {
+            Icon: ShieldCheckIcon,
+            isStat: false,
+            value: null,
+            title: t("home.trust.secureTitle"),
+            caption: t("home.trust.secure"),
+        },
+        {
+            Icon: LightningIcon,
+            isStat: false,
+            value: null,
+            title: t("home.trust.instantTitle"),
+            caption: t("home.trust.instant"),
+        },
     ];
 
     return (
         <div className={styles.wrap}>
             <ul className={styles.strip}>
-                {items.map(({ Icon, value, title, caption }) => (
+                {items.map(({ Icon, isStat, value, title, caption }) => (
                     <li key={title} className={styles.item}>
                         <span className={styles.icon}>
                             <Icon size={20} weight="light" />
                         </span>
                         <span className={styles.text}>
-                            <strong>{value ? <CountUp value={value} /> : title}</strong>
+                            <strong>
+                                {isStat && loading ? (
+                                    <Skeleton width={56} height={18} />
+                                ) : value ? (
+                                    <CountUp value={value} />
+                                ) : (
+                                    title
+                                )}
+                            </strong>
                             <span>{caption}</span>
                         </span>
                     </li>

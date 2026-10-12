@@ -1,0 +1,30 @@
+.skeleton {
+    display: block;
+    flex: none;
+    max-width: 100%;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(90deg, var(--color-inset), var(--color-panel-raised), var(--color-inset));
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.4s linear infinite;
+}
+
+.onInset {
+    background-image: linear-gradient(90deg, var(--color-border), var(--color-panel-raised), var(--color-border));
+}
+
+.fill {
+    position: absolute;
+    inset: 0;
+}
+
+@keyframes skeleton-shimmer {
+    to {
+        background-position: -200% 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton {
+        animation: none;
+    }
+}

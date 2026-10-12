@@ -260,6 +260,23 @@
 }
 
 /* Hàng thẻ không có nút chọn (trang quản lý thẻ). */
+/* SavedCardsSkeleton: cùng khung viền/đệm với .savedCard */
+.savedCardSkeleton {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+}
+
+.savedCardSkeletonText {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
 .savedCardStatic {
     grid-template-columns: 1fr auto auto;
     cursor: default;

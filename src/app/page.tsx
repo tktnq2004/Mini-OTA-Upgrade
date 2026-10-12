@@ -22,6 +22,7 @@ import NewsletterApp from "@/components/home/NewsletterApp/NewsletterApp";
 import BookingJourney from "@/components/home/BookingJourney/BookingJourney";
 import SectionHeading from "@/components/home/SectionHeading/SectionHeading";
 import Reveal from "@/components/home/Reveal/Reveal";
+import Skeleton from "@/components/Skeleton/Skeleton";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { FEATURES } from "@/lib/features";
 import { listHotels } from "@/lib/hotels/resources";
@@ -39,6 +40,9 @@ interface Destination {
 
 // Số điểm đến nổi bật (thẻ ảnh lớn).
 const SECTION_SIZE = 6;
+// Số chip "Phổ biến" dưới ô tìm kiếm + độ rộng chip xương khi đang tải (độ dài tên tỉnh khác nhau).
+const POPULAR_CHIPS = 5;
+const POPULAR_SKELETON_WIDTHS = [72, 88, 64, 96, 80];
 // Số khách sạn mỗi tab "Giá tốt"/"Cao cấp" ở mục Khách sạn nổi bật (2 hàng × 4 cột).
 const FEATURED_SIZE = 8;
 
@@ -59,6 +63,8 @@ export default function Home() {
     const [allHotels, setAllHotels] = useState<Hotel[]>([]);
     const [totalHotels, setTotalHotels] = useState<number | null>(null);
     const [provinceCount, setProvinceCount] = useState<number | null>(null);
+    // Đang tải → các section hiện khung xương giữ chỗ; tải xong mà rỗng/lỗi thì section tự ẩn.
+    const [hotelsLoading, setHotelsLoading] = useState(true);
     // "Đã xem gần đây" đọc từ localStorage (ghi ở HotelDetail.tsx mỗi lần khách mở 1 khách sạn).
     const [recentlyViewed, setRecentlyViewed] = useState<RecentlyViewedHotel[]>([]);
 
@@ -97,7 +103,8 @@ export default function Home() {
                 setDestinations([]);
                 setBudgetHotels([]);
                 setLuxuryHotels([]);
-            });
+            })
+            .finally(() => setHotelsLoading(false));
     }, []);
 
     // localStorage — hệ thống ngoài React, chỉ đọc được ở client sau khi mount.
@@ -138,24 +145,28 @@ export default function Home() {
                         />
                     </div>
 
-                    {destinations.length > 0 && (
-                        <div className={styles.popular}>
+                    {(hotelsLoading || destinations.length > 0) && (
+                        <div className={styles.popular} aria-busy={hotelsLoading || undefined}>
                             <span>{t("home.popularLabel")}</span>
-                            {destinations.slice(0, 5).map((destination) => (
-                                <Link
-                                    key={destination.id}
-                                    href={`/map?province=${destination.id}`}
-                                    className={styles.popularChip}
-                                >
-                                    {destination.name}
-                                </Link>
-                            ))}
+                            {hotelsLoading
+                                ? POPULAR_SKELETON_WIDTHS.map((width, i) => (
+                                      <Skeleton key={i} width={width} height={28} radius="var(--radius-pill)" />
+                                  ))
+                                : destinations.slice(0, POPULAR_CHIPS).map((destination) => (
+                                      <Link
+                                          key={destination.id}
+                                          href={`/map?province=${destination.id}`}
+                                          className={styles.popularChip}
+                                      >
+                                          {destination.name}
+                                      </Link>
+                                  ))}
                         </div>
                     )}
                 </div>
 
                 <div className={styles.trustDock}>
-                    <TrustStrip totalHotels={totalHotels} provinceCount={provinceCount} />
+                    <TrustStrip totalHotels={totalHotels} provinceCount={provinceCount} loading={hotelsLoading} />
                 </div>
             </section>
 
@@ -173,7 +184,7 @@ export default function Home() {
                     </section>
                 )}
 
-                {budgetHotels.length > 0 && (
+                {(hotelsLoading || budgetHotels.length > 0) && (
                     <section className={styles.section}>
                         <SectionHeading
                             eyebrow={t("home.eyebrow.featured")}
@@ -186,6 +197,7 @@ export default function Home() {
                             luxury={luxuryHotels}
                             all={allHotels}
                             destinations={destinations}
+                            loading={hotelsLoading}
                         />
                     </section>
                 )}
@@ -201,7 +213,7 @@ export default function Home() {
                     </section>
                 )}
 
-                {destinations.length > 0 && (
+                {(hotelsLoading || destinations.length > 0) && (
                     <section className={styles.section}>
                         <SectionHeading
                             eyebrow={t("home.eyebrow.destinations")}
@@ -209,36 +221,47 @@ export default function Home() {
                             subtitle={t("home.destinationsSubtitle")}
                             action={{ href: "/map", label: t("home.viewAll") }}
                         />
-                        <Reveal stagger className={styles.destGrid}>
-                            {destinations.map((destination) => (
-                                <Link
-                                    key={destination.id}
-                                    href={`/map?province=${destination.id}`}
-                                    className={styles.destCard}
-                                >
-                                    <ImageWithFallback
-                                        src={destinationImage(destination.id)}
-                                        alt={destination.name}
-                                        className={styles.destImg}
-                                        fallbackClassName={styles.destImgFallback}
-                                        fallback={<BuildingsIcon size={24} weight="light" />}
-                                    />
-                                    <div className={styles.destOverlay} />
-                                    <div className={styles.destInfo}>
-                                        <span className={styles.destName}>{destination.name}</span>
-                                        <span className={styles.destCount}>
-                                            {t("home.hotelsCount", { count: destination.hotelCount })}
-                                        </span>
+                        {hotelsLoading ? (
+                            <div className={styles.destGrid} aria-busy="true" aria-label={t("hotels.loading")}>
+                                {Array.from({ length: SECTION_SIZE }, (_, i) => (
+                                    <div key={i} className={styles.destSkeleton} aria-hidden>
+                                        <Skeleton fill />
                                     </div>
-                                </Link>
-                            ))}
-                        </Reveal>
+                                ))}
+                            </div>
+                        ) : (
+                            <Reveal stagger className={styles.destGrid}>
+                                {destinations.map((destination) => (
+                                    <Link
+                                        key={destination.id}
+                                        href={`/map?province=${destination.id}`}
+                                        className={styles.destCard}
+                                    >
+                                        <ImageWithFallback
+                                            src={destinationImage(destination.id)}
+                                            alt={destination.name}
+                                            className={styles.destImg}
+                                            fallbackClassName={styles.destImgFallback}
+                                            fallback={<BuildingsIcon size={24} weight="light" />}
+                                        />
+                                        <div className={styles.destOverlay} />
+                                        <div className={styles.destInfo}>
+                                            <span className={styles.destName}>{destination.name}</span>
+                                            <span className={styles.destCount}>
+                                                {t("home.hotelsCount", { count: destination.hotelCount })}
+                                            </span>
+                                        </div>
+                                    </Link>
+                                ))}
+                            </Reveal>
+                        )}
                     </section>
                 )}
 
                 <WeekendGetaways
                     hotels={allHotels}
                     destinations={destinations}
+                    loading={hotelsLoading}
                     sectionClassName={styles.section}
                     heading={
                         <SectionHeading
@@ -249,13 +272,17 @@ export default function Home() {
                     }
                 />
 
-                <RegionDestinations hotels={allHotels} sectionClassName={styles.section} />
+                <RegionDestinations hotels={allHotels} loading={hotelsLoading} sectionClassName={styles.section} />
 
                 <section className={styles.section}>
                     <TourShowcase hotels={allHotels} />
                 </section>
 
-                <GuestReviews hotels={[...luxuryHotels, ...budgetHotels]} sectionClassName={styles.section} />
+                <GuestReviews
+                    hotels={[...luxuryHotels, ...budgetHotels]}
+                    loading={hotelsLoading}
+                    sectionClassName={styles.section}
+                />
 
                 <section className={styles.section}>
                     <SectionHeading

@@ -19,6 +19,9 @@ import { formatDateVn, formatVnd } from "@/lib/format";
 import { nightsBetween } from "@/lib/searchFilters";
 import controls from "@/styles/controls.module.css";
 import styles from "../account.module.css";
+import BookingCardSkeleton from "./BookingCardSkeleton";
+
+const SKELETON_CARDS = 3;
 
 // paymentStatus -> màu nhãn. Giá trị lạ thì dùng nhãn xám mặc định.
 const STATUS_CLASS: Record<string, string> = {
@@ -67,7 +70,11 @@ export default function BookingsView() {
   return (
     <div className={styles.page}>
       <SiteHeader />
-      <div className={styles.layout}>
+      <div
+        className={styles.layout}
+        aria-busy={!ready || loading || undefined}
+        aria-label={!ready || loading ? t("bookings.loading") : undefined}
+      >
         <div className={styles.header}>
           <span className={styles.avatar}>
             <SuitcaseRollingIcon size={20} weight="bold" />
@@ -79,7 +86,7 @@ export default function BookingsView() {
         </div>
 
         {!ready || loading ? (
-          <p className={styles.emptyState}>{t("bookings.loading")}</p>
+          Array.from({ length: SKELETON_CARDS }, (_, i) => <BookingCardSkeleton key={i} />)
         ) : loadError ? (
           <p className={controls.error}>{loadError}</p>
         ) : bookings.length === 0 ? (

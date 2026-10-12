@@ -29,6 +29,7 @@ import CardPayment, { type PaymentFormHandle } from "../PaymentForm";
 import controls from "@/styles/controls.module.css";
 import checkoutStyles from "../checkout.module.css";
 import styles from "./payment.module.css";
+import PaymentSkeleton from "./PaymentSkeleton";
 
 // Poll chờ webhook Stripe + webhook backend (markPaid) xác nhận thật, SAU KHI
 // đã confirm xong phía Stripe (client-side). SLOW_AFTER_MS: đổi câu chữ báo
@@ -306,15 +307,12 @@ export default function PaymentView() {
         <div className={styles.page}>
             <SiteHeader />
             <div className={styles.layout}>
-                <div className={styles.card}>
-                    {state === "loading" && (
-                        <div className={styles.statusBlock}>
-                            <div className={`${styles.statusIconWrap} ${styles.statusIconWrapMuted}`}>
-                                <CircleNotchIcon size={32} className={`${styles.spin} ${styles.mutedIcon}`} />
-                            </div>
-                            <p className={styles.statusHint}>{t("checkoutPayment.loading")}</p>
-                        </div>
-                    )}
+                <div
+                    className={styles.card}
+                    aria-busy={state === "loading" || undefined}
+                    aria-label={state === "loading" ? t("checkoutPayment.loading") : undefined}
+                >
+                    {state === "loading" && <PaymentSkeleton />}
 
                     {state === "error" && (
                         <div className={styles.statusBlock}>

@@ -140,6 +140,13 @@
     gap: 10px;
 }
 
+/* BookingCardSkeleton: mã đơn + ngày đặt xếp dọc như phần đầu thẻ thật */
+.skeletonStack {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
 .bookingHead strong {
     font-size: 14px;
     font-weight: 700;

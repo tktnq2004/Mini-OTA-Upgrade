@@ -11,6 +11,7 @@ import {
     AddCardForm,
     NoCards,
     SavedCardRow,
+    SavedCardsSkeleton,
     usePaymentAvailable,
     useSavedCards,
 } from "@/components/payment/CardForms";
@@ -48,7 +49,7 @@ export default function PaymentMethodsView() {
                     {!available ? (
                         <p className={cardStyles.note}>{t("paymentMethods.unavailable")}</p>
                     ) : !ready || !user || !cards ? (
-                        <p className={cardStyles.note}>{t("checkout.cardsLoading")}</p>
+                        <SavedCardsSkeleton />
                     ) : (
                         <div className={cardStyles.cardSection}>
                             <p className={cardStyles.cardSectionTitle}>{t("checkout.yourCards")}</p>

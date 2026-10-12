@@ -17,6 +17,7 @@ import { useHotelFilters } from "@/hooks/useHotelFilters";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { haversineDistanceKm } from "@/lib/geo";
 import HotelCard from "./HotelCard";
+import HotelCardSkeleton from "./HotelCardSkeleton";
 import LoadError from "@/components/LoadError/LoadError";
 import styles from "./HotelsView.module.css";
 
@@ -182,7 +183,7 @@ export default function HotelsView() {
                 {loading ? (
                     <div className={styles.grid} aria-busy="true" aria-label={t("hotels.loading")}>
                         {Array.from({ length: 8 }, (_, i) => (
-                            <div key={i} className={styles.skeleton} />
+                            <HotelCardSkeleton key={i} />
                         ))}
                     </div>
                 ) : loadError ? (

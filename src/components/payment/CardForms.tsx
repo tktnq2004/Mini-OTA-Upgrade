@@ -6,6 +6,7 @@ import type { StripeElementChangeEvent } from "@stripe/stripe-js";
 import { PlusIcon, TrashIcon } from "@phosphor-icons/react";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
+import Skeleton from "@/components/Skeleton/Skeleton";
 import {
     CardPaymentError,
     createCardSetup,
@@ -186,6 +187,25 @@ export function SavedCardRow({ card, onRemove, select }: SavedCardRowProps) {
     if (!select) return <div className={`${styles.savedCard} ${styles.savedCardStatic}`}>{content}</div>;
     return (
         <label className={`${styles.savedCard} ${select.checked ? styles.savedCardActive : ""}`}>{content}</label>
+    );
+}
+
+// Khung xương danh sách thẻ đã lưu trong lúc chờ API (trang Phương thức thanh toán + checkout).
+export function SavedCardsSkeleton({ rows = 2 }: { rows?: number }) {
+    const { t } = useLanguage();
+    return (
+        <div className={styles.cardSection} aria-busy="true" aria-label={t("checkout.cardsLoading")}>
+            <Skeleton width={90} height={12} />
+            {Array.from({ length: rows }, (_, i) => (
+                <div key={i} className={styles.savedCardSkeleton} aria-hidden>
+                    <div className={styles.savedCardSkeletonText}>
+                        <Skeleton width={130} height={13} />
+                        <Skeleton width={90} height={11} />
+                    </div>
+                    <Skeleton width={30} height={30} />
+                </div>
+            ))}
+        </div>
     );
 }
 

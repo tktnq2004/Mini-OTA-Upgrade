@@ -212,6 +212,13 @@
     padding-bottom: 0;
 }
 
+/* CheckoutSkeleton: tên + địa chỉ khách sạn xếp dọc như .summaryHotelText */
+.skeletonStack {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
 .summaryHotelHead {
     display: flex;
     align-items: center;

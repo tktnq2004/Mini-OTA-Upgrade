@@ -5,6 +5,7 @@ import Link from "next/link";
 import { QuotesIcon, StarIcon } from "@phosphor-icons/react";
 import SectionHeading from "@/components/home/SectionHeading/SectionHeading";
 import Scroller from "@/components/home/Scroller/Scroller";
+import Skeleton from "@/components/Skeleton/Skeleton";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { listHotelReviews } from "@/lib/hotels/resources";
 import type { Hotel, Review } from "@/lib/hotels/types";
@@ -15,7 +16,11 @@ interface GuestReviewsProps {
     hotels: Hotel[];
     /** Class nền/đệm của section (từ page) — component tự render <section> để tự ẩn khi rỗng. */
     sectionClassName: string;
+    /** Trang chủ đang tải danh sách khách sạn — hiện sẵn thẻ xương thay vì ẩn rồi bật ra. */
+    loading?: boolean;
 }
+
+const SKELETON_CARDS = 3;
 
 // Lấy review của tối đa ngần ấy khách sạn (mỗi khách sạn 1 request) để chọn trích dẫn.
 const HOTELS_TO_SAMPLE = 6;
@@ -32,7 +37,7 @@ interface QuotedReview extends Review {
  * "Khách nói gì về Trạm OTA" — trích review THẬT từ API của vài khách sạn nổi bật. Chỉ gọi API khi
  * section cuộn tới gần (không làm chậm lần tải đầu), và ẩn hẳn nếu không có review đủ tốt.
  */
-export default function GuestReviews({ hotels, sectionClassName }: GuestReviewsProps) {
+export default function GuestReviews({ hotels, sectionClassName, loading = false }: GuestReviewsProps) {
     const { t, language } = useLanguage();
     const ref = useRef<HTMLElement>(null);
     const [reviews, setReviews] = useState<QuotedReview[] | null>(null);
@@ -76,12 +81,12 @@ export default function GuestReviews({ hotels, sectionClassName }: GuestReviewsP
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [sampleKey]);
 
-    if (!sampleKey || (reviews && reviews.length === 0)) return null;
+    if (!loading && (!sampleKey || (reviews && reviews.length === 0))) return null;
 
     const average = reviews?.length ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : null;
 
     return (
-        <section ref={ref} className={sectionClassName}>
+        <section ref={ref} className={sectionClassName} aria-busy={!reviews || undefined}>
             <SectionHeading
                 eyebrow={t("home.reviews.eyebrow")}
                 title={t("home.reviews.title")}
@@ -118,7 +123,24 @@ export default function GuestReviews({ hotels, sectionClassName }: GuestReviewsP
                               </figcaption>
                           </figure>
                       ))
-                    : Array.from({ length: 3 }, (_, i) => <div key={i} className={styles.skeleton} />)}
+                    : Array.from({ length: SKELETON_CARDS }, (_, i) => (
+                          <div key={i} className={styles.card} aria-hidden>
+                              <Skeleton width={84} height={14} />
+                              <div className={styles.skeletonLines}>
+                                  <Skeleton height={13} />
+                                  <Skeleton height={13} />
+                                  <Skeleton height={13} />
+                                  <Skeleton width="60%" height={13} />
+                              </div>
+                              <div className={styles.author}>
+                                  <Skeleton width={34} height={34} circle />
+                                  <div className={styles.who}>
+                                      <Skeleton width={110} height={13} />
+                                      <Skeleton width={160} height={11} />
+                                  </div>
+                              </div>
+                          </div>
+                      ))}
             </Scroller>
         </section>
     );

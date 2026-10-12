@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowRightIcon, BuildingsIcon, CalendarBlankIcon } from "@phosphor-icons/react";
 import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
 import Reveal from "@/components/home/Reveal/Reveal";
+import Skeleton from "@/components/Skeleton/Skeleton";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import type { Hotel } from "@/lib/hotels/types";
 import { formatCompactVnd, formatDateVn, formatVnd } from "@/lib/format";
@@ -37,13 +38,21 @@ interface WeekendGetawaysProps {
     /** Class nền/đệm của section (từ page) — component tự render <section> để tự ẩn khi rỗng. */
     sectionClassName: string;
     heading: React.ReactNode;
+    /** Đang tải danh sách khách sạn — giữ chỗ bằng thẻ xương thay vì ẩn rồi bật ra. */
+    loading?: boolean;
 }
 
 /**
  * "Cuối tuần này đi đâu?" — chọn mốc (cuối tuần này / tuần sau / tháng sau), mỗi thẻ điểm đến
  * mở thẳng danh sách khách sạn của tỉnh đó với ngày nhận/trả + số khách đã điền sẵn.
  */
-export default function WeekendGetaways({ hotels, destinations, sectionClassName, heading }: WeekendGetawaysProps) {
+export default function WeekendGetaways({
+    hotels,
+    destinations,
+    sectionClassName,
+    heading,
+    loading = false,
+}: WeekendGetawaysProps) {
     const { t, language } = useLanguage();
 
     const presets = useMemo(() => {
@@ -76,7 +85,7 @@ export default function WeekendGetaways({ hotels, destinations, sectionClassName
 
     const [activeKey, setActiveKey] = useState(presets[0].key);
     const active = presets.find((p) => p.key === activeKey) ?? presets[0];
-    if (cards.length === 0) return null;
+    if (!loading && cards.length === 0) return null;
 
     // "17/10 – 19/10" — chỉ ngày/tháng cho gọn.
     const shortRange = (checkin: string, checkout: string) =>
@@ -102,56 +111,79 @@ export default function WeekendGetaways({ hotels, destinations, sectionClassName
                     ))}
                 </div>
 
-                <Reveal stagger className={styles.grid} key={active.key}>
-                    {cards.map((card) => {
-                        const params = filtersToSearchParams({
-                            provinceId: card.id,
-                            wardId: null,
-                            checkin: active.checkin,
-                            checkout: active.checkout,
-                            guests: GUESTS,
-                        });
-                        return (
-                            <Link key={card.id} href={`/hotels?${params.toString()}`} className={styles.card}>
+                {loading ? (
+                    <div className={styles.grid} aria-busy="true" aria-label={t("hotels.loading")}>
+                        {Array.from({ length: MAX_CARDS }, (_, i) => (
+                            <div key={i} className={styles.card} aria-hidden>
                                 <span className={styles.thumb}>
-                                    <ImageWithFallback
-                                        src={card.image}
-                                        alt={card.name}
-                                        className={styles.img}
-                                        fallbackClassName={styles.img}
-                                        fallback={<BuildingsIcon size={24} weight="light" />}
-                                    />
-                                    <span className={styles.dates}>
-                                        <CalendarBlankIcon size={12} weight="bold" />
-                                        {t("home.weekend.nights", { nights: NIGHTS })}
-                                    </span>
+                                    <Skeleton fill />
                                 </span>
                                 <span className={styles.body}>
-                                    <strong className={styles.name}>{card.name}</strong>
-                                    <span className={styles.meta}>
-                                        {t("home.hotelsCount", { count: card.hotelCount })}
+                                    <Skeleton width="55%" height={17} />
+                                    <Skeleton width="35%" height={12} />
+                                    <span className={styles.price}>
+                                        <Skeleton width="60%" height={15} />
                                     </span>
-                                    {card.minPrice !== null && (
-                                        <span className={styles.price}>
-                                            {t("home.weekend.from")} <strong>{formatCompactVnd(card.minPrice)}</strong>
-                                            {t("room.perNight")}
-                                            <span className={styles.total}>
-                                                {t("home.weekend.total", {
-                                                    nights: NIGHTS,
-                                                    total: formatVnd(card.minPrice * NIGHTS),
-                                                })}
-                                            </span>
-                                        </span>
-                                    )}
                                     <span className={styles.cta}>
-                                        {t("home.weekend.cta")}
-                                        <ArrowRightIcon size={13} weight="bold" />
+                                        <Skeleton width={110} height={13} />
                                     </span>
                                 </span>
-                            </Link>
-                        );
-                    })}
-                </Reveal>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <Reveal stagger className={styles.grid} key={active.key}>
+                        {cards.map((card) => {
+                            const params = filtersToSearchParams({
+                                provinceId: card.id,
+                                wardId: null,
+                                checkin: active.checkin,
+                                checkout: active.checkout,
+                                guests: GUESTS,
+                            });
+                            return (
+                                <Link key={card.id} href={`/hotels?${params.toString()}`} className={styles.card}>
+                                    <span className={styles.thumb}>
+                                        <ImageWithFallback
+                                            src={card.image}
+                                            alt={card.name}
+                                            className={styles.img}
+                                            fallbackClassName={styles.img}
+                                            fallback={<BuildingsIcon size={24} weight="light" />}
+                                        />
+                                        <span className={styles.dates}>
+                                            <CalendarBlankIcon size={12} weight="bold" />
+                                            {t("home.weekend.nights", { nights: NIGHTS })}
+                                        </span>
+                                    </span>
+                                    <span className={styles.body}>
+                                        <strong className={styles.name}>{card.name}</strong>
+                                        <span className={styles.meta}>
+                                            {t("home.hotelsCount", { count: card.hotelCount })}
+                                        </span>
+                                        {card.minPrice !== null && (
+                                            <span className={styles.price}>
+                                                {t("home.weekend.from")}{" "}
+                                                <strong>{formatCompactVnd(card.minPrice)}</strong>
+                                                {t("room.perNight")}
+                                                <span className={styles.total}>
+                                                    {t("home.weekend.total", {
+                                                        nights: NIGHTS,
+                                                        total: formatVnd(card.minPrice * NIGHTS),
+                                                    })}
+                                                </span>
+                                            </span>
+                                        )}
+                                        <span className={styles.cta}>
+                                            {t("home.weekend.cta")}
+                                            <ArrowRightIcon size={13} weight="bold" />
+                                        </span>
+                                    </span>
+                                </Link>
+                            );
+                        })}
+                    </Reveal>
+                )}
             </div>
         </section>
     );

@@ -40,7 +40,8 @@
     color: var(--color-accent-ink);
 }
 
-.grid {
+.grid,
+.skeletonGrid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 14px;
@@ -63,20 +64,36 @@
 }
 
 @media (max-width: 1080px) {
-    .grid {
+    .grid,
+    .skeletonGrid {
         grid-template-columns: repeat(3, 1fr);
+    }
+
+    /* 4 thẻ xương trên lưới 3 cột thì thẻ thứ 4 lẻ loi sang hàng 2 — ẩn đi. */
+    .skeletonGrid > :nth-child(n + 4) {
+        display: none;
     }
 }
 
 @media (max-width: 780px) {
-    .grid {
+    .grid,
+    .skeletonGrid {
         grid-template-columns: repeat(2, 1fr);
+    }
+
+    .skeletonGrid > :nth-child(n + 3) {
+        display: none;
     }
 }
 
 @media (max-width: 520px) {
-    .grid {
+    .grid,
+    .skeletonGrid {
         grid-template-columns: 1fr;
+    }
+
+    .skeletonGrid > :nth-child(n + 2) {
+        display: none;
     }
 }
 
