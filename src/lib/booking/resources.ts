@@ -1,6 +1,7 @@
 "use client";
 
 import { unwrapResponse } from "@/lib/hotels/envelope";
+import type { DiscountUnit } from "@/lib/booking/discount";
 
 // Tạo booking. QUY TẮC: 1 request = 1 booking = 1 khách sạn + 1 khoảng ngày
 // (check-in/check-out CHUNG) + N phòng. Muốn đặt khách sạn khác thì đặt thêm
@@ -29,8 +30,24 @@ export interface CreateBookingResult {
   checkIn: string;
   checkOut: string;
   status: "Pending" | "Completed" | "Cancelled";
+  // Nghĩa cũ: tổng giá 1 ĐÊM của các phòng, chưa nhân số đêm, chưa trừ khuyến
+  // mãi. Chỉ còn dùng làm fallback khi backend chưa trả payableAmount.
   totalAmount: number;
-  rooms: { roomId: number; roomName: string; pricePerNight: number }[];
+  // Khuyến mãi (docs/DISCOUNT_API.md mục 5) — đều tính cho CẢ kỳ ở. Optional
+  // tới khi backend triển khai; dùng bookingPayable() thay vì đọc trực tiếp.
+  nights?: number;
+  subtotalAmount?: number;
+  discountAmount?: number;
+  payableAmount?: number;
+  rooms: {
+    roomId: number;
+    roomName: string;
+    pricePerNight: number;
+    subtotal?: number;
+    discountAmount?: number;
+    total?: number;
+    discounts?: BookingRoomDiscount[];
+  }[];
   hotelName?: string;
   hotelAddress?: string;
   // Khách vãng lai: lấy từ Booking.guest*. Đã đăng nhập: backend tự lấy từ
@@ -39,6 +56,22 @@ export interface CreateBookingResult {
   guestFullName?: string;
   guestEmail?: string;
   guestPhone?: string;
+}
+
+// 1 khuyến mãi backend đã áp cho 1 phòng của booking (snapshot lúc tạo).
+export interface BookingRoomDiscount {
+  discountId: number | null;
+  name: string;
+  discountValue: number;
+  discountUnit: DiscountUnit;
+  nights: number;
+  amount: number;
+}
+
+// Số tiền khách phải trả cho cả kỳ ở. Backend có payableAmount (đã trừ
+// khuyến mãi) thì dùng luôn; chưa có thì lùi về cách cũ totalAmount × số đêm.
+export function bookingPayable(booking: Pick<CreateBookingResult, "payableAmount" | "totalAmount">, nights: number): number {
+  return booking.payableAmount ?? booking.totalAmount * Math.max(nights, 1);
 }
 
 // POST /api/v1/bookings (qua proxy /api/public/bookings, tự gắn token nếu đã

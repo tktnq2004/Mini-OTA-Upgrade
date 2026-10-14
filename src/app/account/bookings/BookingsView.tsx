@@ -162,8 +162,15 @@ export default function BookingsView() {
                 )}
 
                 <div className={styles.bookingTotal}>
-                  <span>{t("wishlist.summaryTotal")}</span>
-                  <strong>{formatVnd(b.amount * Math.max(nights, 1))}</strong>
+                  <span>
+                    {t("wishlist.summaryTotal")}
+                    {b.discountAmount ? (
+                      <span className={styles.bookingSaved}>
+                        {t("discount.youSave", { amount: formatVnd(b.discountAmount) })}
+                      </span>
+                    ) : null}
+                  </span>
+                  <strong>{formatVnd(b.payableAmount ?? b.amount * Math.max(nights, 1))}</strong>
                 </div>
               </article>
             );

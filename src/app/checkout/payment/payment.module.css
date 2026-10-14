@@ -336,3 +336,32 @@
     font-size: 11.5px;
     color: var(--color-text-faint);
 }
+
+/* Khuyến mãi trên hoá đơn: dòng giảm dưới từng phòng (thụt vào ngang tên
+   phòng, sau icon giường) + tạm tính / tổng khuyến mãi trên dòng tổng. */
+.invoiceDiscountRow {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 11.5px;
+    color: var(--color-error);
+}
+
+.invoiceRooms .invoiceDiscountRow {
+    padding-left: 22px;
+    margin-top: 2px;
+}
+
+.invoiceDiscountSummary {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12.5px;
+    color: var(--color-text-muted);
+}
+
+.invoiceDiscountSummary > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}

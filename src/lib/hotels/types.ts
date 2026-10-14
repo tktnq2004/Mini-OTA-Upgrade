@@ -2,6 +2,8 @@
 // (GET /hotels, /rooms/{id}, /amenity, /view...) — thay cho dữ liệu mock cũ
 // ở src/data/hotels.data.ts / rooms.data.ts (đã xoá).
 
+import type { RoomDiscount } from "@/lib/booking/discount";
+
 export interface Province {
   id: string;
   name: string;
@@ -59,6 +61,10 @@ export interface Room {
   minDate?: string;
   maxDate?: string;
   unavailableRanges?: { startDate: string; endDate: string }[];
+  // Khuyến mãi đang bật + chưa hết hạn của phòng này (docs/DISCOUNT_API.md
+  // mục 4). Optional vì backend chưa trả field này — thiếu thì coi như không
+  // có khuyến mãi. Giá sau giảm tính ở lib/booking/discount.ts.
+  discounts?: RoomDiscount[];
 }
 
 export interface Hotel {

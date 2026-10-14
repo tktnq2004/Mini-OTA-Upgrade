@@ -297,3 +297,10 @@
         flex: 1 1 100%;
     }
 }
+
+.roomPriceOriginal {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--color-text-faint);
+}

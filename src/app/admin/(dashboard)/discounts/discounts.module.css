@@ -1,0 +1,95 @@
+/* Trang Khuyến mãi — chỉ phần riêng của trang này; khung chung (card, table,
+   toolbar, pickerChip...) dùng lại adminPage.module.css. */
+
+.scopeNote {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: var(--radius-pill);
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+    font-size: 12.5px;
+    font-weight: 600;
+}
+
+.hint {
+    font-size: 11.5px;
+    color: var(--color-text-faint);
+    margin-top: 4px;
+}
+
+.scopeOptions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 10px;
+}
+
+.roomChipPrice {
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--color-text-muted);
+}
+
+.roomChipPrice s {
+    color: var(--color-text-faint);
+    margin-right: 4px;
+}
+
+.preview {
+    margin-top: 14px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--color-inset);
+    font-size: 12.5px;
+    color: var(--color-text-muted);
+}
+
+.preview strong {
+    color: var(--color-text);
+}
+
+.dateCell {
+    white-space: nowrap;
+}
+
+.roomsCell {
+    font-size: 12.5px;
+    color: var(--color-text-muted);
+}
+
+/* Trạng thái tính từ ngày + cờ active: Đang chạy / Sắp diễn ra / Đã kết thúc / Tạm tắt */
+.status {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: var(--radius-pill);
+    font-size: 11.5px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.statusRunning {
+    composes: status;
+    background: var(--color-success-soft);
+    color: var(--color-success);
+}
+
+.statusUpcoming {
+    composes: status;
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+}
+
+/* composes chỉ dùng được trong selector 1 class, nên tách 2 khối giống nhau. */
+.statusEnded {
+    composes: status;
+    background: var(--color-panel-raised);
+    color: var(--color-text-faint);
+}
+
+.statusPaused {
+    composes: status;
+    background: var(--color-panel-raised);
+    color: var(--color-text-faint);
+}

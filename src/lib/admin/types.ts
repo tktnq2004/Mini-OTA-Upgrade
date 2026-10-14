@@ -93,13 +93,6 @@ export interface RoomType {
   roomTypeName: string;
 }
 
-export interface DiscountDetail {
-  id: number;
-  startDate: string;
-  endDate: string;
-  discounts: Discount;
-}
-
 // Room response KHÔNG bao giờ chứa hotel/roomType/views (đều @JsonIgnore bên
 // Java) — dù 3 field đó là bắt buộc lúc tạo. Không có cách nào đọc lại từ
 // API, phải tự nhớ hoặc tra qua hotel.rooms.
@@ -117,7 +110,6 @@ export interface Room {
   updatedAt?: string;
   images?: RoomImage[];
   amenities?: Amenity[];
-  discountDetails?: DiscountDetail[];
 }
 
 export interface RoomInput {
@@ -212,15 +204,37 @@ export interface UserInput {
 
 export type DiscountUnit = "PERCENT" | "FIXED_AMOUNT";
 
+// Khuyến mãi 1 lớp, quản lý theo từng hotel (docs/DISCOUNT_API.md mục 2).
+// startDate/endDate: đêm đầu / đêm CUỐI được giảm (bao gồm cả 2 đầu).
+// roomIds rỗng = áp dụng mọi phòng của hotel (kể cả phòng thêm sau).
 export interface Discount {
   id: number;
-  discountValue: number;
-  unit: DiscountUnit;
-}
-
-export interface DiscountInput {
+  hotelId: number;
+  hotelName?: string | null;
+  name: string;
   discountValue: number;
   discountUnit: DiscountUnit;
+  startDate: string;
+  endDate: string;
+  active: boolean;
+  roomIds: number[];
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: string;
+}
+
+// Body POST /discounts và PUT /discounts/{id}. hotelId: admin hệ thống
+// (hotelId = 0) bắt buộc chọn; owner/staff gửi hotel của chính mình, backend
+// tự ép về hotel người gọi. Lúc sửa backend bỏ qua hotelId (không đổi hotel).
+export interface DiscountInput {
+  hotelId: number | null;
+  name: string;
+  discountValue: number;
+  discountUnit: DiscountUnit;
+  startDate: string;
+  endDate: string;
+  roomIds: number[];
+  active: boolean;
 }
 
 export interface Permission {

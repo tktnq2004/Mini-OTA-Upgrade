@@ -216,3 +216,21 @@
 .bookNowButton:active {
     transform: translateY(1px);
 }
+
+/* Khuyến mãi: badge "-20%" góc phải ảnh + tag đầy đủ trong thân thẻ + giá
+   gốc gạch ngang phía trên giá sau giảm. */
+.discountBadge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+}
+
+.discountRow {
+    display: flex;
+    min-width: 0;
+}
+
+.priceOriginal {
+    font-size: 11.5px;
+    color: var(--color-text-faint);
+}

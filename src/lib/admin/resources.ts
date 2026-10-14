@@ -147,17 +147,22 @@ export const deleteUser = (id: number) => adminDelete<void>(`admin/users/${id}`)
 // endpoint này permitAll và không đọc token.
 export const sendUserPasswordResetLink = (email: string) => adminPost<void>("auth/forgot-password", { email });
 
-export const listDiscounts = () => adminGet<Discount[]>("discounts");
+// ---- Discounts (docs/DISCOUNT_API.md mục 3) ----
+// Phạm vi hotel do BACKEND quyết định theo người gọi: admin hệ thống (hotelId
+// = 0) thấy tất cả và có thể lọc 1 hotel qua param hotelId; owner/staff luôn
+// chỉ nhận discount của hotel mình, param hotelId bị bỏ qua.
+export interface DiscountListParams extends ListParams {
+  hotelId?: number | null;
+}
+export const listDiscounts = ({ page = 1, size = 10, query, hotelId }: DiscountListParams = {}) => {
+  const params = new URLSearchParams(buildListQuery({ page, size, query }, "name"));
+  if (hotelId) params.set("hotelId", String(hotelId));
+  return adminGet<Paginated<Discount>>(`discounts?${params.toString()}`);
+};
 export const getDiscount = (id: number) => adminGet<Discount>(`discounts/${id}`);
 export const createDiscount = (input: DiscountInput) => adminPost<Discount>("discounts", input);
-export const updateDiscount = (id: number, input: Partial<DiscountInput>) =>
-  adminPut<Discount>("discounts", { id, ...input });
+export const updateDiscount = (id: number, input: DiscountInput) => adminPut<Discount>(`discounts/${id}`, input);
 export const deleteDiscount = (id: number) => adminDelete<void>(`discounts/${id}`);
-export const attachDiscountToRoom = (roomId: number, discountId: number, startDate: string, endDate: string) =>
-  adminPost<Room>(`room/${roomId}/discounts`, [{ discountId, startDate, endDate }]);
-
-export const detachDiscountFromRoom = (roomId: number, discountIds: number[]) =>
-  adminFetch<void>("discounts", { method: "DELETE", body: JSON.stringify({ roomId, discountId: discountIds }) });
 
 export const listRoles = () => adminGet<Role[]>("roles");
 export const getRole = (id: number) => adminGet<Role>(`roles/${id}`);

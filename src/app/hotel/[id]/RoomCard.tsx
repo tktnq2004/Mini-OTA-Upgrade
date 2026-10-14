@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { BedIcon, UsersIcon, CheckIcon } from "@phosphor-icons/react";
 import type { Room } from "@/lib/hotels/types";
 import { formatVnd } from "@/lib/format";
+import { nightReduction, quoteRoom } from "@/lib/booking/discount";
+import DiscountTag from "@/components/DiscountTag/DiscountTag";
 import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { useWishlist } from "@/components/wishlist/WishlistProvider";
@@ -31,7 +33,13 @@ export default function RoomCard({ hotelId, room, coverImage, nights, checkin, c
     const selected = isSaved(hotelId, room.id);
     const visibleAmenities = room.amenities.slice(0, VISIBLE_AMENITIES);
     const extraCount = room.amenities.length - visibleAmenities.length;
-    const total = room.price * nights;
+    // Giá xem trước sau khuyến mãi cho đúng kỳ ở đang chọn — số thật do
+    // backend chốt lúc tạo booking (xem lib/booking/discount.ts).
+    const quote = quoteRoom(room, checkin, checkout);
+    const headline = quote.applied[0] ?? null;
+    const discountedNights = quote.applied.reduce((sum, a) => sum + a.nights, 0);
+    const nightlyPrice = headline ? room.price - nightReduction(room.price, headline.discount) : room.price;
+    const total = quote.nights > 0 ? quote.total : room.price * nights;
     const detailHref = `/hotel/${hotelId}/room/${room.id}?${new URLSearchParams({
         checkin,
         checkout,
@@ -72,6 +80,7 @@ export default function RoomCard({ hotelId, room, coverImage, nights, checkin, c
                     fallback={<BedIcon size={22} weight="light" />}
                 />
                 {room.roomType && <span className={styles.typeBadge}>{room.roomType.roomTypeName}</span>}
+                {headline && <DiscountTag discount={headline.discount} compact className={styles.discountBadge} />}
             </Link>
 
             <div className={styles.body}>
@@ -84,6 +93,12 @@ export default function RoomCard({ hotelId, room, coverImage, nights, checkin, c
                         <UsersIcon size={14} /> {t("room.maxGuests", { count: room.capacity })}
                     </span>
                 </div>
+
+                {headline && (
+                    <div className={styles.discountRow}>
+                        <DiscountTag discount={headline.discount} />
+                    </div>
+                )}
 
                 <ul className={styles.amenities}>
                     {visibleAmenities.map((a) => (
@@ -101,11 +116,17 @@ export default function RoomCard({ hotelId, room, coverImage, nights, checkin, c
 
                 <div className={styles.footer}>
                     <div className={styles.price}>
-                        <strong>{formatVnd(room.price)}</strong>
-                        <span> {t("room.perNight")}</span>
+                        {headline && <s className={styles.priceOriginal}>{formatVnd(room.price)}</s>}
+                        <div>
+                            <strong>{formatVnd(nightlyPrice)}</strong>
+                            <span> {t("room.perNight")}</span>
+                        </div>
                         {nights > 1 && (
                             <span className={styles.priceTotal}>
                                 {t("room.totalForNights", { total: formatVnd(total), count: nights })}
+                                {headline && discountedNights < quote.nights && (
+                                    <> · {t("discount.partialNights", { count: discountedNights, total: quote.nights })}</>
+                                )}
                             </span>
                         )}
                     </div>

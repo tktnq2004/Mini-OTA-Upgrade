@@ -16,6 +16,9 @@ import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback"
 import { useWishlist } from "@/components/wishlist/WishlistProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { formatVnd } from "@/lib/format";
+import { addDaysIso, todayIso } from "@/lib/searchFilters";
+import { nightReduction, quoteRoom } from "@/lib/booking/discount";
+import DiscountTag from "@/components/DiscountTag/DiscountTag";
 import type { Hotel } from "@/lib/hotels/types";
 import {
     findRoom,
@@ -170,6 +173,9 @@ export default function WishlistView() {
                                                 if (!room) return null;
                                                 const checked = selected.has(item.roomId);
                                                 const roomHref = `/hotel/${item.hotelId}/room/${item.roomId}`;
+                                                // Wishlist không có ngày ở — tag/giá xem trước theo đêm nay.
+                                                const headline =
+                                                    quoteRoom(room, todayIso(), addDaysIso(todayIso(), 1)).applied[0] ?? null;
 
                                                 return (
                                                     <li key={item.roomId} className={styles.roomRow}>
@@ -211,10 +217,18 @@ export default function WishlistView() {
                                                                 </span>
                                                             )}
                                                             <span className={styles.roomName}>{room.name}</span>
+                                                            {headline && <DiscountTag discount={headline.discount} />}
                                                         </Link>
 
                                                         <div className={styles.roomPrice}>
-                                                            {formatVnd(room.price)}
+                                                            {headline && (
+                                                                <s className={styles.roomPriceOriginal}>{formatVnd(room.price)}</s>
+                                                            )}
+                                                            {formatVnd(
+                                                                headline
+                                                                    ? room.price - nightReduction(room.price, headline.discount)
+                                                                    : room.price
+                                                            )}
                                                             <span>{t("room.perNight")}</span>
                                                         </div>
 

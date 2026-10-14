@@ -1,0 +1,40 @@
+/* Tag khuyến mãi trên phòng: "-20% · Ưu đãi mùa thu". Màu đỏ (--color-error)
+   là quy ước "giảm giá" quen thuộc, theo token nên tự đổi theo theme. */
+.tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+    /* Không giãn hết chiều ngang khi nằm trong 1 flex column. */
+    align-self: flex-start;
+    padding: 2px 8px 2px 2px;
+    border-radius: var(--radius-pill);
+    background: var(--color-error-soft);
+    color: var(--color-error);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.value {
+    flex-shrink: 0;
+    padding: 1px 6px;
+    border-radius: var(--radius-pill);
+    background: var(--color-error);
+    color: #ffffff;
+}
+
+.name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Bản đè lên ảnh: nền đặc để đọc được trên ảnh màu bất kỳ. */
+.overlay {
+    composes: tag;
+    background: #dc2626;
+    color: #ffffff;
+    padding: 3px 9px;
+}

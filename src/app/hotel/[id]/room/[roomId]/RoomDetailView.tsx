@@ -19,7 +19,9 @@ import {
 import type { Hotel, Room } from "@/lib/hotels/types";
 import type { MediaAsset } from "@/lib/media/types";
 import { formatVnd } from "@/lib/format";
-import { nightsBetween, parseFilters } from "@/lib/searchFilters";
+import { addDaysIso, nightsBetween, parseFilters, todayIso } from "@/lib/searchFilters";
+import { nightReduction, quoteRoom } from "@/lib/booking/discount";
+import DiscountTag from "@/components/DiscountTag/DiscountTag";
 import { isRangeBookable, mergeAvailability } from "@/lib/booking/availability";
 import SiteHeader from "@/components/SiteHeader/SiteHeader";
 import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
@@ -90,8 +92,15 @@ export default function RoomDetailView({ hotel, room, thumbnail, panorama, roomT
     );
 
     const nights = checkin && checkout ? nightsBetween(checkin, checkout) : 0;
-    const total = room.price * nights;
     const canBook = Boolean(checkin && checkout);
+    // Chưa chọn ngày thì xem trước theo đêm nay — tag/giá phản ánh khuyến
+    // mãi đang chạy. Có ngày thì tính đúng từng đêm của kỳ ở.
+    const previewCheckin = canBook && checkin ? checkin : todayIso();
+    const previewCheckout = canBook && checkout ? checkout : addDaysIso(todayIso(), 1);
+    const quote = quoteRoom(room, previewCheckin, previewCheckout);
+    const headline = quote.applied[0] ?? null;
+    const nightlyPrice = headline ? room.price - nightReduction(room.price, headline.discount) : room.price;
+    const total = canBook ? quote.total : 0;
     const selected = isSaved(hotel.id, room.id);
     const hotelHref = `/hotel/${hotel.id}?${searchParams.toString()}`;
 
@@ -250,8 +259,10 @@ export default function RoomDetailView({ hotel, room, thumbnail, panorama, roomT
 
                 <aside className={styles.bookingColumn}>
                     <div className={styles.bookingCard}>
+                        {headline && <DiscountTag discount={headline.discount} />}
                         <div className={styles.priceHead}>
-                            <strong>{formatVnd(room.price)}</strong>
+                            {headline && <s className={styles.priceOriginal}>{formatVnd(room.price)}</s>}
+                            <strong>{formatVnd(nightlyPrice)}</strong>
                             <span>{t("room.perNight")}</span>
                         </div>
 
@@ -271,6 +282,20 @@ export default function RoomDetailView({ hotel, room, thumbnail, panorama, roomT
                         </div>
                         <GuestsField value={guests} onChange={setGuests} max={room.capacity} />
 
+                        {canBook && quote.discountAmount > 0 && (
+                            <div className={styles.discountLines}>
+                                <div>
+                                    <span>{t("discount.subtotal")}</span>
+                                    <span>{formatVnd(quote.subtotal)}</span>
+                                </div>
+                                {quote.applied.map((a) => (
+                                    <div key={a.discount.id} className={styles.discountLine}>
+                                        <span>{t("discount.line", { name: a.discount.name, count: a.nights })}</span>
+                                        <span>-{formatVnd(a.amount)}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                         <div className={styles.priceBreakdown}>
                             <span>{t("wishlist.summaryTotal")}</span>
                             <strong>{nights > 0 ? formatVnd(total) : t("checkout.pickDatesForTotal")}</strong>

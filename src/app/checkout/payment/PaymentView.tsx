@@ -22,7 +22,7 @@ import SiteHeader from "@/components/SiteHeader/SiteHeader";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { formatDateVn, formatVnd } from "@/lib/format";
 import { nightsBetween } from "@/lib/searchFilters";
-import { getBookingStatus, type CreateBookingResult, type PaymentMethod } from "@/lib/booking/resources";
+import { bookingPayable, getBookingStatus, type CreateBookingResult, type PaymentMethod } from "@/lib/booking/resources";
 import { PublicApiError } from "@/lib/hotels/envelope";
 import { CardPaymentError } from "@/lib/booking/payment";
 import CardPayment, { type PaymentFormHandle } from "../PaymentForm";
@@ -211,9 +211,10 @@ export default function PaymentView() {
     };
 
     const nights = booking ? nightsBetween(booking.checkIn, booking.checkOut) : 0;
-    // Bug thật đã biết ở backend (BookingService.create): totalAmount là tổng
-    // giá 1 đêm của các phòng, CHƯA nhân số đêm.
-    const grandTotal = booking ? booking.totalAmount * Math.max(nights, 1) : 0;
+    // Số tiền thật phải trả do backend chốt (payableAmount, đã trừ khuyến
+    // mãi). Backend cũ chưa có field này thì lùi về totalAmount × số đêm.
+    const grandTotal = booking ? bookingPayable(booking, nights) : 0;
+    const discountAmount = booking?.discountAmount ?? 0;
 
     const remainingMs = HOLD_MS - (now - createdAtMs);
     const holdExpired = remainingMs <= 0;
@@ -264,12 +265,20 @@ export default function PaymentView() {
 
             <div className={styles.invoiceRooms}>
                 {booking.rooms.map((room) => (
-                    <div key={room.roomId} className={styles.invoiceRoomRow}>
-                        <BedIcon size={14} weight="light" />
-                        <span className={styles.invoiceRoomName}>{room.roomName}</span>
-                        <span className={styles.invoiceRoomPrice}>
-                            {formatVnd(room.pricePerNight)} × {nights}
-                        </span>
+                    <div key={room.roomId}>
+                        <div className={styles.invoiceRoomRow}>
+                            <BedIcon size={14} weight="light" />
+                            <span className={styles.invoiceRoomName}>{room.roomName}</span>
+                            <span className={styles.invoiceRoomPrice}>
+                                {formatVnd(room.pricePerNight)} × {nights}
+                            </span>
+                        </div>
+                        {room.discounts?.map((d, i) => (
+                            <div key={d.discountId ?? i} className={styles.invoiceDiscountRow}>
+                                <span>{t("discount.line", { name: d.name, count: d.nights })}</span>
+                                <span>-{formatVnd(d.amount)}</span>
+                            </div>
+                        ))}
                     </div>
                 ))}
             </div>
@@ -301,6 +310,19 @@ export default function PaymentView() {
             </div>
 
             <div className={styles.invoiceDivider} />
+
+            {discountAmount > 0 && (
+                <div className={styles.invoiceDiscountSummary}>
+                    <div>
+                        <span>{t("discount.subtotal")}</span>
+                        <span>{formatVnd(booking.subtotalAmount ?? grandTotal + discountAmount)}</span>
+                    </div>
+                    <div className={styles.invoiceDiscountRow}>
+                        <span>{t("discount.totalDiscount")}</span>
+                        <span>-{formatVnd(discountAmount)}</span>
+                    </div>
+                </div>
+            )}
 
             <div className={styles.invoiceTotalRow}>
                 <span>{t("wishlist.summaryTotal")}</span>
