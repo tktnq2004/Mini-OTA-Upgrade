@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, type ReadonlyURLSearchParams } from "next/navigation";
-import { listHotels } from "@/lib/hotels/resources";
+import { listHotels, listNearbyHotels } from "@/lib/hotels/resources";
 import type { Hotel } from "@/lib/hotels/types";
 import { getProvinceById } from "@/data/locations.data";
 import {
@@ -11,7 +11,7 @@ import {
     parseFilters,
     type SearchFilters,
 } from "@/lib/searchFilters";
-import { haversineDistanceKm, isInsideBounds, type BoundsBox } from "@/lib/geo";
+import { isInsideBounds, type BoundsBox } from "@/lib/geo";
 
 const DEFAULT_PROVINCE_ID = "79"; // Hồ Chí Minh
 
@@ -27,10 +27,14 @@ const PROBE_SIZE = 100;
 // không tìm quanh đây) — xem usePagination bên dưới.
 const PAGINATE_SIZE = 12;
 
-export type ViewMode =
-    | { type: "province" }
-    | { type: "bounds"; bounds: BoundsBox }
-    | { type: "radius"; lat: number; lng: number; radiusKm: number };
+// Đang "Tìm quanh đây": phạm vi tải là các hotel cách (lat, lng) không quá
+// radiusKm (backend tự lọc, xem listNearbyHotels), thay cho phạm vi tỉnh/xã.
+// Giữ nguyên khi người dùng kéo map — chỉ bị xoá khi tìm theo tỉnh/xã lại.
+export interface NearbySearch {
+    lat: number;
+    lng: number;
+    radiusKm: number;
+}
 
 interface FetchScopeParams {
     provinceId?: string | null;
@@ -38,21 +42,15 @@ interface FetchScopeParams {
     query?: string;
 }
 
-// Tải HẾT hotel khớp phạm vi (tỉnh/xã/tên) — dùng cho mọi trường hợp cần
-// thấy toàn bộ ứng viên cùng lúc để lọc/hiển thị tiếp ở client: bản đồ (vẽ
-// hết marker), chế độ "tìm quanh đây" (phải so khoảng cách với hết ứng viên
-// mới lọc đúng bán kính), và /hotels khi đã thu hẹp phạm vi đủ nhỏ (đã chọn
-// tỉnh, hoặc đang tìm theo tên). Dò tổng thật qua meta.total thay vì tin
-// vào 1 cỡ cố định — xem PROBE_SIZE.
+// Tải HẾT hotel khớp phạm vi (tỉnh/xã/tên) — dùng khi cần thấy toàn bộ cùng
+// lúc để lọc/hiển thị tiếp ở client: bản đồ (vẽ hết marker, lọc khung nhìn
+// khi kéo), và /hotels khi đã chọn tỉnh. Dò tổng thật qua meta.total thay vì
+// tin vào 1 cỡ cố định — xem PROBE_SIZE.
 async function fetchAllMatching(params: FetchScopeParams): Promise<Hotel[]> {
     const first = await listHotels({ ...params, page: 1, size: PROBE_SIZE });
     if (first.meta.total <= first.result.length) return first.result;
     const full = await listHotels({ ...params, page: 1, size: first.meta.total });
     return full.result;
-}
-
-function hotelLatLng(hotel: Hotel): { lat: number; lng: number } {
-    return { lat: Number(hotel.latitude), lng: Number(hotel.longitude) };
 }
 
 export interface UseHotelFiltersOptions {
@@ -69,10 +67,13 @@ export interface UseHotelFiltersOptions {
     query?: string;
 }
 
-// Quản lý bộ lọc tỉnh/xã (đồng bộ hai chiều với URL), viewMode (province /
-// khung nhìn bản đồ / bán kính quanh vị trí) và danh sách khách sạn lọc theo
-// viewMode hiện tại — giờ tải thật từ backend thay vì lọc mảng mock trong bộ
-// nhớ. Dùng chung cho mọi trang cần tìm/lọc khách sạn (Map, Hotels).
+// Quản lý phạm vi tải hotel và cách lọc hiển thị, dùng chung cho Map và Hotels.
+// Có 2 kiểu tìm, loại trừ nhau:
+// - Theo tỉnh/xã (đồng bộ 2 chiều với URL): tải hotel của tỉnh/xã đó.
+// - "Tìm quanh đây" (`nearby`): gửi toạ độ GPS lên backend, chỉ nhận về các
+//   hotel trong bán kính.
+// Sau khi tải, kéo/zoom map chỉ lọc lại trên tập đã có (xem `bounds`), không
+// gọi API — cho tới khi người dùng tìm theo kiểu kia.
 //
 // basePath: route mà bộ lọc sẽ ghi lại vào URL (router.replace) — mỗi trang
 // gọi hook này phải tự truyền path của chính nó, nếu không sẽ bị đẩy nhầm
@@ -89,7 +90,11 @@ export function useHotelFilters(
         const parsed = parseFilters(searchParams);
         return parsed.provinceId ? parsed : { ...parsed, provinceId: DEFAULT_PROVINCE_ID };
     });
-    const [viewMode, setViewMode] = useState<ViewMode>({ type: "province" });
+    // Khung nhìn map để lọc hiển thị — null = hiện hết những gì đã tải; có
+    // giá trị = chỉ hiện hotel nằm trong khung (người dùng tự kéo/zoom). Chỉ
+    // ảnh hưởng hiển thị, không ảnh hưởng việc tải.
+    const [bounds, setBounds] = useState<BoundsBox | null>(null);
+    const [nearby, setNearby] = useState<NearbySearch | null>(null);
 
     const paramsKey = searchParams.toString();
     const [syncedParamsKey, setSyncedParamsKey] = useState(paramsKey);
@@ -98,10 +103,13 @@ export function useHotelFilters(
         // URL của trang chỉ mang tỉnh/xã (xem locationSearchParams) — ngày
         // nhận/trả và số khách không nằm trong URL nữa nên KHÔNG ghi đè lại
         // từ đây, chỉ đồng bộ 2 trường địa điểm, giữ nguyên phần còn lại
-        // người dùng đang chỉnh trên form.
+        // người dùng đang chỉnh trên form. URL đổi = người dùng chọn lại địa
+        // điểm (hoặc back/forward) nên thoát luôn "Tìm quanh đây" —
+        // startNearbySearch không ghi URL nên không tự kích hoạt nhánh này.
         const parsed = parseFilters(searchParams);
         setFilters((current) => ({ ...current, provinceId: parsed.provinceId, wardId: parsed.wardId }));
-        setViewMode({ type: "province" });
+        setBounds(null);
+        setNearby(null);
     }
 
     const filtersRef = useRef(filters);
@@ -111,11 +119,11 @@ export function useHotelFilters(
 
     const selectedProvince = getProvinceById(filters.provinceId);
 
-    // Duyệt TOÀN QUỐC (không tỉnh) mà không tìm quanh đây là trường hợp DUY
-    // NHẤT được phép phân trang server thật — mọi trường hợp còn lại (đã
-    // chọn tỉnh, đang tìm quanh đây, hoặc trang gọi hook không bật
-    // serverPaginate như /map) đều cần tải hết để lọc/hiển thị đúng.
-    const usePagination = Boolean(options.serverPaginate) && !filters.provinceId && viewMode.type !== "radius";
+    // Duyệt TOÀN QUỐC (không tỉnh, không tìm quanh đây) là trường hợp DUY
+    // NHẤT phân trang server thật. "Tìm quanh đây" cũng có provinceId null
+    // nhưng endpoint nearby trả về 1 danh sách (đã giới hạn bán kính), không
+    // phân trang.
+    const usePagination = Boolean(options.serverPaginate) && !filters.provinceId && !nearby;
 
     // Trang hiện tại của chế độ phân trang server — reset về 1 mỗi khi phạm
     // vi lọc đổi (tỉnh/xã/tên) hoặc chuyển ra/vào chế độ phân trang, chỉnh
@@ -131,10 +139,10 @@ export function useHotelFilters(
         setServerPage(1);
     }
 
-    // Tập khách sạn đã tải từ backend cho đúng phạm vi hiện tại — fetch lại
-    // khi tỉnh/xã/tên đổi, hoặc (ở chế độ phân trang server) khi đổi trang.
-    // KHÔNG fetch lại mỗi lần viewMode đổi kiểu bounds (kéo map / đổi bán
-    // kính không gọi lại API, chỉ lọc tiếp trên tập đã tải).
+    // Tập khách sạn đã tải cho đúng phạm vi hiện tại — fetch lại CHỈ khi
+    // phạm vi đổi: tỉnh/xã/tên, bật/bấm lại "Tìm quanh đây" (nearby là object
+    // mới mỗi lần bấm), hoặc đổi trang ở chế độ phân trang server. bounds
+    // KHÔNG nằm trong dependency — kéo/zoom map chỉ lọc lại ở filteredHotels.
     const [loadedHotels, setLoadedHotels] = useState<Hotel[]>([]);
     const [loading, setLoading] = useState(true);
     // Lỗi tải (mạng/backend) — tách riêng với "không có kết quả" để trang báo đúng lỗi kèm nút
@@ -150,7 +158,21 @@ export function useHotelFilters(
 
         const scope: FetchScopeParams = { provinceId: filters.provinceId, wardId: filters.wardId, query };
 
-        if (usePagination) {
+        if (nearby) {
+            listNearbyHotels({ ...nearby, query })
+                .then((hotels) => {
+                    if (!cancelled) setLoadedHotels(hotels);
+                })
+                .catch(() => {
+                    if (!cancelled) {
+                        setLoadedHotels([]);
+                        setLoadError(true);
+                    }
+                })
+                .finally(() => {
+                    if (!cancelled) setLoading(false);
+                });
+        } else if (usePagination) {
             listHotels({ ...scope, page: serverPage, size: PAGINATE_SIZE })
                 .then((res) => {
                     if (cancelled) return;
@@ -187,29 +209,19 @@ export function useHotelFilters(
         return () => {
             cancelled = true;
         };
-    }, [filters.provinceId, filters.wardId, query, usePagination, serverPage, reloadKey]);
+    }, [filters.provinceId, filters.wardId, query, nearby, usePagination, serverPage, reloadKey]);
 
     const filteredHotels = useMemo(() => {
-        switch (viewMode.type) {
-            case "bounds":
-                return loadedHotels.filter((hotel) => {
-                    const { lat, lng } = hotelLatLng(hotel);
-                    return isInsideBounds(lat, lng, viewMode.bounds);
-                });
-            case "radius":
-                return loadedHotels.filter((hotel) => {
-                    const { lat, lng } = hotelLatLng(hotel);
-                    return haversineDistanceKm(viewMode.lat, viewMode.lng, lat, lng) <= viewMode.radiusKm;
-                });
-            case "province":
-            default:
-                return loadedHotels;
-        }
-    }, [viewMode, loadedHotels]);
+        if (!bounds) return loadedHotels;
+        return loadedHotels.filter((hotel) =>
+            isInsideBounds(Number(hotel.latitude), Number(hotel.longitude), bounds)
+        );
+    }, [bounds, loadedHotels]);
 
     const handleFilterSubmit = (next: SearchFilters) => {
         setFilters(next);
-        setViewMode({ type: "province" });
+        setBounds(null);
+        setNearby(null);
         // Chỉ tỉnh/xã lên URL — ngày nhận/trả, số khách vẫn được giữ trong
         // filters (React state) để dùng lúc bấm "đặt phòng", không phải là
         // tham số tìm kiếm nên không ghi vào query string.
@@ -221,6 +233,16 @@ export function useHotelFilters(
         handleFilterSubmit({ ...filters, provinceId: null, wardId: null });
     };
 
+    // "Tìm quanh đây" thay hẳn kiểu tìm theo tỉnh/xã: xoá provinceId/wardId để
+    // form không còn hiện tỉnh cũ, và để sau này tìm theo tỉnh lại thì phải
+    // chọn tỉnh mới (không "quay về" tỉnh cũ ngầm). Không ghi URL — xem nhánh
+    // đồng bộ paramsKey ở trên.
+    const startNearbySearch = (lat: number, lng: number, radiusKm: number) => {
+        setFilters((current) => ({ ...current, provinceId: null, wardId: null }));
+        setBounds(null);
+        setNearby({ lat, lng, radiusKm });
+    };
+
     const bookHotel = (hotelId: number) => {
         const params = filtersToSearchParams(filtersRef.current);
         router.push(`/hotel/${hotelId}?${params.toString()}`);
@@ -228,8 +250,8 @@ export function useHotelFilters(
 
     return {
         filters,
-        viewMode,
-        setViewMode,
+        bounds,
+        setBounds,
         selectedProvince,
         filteredHotels,
         loading,
@@ -237,6 +259,8 @@ export function useHotelFilters(
         retry: () => setReloadKey((key) => key + 1),
         handleFilterSubmit,
         clearProvince,
+        nearby,
+        startNearbySearch,
         bookHotel,
         // Chỉ có ý nghĩa khi isRemotePaginated true — /hotels dùng để render
         // phân trang thật (gọi lại API mỗi lần đổi trang) thay vì tự cắt

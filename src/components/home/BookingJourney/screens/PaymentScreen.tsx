@@ -37,7 +37,7 @@ export default function PaymentScreen({ hotel, checkin, checkout, nights }: Paym
                     />
                     <div className={styles.summaryText}>
                         <strong>{hotel.name}</strong>
-                        <span>{hotel.address}</span>
+                        <span>{hotel.room ? `${hotel.room} · ${hotel.address}` : hotel.address}</span>
                     </div>
                 </div>
                 <dl className={styles.summaryRows}>

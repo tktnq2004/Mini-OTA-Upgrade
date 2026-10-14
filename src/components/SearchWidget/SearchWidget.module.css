@@ -73,6 +73,7 @@
 
 .submit {
     composes: button from "../../styles/controls.module.css";
+    margin-top: 15px;
     flex: 1 1 140px;
     align-self: stretch;
     height: auto;

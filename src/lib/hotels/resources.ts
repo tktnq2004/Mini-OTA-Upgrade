@@ -24,6 +24,24 @@ export function listHotels({ page = 1, size = 20, query, provinceId, wardId }: L
   return publicGet<Paginated<Hotel>>(`hotels?${params.toString()}`);
 }
 
+export interface NearbyHotelsParams {
+  lat: number;
+  lng: number;
+  radiusKm: number;
+  query?: string;
+}
+
+// Backend tự lọc theo khoảng cách (ST_Distance_Sphere) và trả về đúng các
+// hotel trong bán kính, gần nhất trước — không phân trang.
+export function listNearbyHotels({ lat, lng, radiusKm, query }: NearbyHotelsParams) {
+  const params = new URLSearchParams();
+  params.set("lat", String(lat));
+  params.set("lng", String(lng));
+  params.set("radiusKm", String(radiusKm));
+  if (query?.trim()) params.set("query", query.trim());
+  return publicGet<Hotel[]>(`hotels/nearby?${params.toString()}`);
+}
+
 export const getHotel = (id: number) => publicGet<Hotel>(`hotels/${id}`);
 export const getRoom = (id: number) => publicGet<Room>(`rooms/${id}`);
 export const listAmenities = () => publicGet<Amenity[]>("amenity");

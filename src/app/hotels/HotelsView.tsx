@@ -26,10 +26,8 @@ const PAGE_SIZE = 12;
 // Trang danh sách khách sạn — dùng chung useHotelFilters/useGeolocation với
 // trang Map (đã được nâng lên src/hooks/ vì có từ 2 trang dùng trở lên) để
 // có cùng bộ lọc tỉnh/xã, ngày/khách và tìm quanh đây bằng GPS. Không truyền
-// flyTo thật vì trang này không có bản đồ, và không gắn sự kiện kéo/zoom map
-// nên viewMode ở đây chỉ bao giờ là "province" hoặc "radius" — chế độ
-// "bounds" (lọc theo khung nhìn khi kéo map) tự động không xảy ra, đúng như
-// yêu cầu bỏ bộ lọc đó ở trang này.
+// flyTo thật vì trang này không có bản đồ, nên cũng không bao giờ lọc theo
+// khung nhìn (bounds luôn null) — luôn hiện hết những gì đã tải.
 export default function HotelsView() {
     const { t } = useLanguage();
     const searchParams = useSearchParams();
@@ -46,8 +44,6 @@ export default function HotelsView() {
 
     const {
         filters,
-        viewMode,
-        setViewMode,
         selectedProvince,
         filteredHotels,
         loading,
@@ -55,6 +51,8 @@ export default function HotelsView() {
         retry,
         handleFilterSubmit,
         clearProvince,
+        nearby,
+        startNearbySearch,
         bookHotel,
         isRemotePaginated,
         remotePage,
@@ -65,7 +63,7 @@ export default function HotelsView() {
 
     const { isLocating, geoError, findNearby } = useGeolocation({
         t,
-        setViewMode,
+        onLocate: startNearbySearch,
         flyTo: () => {},
     });
 
@@ -90,7 +88,8 @@ export default function HotelsView() {
     // khuyến nghị của React, giống HotelDetail) thay vì dùng effect. Trang
     // của chế độ phân trang server tự reset bên trong hook (theo cùng phạm
     // vi lọc), chỉ cần lo trang cục bộ ở đây.
-    const filterSignature = [filters.provinceId, filters.wardId, viewMode.type, debouncedQuery].join("|");
+    const nearbyKey = nearby ? `${nearby.lat},${nearby.lng}` : "";
+    const filterSignature = [filters.provinceId, filters.wardId, nearbyKey, debouncedQuery].join("|");
     const [lastFilterSignature, setLastFilterSignature] = useState(filterSignature);
     if (filterSignature !== lastFilterSignature) {
         setLastFilterSignature(filterSignature);
@@ -98,11 +97,11 @@ export default function HotelsView() {
     }
 
     const resultLabel = (() => {
-        if (viewMode.type === "radius") return t("map.withinRadius", { radius: viewMode.radiusKm });
+        if (nearby) return t("map.withinRadius", { radius: nearby.radiusKm });
         return selectedProvince ? t("map.at", { place: selectedProvince.name }) : t("map.nationwide");
     })();
 
-    const canClear = viewMode.type !== "province" || Boolean(selectedProvince);
+    const canClear = Boolean(selectedProvince) || Boolean(nearby);
 
     return (
         <div className={styles.page}>
@@ -195,10 +194,10 @@ export default function HotelsView() {
                                 key={hotel.id}
                                 hotel={hotel}
                                 distanceKm={
-                                    viewMode.type === "radius"
+                                    nearby
                                         ? haversineDistanceKm(
-                                              viewMode.lat,
-                                              viewMode.lng,
+                                              nearby.lat,
+                                              nearby.lng,
                                               Number(hotel.latitude),
                                               Number(hotel.longitude)
                                           )

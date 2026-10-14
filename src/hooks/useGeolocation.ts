@@ -1,23 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import type { ViewMode } from "./useHotelFilters";
 
 const NEARBY_ZOOM = 13;
 const NEARBY_RADIUS_KM = 10;
 
 interface UseGeolocationOptions {
     t: (key: string) => string;
-    setViewMode: (mode: ViewMode) => void;
+    // Nhận vị trí GPS thật + bán kính — thường là useHotelFilters.startNearbySearch
+    // (gọi endpoint nearby và thay hẳn bộ lọc tỉnh/xã đang chọn).
+    onLocate: (lat: number, lng: number, radiusKm: number) => void;
     flyTo: (center: [number, number], zoom: number) => void;
 }
 
-// Xử lý nút "Tìm quanh đây": xin quyền định vị, chuyển viewMode sang bán
-// kính quanh vị trí người dùng, và bay camera tới đó. Dùng chung cho mọi
-// trang — nếu trang không có bản đồ thật (vd. /hotels) thì truyền
-// flyTo: () => {} (no-op), phần xin quyền GPS + đổi viewMode vẫn hoạt động
-// bình thường.
-export function useGeolocation({ t, setViewMode, flyTo }: UseGeolocationOptions) {
+// Xử lý nút "Tìm quanh đây": xin quyền định vị rồi báo vị trí GPS thật ra
+// ngoài qua onLocate, và bay camera tới đó. Dùng chung cho mọi trang — nếu
+// trang không có bản đồ thật (vd. /hotels) thì truyền flyTo: () => {}
+// (no-op), phần xin quyền GPS + báo vị trí vẫn hoạt động bình thường.
+export function useGeolocation({ t, onLocate, flyTo }: UseGeolocationOptions) {
     const [isLocating, setIsLocating] = useState(false);
     const [geoError, setGeoError] = useState("");
 
@@ -27,7 +27,7 @@ export function useGeolocation({ t, setViewMode, flyTo }: UseGeolocationOptions)
             (position) => {
                 setIsLocating(false);
                 const { latitude, longitude } = position.coords;
-                setViewMode({ type: "radius", lat: latitude, lng: longitude, radiusKm: NEARBY_RADIUS_KM });
+                onLocate(latitude, longitude, NEARBY_RADIUS_KM);
                 flyTo([longitude, latitude], NEARBY_ZOOM);
             },
             (error: GeolocationPositionError) => {

@@ -28,7 +28,7 @@ const QR_CELLS = Array.from({ length: QR_SIZE * QR_SIZE }, (_, i) => {
 // Màn 4 — phiếu xác nhận đặt phòng + xem trước phòng 360° (ảnh tour thật của site).
 export default function CheckInScreen({ hotel, checkin, loadPanorama }: CheckInScreenProps) {
     const { t } = useLanguage();
-    const code = `WG-${String(Math.abs(hotel.id) * 7919).padStart(6, "0").slice(-6)}`;
+    const code = `MB-${String(Math.abs(hotel.id) * 7919).padStart(6, "0").slice(-6)}`;
 
     return (
         <div className={styles.screenBody}>

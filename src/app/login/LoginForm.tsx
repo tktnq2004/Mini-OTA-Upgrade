@@ -57,7 +57,7 @@ export default function LoginForm() {
             setError(result.message ?? t("auth.loginErrorRequired"));
             return;
         }
-        router.push("/account");
+        router.push("/");
     };
 
     const requestOtp = async () => {
@@ -103,7 +103,7 @@ export default function LoginForm() {
             setError(result.message ?? t("auth.loginErrorRequired"));
             return;
         }
-        router.push("/account");
+        router.push("/");
     };
 
     return (

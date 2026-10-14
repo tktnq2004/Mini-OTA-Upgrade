@@ -290,7 +290,7 @@ export default function Home() {
                         title={t("home.steps.title")}
                         subtitle={t("home.steps.subtitle")}
                     />
-                    <BookingJourney hotels={[...budgetHotels, ...luxuryHotels]} destinations={destinations} />
+                    <BookingJourney />
                 </section>
 
                 <section className={styles.section}>

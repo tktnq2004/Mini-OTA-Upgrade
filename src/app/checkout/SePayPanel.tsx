@@ -12,6 +12,9 @@ const COPIED_RESET_MS = 2000;
 
 interface SePayPanelProps {
     bookingId: number;
+    // Email đã đặt booking — backend bắt buộc khi khách KHÔNG đăng nhập (khớp
+    // id + email, giống GET /bookings/lookup).
+    email: string;
     // Gọi đúng 1 lần khi đã có đủ thông tin QR — PaymentView dùng để tự bật
     // poll trạng thái booking ngay (chuyển khoản không có bước "xác nhận" nào
     // ở trang này để bấm, khác hẳn thẻ phải confirm qua Stripe trước).
@@ -22,7 +25,7 @@ interface SePayPanelProps {
 // đúng 1 lần POST /payment/create-payment-intent (provider=SEPAY) để backend
 // dựng URL ảnh QR VietQR. Xác nhận đã trả tới qua webhook SePay ở phía
 // backend, không phải hành động nào tại đây.
-export default function SePayPanel({ bookingId, onReady }: SePayPanelProps) {
+export default function SePayPanel({ bookingId, email, onReady }: SePayPanelProps) {
     const { t } = useLanguage();
     const [info, setInfo] = useState<SePayInfo | null>(null);
     const [error, setError] = useState("");
@@ -30,7 +33,7 @@ export default function SePayPanel({ bookingId, onReady }: SePayPanelProps) {
 
     useEffect(() => {
         let alive = true;
-        createSePayInfo(bookingId)
+        createSePayInfo(bookingId, email)
             .then((result) => {
                 if (!alive) return;
                 setInfo(result);

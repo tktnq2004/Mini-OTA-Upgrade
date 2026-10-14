@@ -18,8 +18,8 @@ export default function MapView() {
 
     const {
         filters,
-        viewMode,
-        setViewMode,
+        bounds,
+        setBounds,
         selectedProvince,
         filteredHotels,
         loading,
@@ -27,6 +27,8 @@ export default function MapView() {
         retry,
         handleFilterSubmit,
         clearProvince,
+        nearby,
+        startNearbySearch,
         bookHotel,
     } = useHotelFilters(searchParams, "/map");
 
@@ -43,13 +45,13 @@ export default function MapView() {
         bookLabel: t("map.viewRoomsAndBook"),
         noPriceLabel: t("map.viewHotelMarker"),
         onBookHotel: bookHotel,
-        onViewportChange: (bounds) => setViewMode({ type: "bounds", bounds }),
+        onViewportChange: setBounds,
         getOverlayBottomPx: () => overlayRef.current?.getBoundingClientRect().bottom ?? 0,
     });
 
     const { isLocating, geoError, findNearby } = useGeolocation({
         t,
-        setViewMode,
+        onLocate: startNearbySearch,
         flyTo,
     });
 
@@ -63,13 +65,18 @@ export default function MapView() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [wantsNearby]);
 
-    // Bay bản đồ tới tỉnh/thành khi bộ lọc địa điểm đổi (chế độ "province").
-    // Phụ thuộc cả wardId — trước đây effect chỉ theo dõi provinceId nên đổi
-    // xã (giữ nguyên tỉnh) không kích hoạt lại flyTo. Dữ liệu xã chưa có
-    // toạ độ riêng nên vẫn bay tới tâm tỉnh, nhưng zoom sâu hơn khi đã chọn
-    // xã cụ thể để người dùng thấy rõ có phản hồi.
+    // Bay bản đồ tới tỉnh/thành khi bộ lọc địa điểm đổi. Phụ thuộc cả wardId —
+    // trước đây effect chỉ theo dõi provinceId nên đổi xã (giữ nguyên tỉnh)
+    // không kích hoạt lại flyTo. Dữ liệu xã chưa có toạ độ riêng nên vẫn bay
+    // tới tâm tỉnh, nhưng zoom sâu hơn khi đã chọn xã cụ thể để người dùng
+    // thấy rõ có phản hồi. Bỏ qua khi đang "Tìm quanh đây" — useGeolocation đã
+    // tự bay tới vị trí GPS (startNearbySearch xoá provinceId, nếu không chặn
+    // ở đây sẽ bị kéo ngược về tâm Việt Nam).
+    // Theo dõi "có đang lọc theo khung nhìn không" (boolean) thay vì cả object
+    // bounds — bounds đổi mỗi lần kéo, nhưng effect chỉ cần biết lúc bật/tắt.
+    const hasBounds = bounds !== null;
     useEffect(() => {
-        if (viewMode.type !== "province") return;
+        if (hasBounds || nearby) return;
 
         if (selectedProvince) {
             flyTo([selectedProvince.lng, selectedProvince.lat], filters.wardId ? WARD_ZOOM : PROVINCE_ZOOM);
@@ -77,15 +84,15 @@ export default function MapView() {
             flyTo(VIETNAM_CENTER, VIETNAM_ZOOM);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [filters.provinceId, filters.wardId, viewMode.type]);
+    }, [filters.provinceId, filters.wardId, hasBounds, nearby]);
 
     const resultLabel = (() => {
-        if (viewMode.type === "bounds") return t("map.inThisArea");
-        if (viewMode.type === "radius") return t("map.withinRadius", { radius: viewMode.radiusKm });
+        if (hasBounds) return t("map.inThisArea");
+        if (nearby) return t("map.withinRadius", { radius: nearby.radiusKm });
         return selectedProvince ? t("map.at", { place: selectedProvince.name }) : t("map.nationwide");
     })();
 
-    const canClear = viewMode.type !== "province" || Boolean(selectedProvince);
+    const canClear = hasBounds || Boolean(selectedProvince) || Boolean(nearby);
 
     return (
         <div className={styles.page}>

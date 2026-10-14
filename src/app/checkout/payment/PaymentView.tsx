@@ -445,7 +445,7 @@ export default function PaymentView() {
                                     // Không có nút "xác nhận" nào ở đây — hiện QR xong là tự
                                     // bật poll (onReady), khác hẳn thẻ cần bấm "Thanh toán"
                                     // để confirm qua Stripe trước (xem handlePayNow).
-                                    <SePayPanel bookingId={booking.bookingId} onReady={() => setPolling(true)} />
+                                    <SePayPanel bookingId={booking.bookingId} email={email} onReady={() => setPolling(true)} />
                                 )}
 
                                 {method === "card" && (

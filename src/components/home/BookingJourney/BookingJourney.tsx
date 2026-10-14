@@ -1,14 +1,13 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowRightIcon, ArrowUpIcon, MapTrifoldIcon } from "@phosphor-icons/react";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { useReducedMotion } from "@/components/panorama/useReducedMotion";
-import type { Hotel } from "@/lib/hotels/types";
 import { formatDateVn } from "@/lib/format";
 import { addDaysIso, todayIso } from "@/lib/searchFilters";
-import { pickDestinations, pickHotels } from "./journeyData";
+import { JOURNEY_DESTINATIONS, JOURNEY_HOTELS } from "./journeyData";
 import { useActiveStep, useMediaQuery } from "./useActiveStep";
 import SearchScreen from "./screens/SearchScreen";
 import MapScreen from "./screens/MapScreen";
@@ -26,17 +25,13 @@ const STEPS = [
 // Ngày minh hoạ trong các màn: nhận phòng sau 1 tuần, ở 2 đêm.
 const NIGHTS = 2;
 
-interface BookingJourneyProps {
-    hotels: Hotel[];
-    destinations: { id: string; name: string; hotelCount: number }[];
-}
-
 /**
  * "Đặt phòng chỉ với 4 bước" — desktop: cột trái là các bước, cột phải là khung UI dính (sticky)
  * đổi màn theo bước đang ở giữa màn hình. Mobile: mỗi bước kèm màn của nó ngay bên dưới.
- * Mọi màn dựng bằng đúng ngôn ngữ giao diện của site (token màu, viền, bo góc) + dữ liệu thật.
+ * Mọi màn dựng bằng đúng ngôn ngữ giao diện của site (token màu, viền, bo góc). Dữ liệu trong
+ * các màn là dữ liệu minh hoạ cố định (journeyData.ts) — không gọi backend.
  */
-export default function BookingJourney({ hotels, destinations }: BookingJourneyProps) {
+export default function BookingJourney() {
     const { t, language } = useLanguage();
     const reducedMotion = useReducedMotion();
     const isDesktop = useMediaQuery("(min-width: 900px)");
@@ -45,22 +40,19 @@ export default function BookingJourney({ hotels, destinations }: BookingJourneyP
         isDesktop ? "-45% 0px -45% 0px" : "-30% 0px -30% 0px"
     );
 
-    const { list: journeyHotels } = useMemo(() => pickHotels(hotels), [hotels]);
-    const journeyDestinations = useMemo(() => pickDestinations(destinations), [destinations]);
-
     const checkinIso = addDaysIso(todayIso(), 7);
     const checkoutIso = addDaysIso(checkinIso, NIGHTS);
     const checkin = formatDateVn(checkinIso, language);
     const checkout = formatDateVn(checkoutIso, language);
-    const hotel = journeyHotels[0];
+    const hotel = JOURNEY_HOTELS[0];
 
     const screens: ReactNode[] = [
         <SearchScreen
             key="search"
-            destinations={journeyDestinations}
+            destinations={JOURNEY_DESTINATIONS}
             dateRange={`${checkin.slice(0, 5)} – ${checkout.slice(0, 5)}`}
         />,
-        <MapScreen key="map" hotels={journeyHotels} />,
+        <MapScreen key="map" hotels={JOURNEY_HOTELS} />,
         <PaymentScreen key="pay" hotel={hotel} checkin={checkin} checkout={checkout} nights={NIGHTS} />,
         <CheckInScreen key="checkin" hotel={hotel} checkin={checkin} loadPanorama={seen >= 2} />,
     ];

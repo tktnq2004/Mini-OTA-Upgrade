@@ -31,11 +31,13 @@ export interface SePayInfo {
 
 // POST /api/v1/payment/create-payment-intent với provider="SEPAY" (cùng
 // endpoint với Stripe — StripeController tự chọn gateway theo field này).
-export async function createSePayInfo(bookingId: number): Promise<SePayInfo> {
+// email: bắt buộc với khách vãng lai (backend khớp id + email đã đặt, giống
+// GET /bookings/lookup); đã đăng nhập thì backend bỏ qua, tin JWT.
+export async function createSePayInfo(bookingId: number, email: string): Promise<SePayInfo> {
   const res = await fetch("/api/public/payment/create-payment-intent", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ bookingId, provider: "SEPAY" }),
+    body: JSON.stringify({ bookingId, provider: "SEPAY", email }),
   });
   try {
     const data = await unwrapResponse<{
@@ -72,18 +74,20 @@ function pickClientSecret(data: unknown): string | null {
 
 // POST /api/v1/payment/create-payment-intent (qua proxy /api/public, tự gắn
 // token nếu đã đăng nhập). Body khớp ReqCreatePaymentIntentDTO
-// { bookingId, paymentMethodId, saveCard }; backend tự tính số tiền theo booking.
+// { bookingId, paymentMethodId, saveCard, email }; backend tự tính số tiền theo booking.
 // paymentMethodId = null: thẻ mới nhập, trình duyệt tự confirm với ô thẻ;
-// saveCard = true: backend đặt setup_future_usage để lưu thẻ sau khi trả.
+// saveCard = true: backend đặt setup_future_usage để lưu thẻ sau khi trả;
+// email: xem createSePayInfo.
 async function createPaymentIntent(
   bookingId: number,
   paymentMethodId: string | null,
   saveCard: boolean,
+  email: string,
 ): Promise<string> {
   const res = await fetch("/api/public/payment/create-payment-intent", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ bookingId, paymentMethodId, saveCard }),
+    body: JSON.stringify({ bookingId, paymentMethodId, saveCard, email }),
   });
   try {
     const secret = pickClientSecret(await unwrapResponse<unknown>(res));
@@ -152,14 +156,14 @@ interface PayByCardArgs {
 //   qua server mình).
 export async function payByCard({ stripe, method, bookingId, billing }: PayByCardArgs): Promise<void> {
   if ("savedCardId" in method) {
-    const clientSecret = await createPaymentIntent(bookingId, method.savedCardId, false);
+    const clientSecret = await createPaymentIntent(bookingId, method.savedCardId, false, billing.email);
     const current = await stripe.retrievePaymentIntent(clientSecret);
     if (current.paymentIntent?.status === "succeeded") return;
     await confirm(stripe, clientSecret, { payment_method: method.savedCardId });
     return;
   }
 
-  const clientSecret = await createPaymentIntent(bookingId, null, Boolean(method.save));
+  const clientSecret = await createPaymentIntent(bookingId, null, Boolean(method.save), billing.email);
   await confirm(stripe, clientSecret, { payment_method: { card: method.card, billing_details: billing } });
 }
 
