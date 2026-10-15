@@ -22,7 +22,13 @@ import SiteHeader from "@/components/SiteHeader/SiteHeader";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { formatDateVn, formatVnd } from "@/lib/format";
 import { nightsBetween } from "@/lib/searchFilters";
-import { bookingPayable, getBookingStatus, type CreateBookingResult, type PaymentMethod } from "@/lib/booking/resources";
+import {
+    bookingPayable,
+    getBookingStatus,
+    type BookingPaymentStatus,
+    type CreateBookingResult,
+    type PaymentMethod,
+} from "@/lib/booking/resources";
 import { PublicApiError } from "@/lib/hotels/envelope";
 import { CardPaymentError } from "@/lib/booking/payment";
 import CardPayment, { type PaymentFormHandle } from "../PaymentForm";
@@ -32,11 +38,9 @@ import checkoutStyles from "../checkout.module.css";
 import styles from "./payment.module.css";
 import PaymentSkeleton from "./PaymentSkeleton";
 
-// Poll chờ webhook Stripe + webhook backend (markPaid) xác nhận thật, SAU KHI
-// đã confirm xong phía Stripe (client-side). SLOW_AFTER_MS: đổi câu chữ báo
-// "đang mất lâu hơn bình thường" nhưng vẫn tiếp tục poll ngầm — webhook tới
-// muộn không có nghĩa là thất bại (markPaid idempotent).
-const POLL_INTERVAL_MS = 3000;
+// Sau khi confirm thẻ xong phía Stripe, ở màn processing quá SLOW_AFTER_MS thì
+// đổi câu chữ sang "đang mất lâu hơn bình thường" — webhook tới muộn không có
+// nghĩa là thất bại. Chỉ là hẹn giờ phía FE, không gọi API.
 const SLOW_AFTER_MS = 45_000;
 
 // Đếm ngược 15 phút — HOÀN TOÀN do FE tự tính (createdAt truyền qua URL lúc
@@ -48,7 +52,27 @@ const SLOW_AFTER_MS = 45_000;
 // vừa nói dối "phòng có thể đã mất" vừa chặn nhầm 1 giao dịch vẫn hợp lệ.
 const HOLD_MS = 15 * 60_000;
 
-type ViewState = "loading" | "error" | "cancelled" | "selecting" | "processing" | "slow" | "success";
+type ViewState = "loading" | "error" | "cancelled" | "refund" | "selecting" | "processing" | "slow" | "success";
+
+// Trạng thái booking -> màn hình. undefined = còn Pending, để nơi gọi tự quyết.
+// PROCESSING: thẻ đã giữ tiền (requires_capture), backend sắp capture -> chờ,
+// tuyệt đối không cho chọn phương thức trả lần nữa.
+function viewStateOf(status: BookingPaymentStatus): ViewState | undefined {
+    switch (status) {
+        case "Completed":
+            return "success";
+        case "Cancelled":
+            return "cancelled";
+        case "REFUND_PENDING":
+        case "REFUNDED":
+            return "refund";
+        case "PROCESSING":
+            return "processing";
+        default:
+            return undefined;
+    }
+}
+
 
 function formatCountdown(ms: number): string {
     const total = Math.max(0, Math.round(ms / 1000));
@@ -77,7 +101,6 @@ export default function PaymentView() {
     const [method, setMethod] = useState<PaymentMethod | null>(null);
     const [paying, setPaying] = useState(false);
     const [payError, setPayError] = useState("");
-    const [polling, setPolling] = useState(false);
     const paymentForm = useRef<PaymentFormHandle>(null);
 
     // Lazy initializer (hàm, chỉ chạy đúng 1 lần lúc mount) — KHÔNG phải
@@ -107,9 +130,8 @@ export default function PaymentView() {
             .then((result) => {
                 if (!alive) return;
                 setBooking(result);
-                if (result.status === "Cancelled") setState("cancelled");
-                else if (result.status === "Completed") setState("success");
-                else setState("selecting");
+                const next = viewStateOf(result.status) ?? "selecting";
+                setState(next);
             })
             .catch((err) => {
                 if (!alive) return;
@@ -132,52 +154,23 @@ export default function PaymentView() {
         return () => clearInterval(id);
     }, [state]);
 
-    // 3) Poll trạng thái — chỉ bật khi đã confirm thẻ xong phía Stripe
-    // (handlePayNow set polling=true), tắt khi tới trạng thái cuối.
+    // 3) Ở màn processing quá lâu thì đổi câu chữ sang "slow" (không gọi API).
     useEffect(() => {
-        if (!polling || !bookingId || !email) return;
-        let alive = true;
-        const startedAt = Date.now();
-        // method đọc trong closure bên dưới — thêm vào deps để không bị "cũ"
-        // nếu khách đổi phương thức trong lúc poll SePay đang chạy nền.
+        if (state !== "processing") return;
+        const id = setTimeout(() => setState((cur) => (cur === "processing" ? "slow" : cur)), SLOW_AFTER_MS);
+        return () => clearTimeout(id);
+    }, [state]);
 
-        const poll = () => {
-            getBookingStatus(bookingId, email)
-                .then((result) => {
-                    if (!alive) return;
-                    setBooking(result);
-                    if (result.status === "Cancelled") {
-                        setState("cancelled");
-                        setPolling(false);
-                        return;
-                    }
-                    if (result.status === "Completed") {
-                        setState("success");
-                        setPolling(false);
-                        return;
-                    }
-                    // Chuyển khoản SePay: còn Pending nghĩa là khách CHƯA chuyển
-                    // khoản xong (chưa hề "làm" gì ở trang này, khác thẻ đã
-                    // confirm xong phía Stripe) — giữ nguyên màn hình chọn
-                    // phương thức (đang hiện QR) thay vì nhảy sang màn
-                    // processing/spinner, kẻo khách mất luôn QR đang cần quét.
-                    if (method !== "bankTransfer") {
-                        setState(Date.now() - startedAt > SLOW_AFTER_MS ? "slow" : "processing");
-                    }
-                })
-                .catch(() => {
-                    // Lỗi mạng tạm thời giữa các lần poll thì bỏ qua, giữ
-                    // nguyên màn hình hiện tại, thử lại ở lượt sau.
-                });
-        };
-
-        poll();
-        const id = setInterval(poll, POLL_INTERVAL_MS);
-        return () => {
-            alive = false;
-            clearInterval(id);
-        };
-    }, [polling, bookingId, email, method]);
+    // Áp trạng thái booking mới nhận từ backend lên màn hình. Hiện chưa có gì
+    // gọi — trang KHÔNG poll API; sẽ nối với SSE (event đổi trạng thái thanh
+    // toán) sau. Pending thì giữ nguyên màn hiện tại (đang chọn phương thức /
+    // đang xem QR / đang processing sau khi confirm thẻ).
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- điểm nối cho SSE
+    const applyBookingStatus = (result: CreateBookingResult) => {
+        setBooking(result);
+        const next = viewStateOf(result.status);
+        if (next) setState(next);
+    };
 
     const handlePayNow = async () => {
         if (!booking) return;
@@ -192,9 +185,8 @@ export default function PaymentView() {
             await paymentForm.current?.pay(booking.bookingId, { name: fullName, email, phone });
             // Xác nhận client-side (stripe.js) xong chỉ là bước đầu — DB còn
             // đang chờ webhook Stripe + webhook backend xác nhận thật, nên
-            // chuyển "processing" rồi bật poll, không coi đây là thành công.
+            // chuyển "processing", không coi đây là thành công.
             setState("processing");
-            setPolling(true);
         } catch (err) {
             // Lỗi ở đây = "không thành công", đúng yêu cầu "quay về booking
             // infor" — vì chưa từng điều hướng đi đâu (vẫn ở method==="card"
@@ -372,6 +364,27 @@ export default function PaymentView() {
                         </div>
                     )}
 
+                    {state === "refund" && booking && (
+                        <div className={styles.statusBlock}>
+                            <div className={`${styles.statusIconWrap} ${styles.statusIconWrapError}`}>
+                                <WarningCircleIcon size={32} weight="fill" className={styles.errorIcon} />
+                            </div>
+                            <h1>
+                                {booking.status === "REFUNDED"
+                                    ? t("checkoutPayment.refundedTitle")
+                                    : t("checkoutPayment.refundPendingTitle")}
+                            </h1>
+                            <p className={styles.statusHint}>
+                                {booking.status === "REFUNDED"
+                                    ? t("checkoutPayment.refundedHint")
+                                    : t("checkoutPayment.refundPendingHint", { code: `MO-${booking.bookingId}` })}
+                            </p>
+                            <Link href="/" className={controls.button}>
+                                {t("checkout.backHome")}
+                            </Link>
+                        </div>
+                    )}
+
                     {state === "selecting" && booking && (
                         <>
                             <div className={styles.statusBlock}>
@@ -464,10 +477,9 @@ export default function PaymentView() {
                                 {method === "momo" && <p className={checkoutStyles.paymentNote}>{t("checkout.momoComingSoon")}</p>}
 
                                 {method === "bankTransfer" && (
-                                    // Không có nút "xác nhận" nào ở đây — hiện QR xong là tự
-                                    // bật poll (onReady), khác hẳn thẻ cần bấm "Thanh toán"
-                                    // để confirm qua Stripe trước (xem handlePayNow).
-                                    <SePayPanel bookingId={booking.bookingId} email={email} onReady={() => setPolling(true)} />
+                                    // Không có nút "xác nhận" nào ở đây — khách tự chuyển khoản,
+                                    // backend nhận webhook SePay (FE sẽ biết qua SSE sau).
+                                    <SePayPanel bookingId={booking.bookingId} email={email} />
                                 )}
 
                                 {method === "card" && (

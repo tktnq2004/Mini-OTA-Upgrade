@@ -15,17 +15,13 @@ interface SePayPanelProps {
     // Email đã đặt booking — backend bắt buộc khi khách KHÔNG đăng nhập (khớp
     // id + email, giống GET /bookings/lookup).
     email: string;
-    // Gọi đúng 1 lần khi đã có đủ thông tin QR — PaymentView dùng để tự bật
-    // poll trạng thái booking ngay (chuyển khoản không có bước "xác nhận" nào
-    // ở trang này để bấm, khác hẳn thẻ phải confirm qua Stripe trước).
-    onReady: () => void;
 }
 
 // Hiện QR + thông tin chuyển khoản cho 1 booking — không gọi SDK nào, chỉ gọi
 // đúng 1 lần POST /payment/create-payment-intent (provider=SEPAY) để backend
 // dựng URL ảnh QR VietQR. Xác nhận đã trả tới qua webhook SePay ở phía
 // backend, không phải hành động nào tại đây.
-export default function SePayPanel({ bookingId, email, onReady }: SePayPanelProps) {
+export default function SePayPanel({ bookingId, email }: SePayPanelProps) {
     const { t } = useLanguage();
     const [info, setInfo] = useState<SePayInfo | null>(null);
     const [error, setError] = useState("");
@@ -37,7 +33,6 @@ export default function SePayPanel({ bookingId, email, onReady }: SePayPanelProp
             .then((result) => {
                 if (!alive) return;
                 setInfo(result);
-                onReady();
             })
             .catch((err) => {
                 if (!alive) return;
@@ -46,7 +41,7 @@ export default function SePayPanel({ bookingId, email, onReady }: SePayPanelProp
         return () => {
             alive = false;
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ gọi 1 lần cho đúng bookingId, onReady/t ổn định theo lifetime trang
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ gọi 1 lần cho đúng bookingId, t ổn định theo lifetime trang
     }, [bookingId]);
 
     const copy = async (field: string, value: string) => {

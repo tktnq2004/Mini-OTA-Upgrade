@@ -26,7 +26,10 @@ const SKELETON_CARDS = 3;
 // paymentStatus -> màu nhãn. Giá trị lạ thì dùng nhãn xám mặc định.
 const STATUS_CLASS: Record<string, string> = {
   Pending: styles.statusPending,
+  PROCESSING: styles.statusPending,
   Completed: styles.statusCompleted,
+  REFUND_PENDING: styles.statusCancelled,
+  REFUNDED: styles.statusCancelled,
   Failed: styles.statusCancelled,
   Cancelled: styles.statusCancelled,
 };

@@ -25,11 +25,17 @@ export interface CreateBookingPayload {
   };
 }
 
+// Khớp enum PaymentStatus bên backend.
+// PROCESSING: tiền đang xử lý / đã giữ trên thẻ chưa capture — job hết hạn
+// gặp trường hợp này thì giữ phòng thay vì huỷ, sắp thành Completed.
+// REFUND_PENDING/REFUNDED: tiền về SAU khi booking đã bị huỷ -> chờ hoàn tiền.
+export type BookingPaymentStatus = "Pending" | "PROCESSING" | "Completed" | "Cancelled" | "REFUND_PENDING" | "REFUNDED";
+
 export interface CreateBookingResult {
   bookingId: number;
   checkIn: string;
   checkOut: string;
-  status: "Pending" | "Completed" | "Cancelled";
+  status: BookingPaymentStatus;
   // Nghĩa cũ: tổng giá 1 ĐÊM của các phòng, chưa nhân số đêm, chưa trừ khuyến
   // mãi. Chỉ còn dùng làm fallback khi backend chưa trả payableAmount.
   totalAmount: number;

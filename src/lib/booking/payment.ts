@@ -154,11 +154,18 @@ interface PayByCardArgs {
 // - Thẻ mới nhập: gửi { paymentMethodId: null, saveCard: tick "Lưu thẻ" } ->
 //   clientSecret, rồi confirm ở trình duyệt thẳng với ô thẻ (số thẻ không đi
 //   qua server mình).
+// Backend tạo PaymentIntent với capture_method=manual: confirm xong ở trình
+// duyệt thì intent dừng ở "requires_capture" (tiền đã giữ trên thẻ, chưa
+// trừ) — webhook amount_capturable_updated bên backend mới capture rồi chuyển
+// booking sang Completed. Vì vậy "requires_capture" (và "processing") đều là
+// confirm THÀNH CÔNG ở phía trình duyệt, không chỉ "succeeded".
+const CONFIRMED_STATUSES = new Set(["requires_capture", "processing", "succeeded"]);
+
 export async function payByCard({ stripe, method, bookingId, billing }: PayByCardArgs): Promise<void> {
   if ("savedCardId" in method) {
     const clientSecret = await createPaymentIntent(bookingId, method.savedCardId, false, billing.email);
     const current = await stripe.retrievePaymentIntent(clientSecret);
-    if (current.paymentIntent?.status === "succeeded") return;
+    if (current.paymentIntent && CONFIRMED_STATUSES.has(current.paymentIntent.status)) return;
     await confirm(stripe, clientSecret, { payment_method: method.savedCardId });
     return;
   }
@@ -170,5 +177,5 @@ export async function payByCard({ stripe, method, bookingId, billing }: PayByCar
 async function confirm(stripe: Stripe, clientSecret: string, data: ConfirmCardPaymentData): Promise<void> {
   const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, data);
   if (error) throw new CardPaymentError(error.message || "");
-  if (paymentIntent?.status !== "succeeded") throw new CardPaymentError("");
+  if (!paymentIntent || !CONFIRMED_STATUSES.has(paymentIntent.status)) throw new CardPaymentError("");
 }
