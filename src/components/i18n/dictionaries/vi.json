@@ -23,6 +23,8 @@
     "bookings.status.PROCESSING": "Đang xác nhận thanh toán",
     "bookings.status.REFUND_PENDING": "Chờ hoàn tiền",
     "bookings.status.REFUNDED": "Đã hoàn tiền",
+    "bookings.viewDetails": "Xem chi tiết",
+    "bookings.continuePayment": "Tiếp tục thanh toán",
     "nav.themeToLight": "Chuyển sang giao diện sáng",
     "nav.themeToDark": "Chuyển sang giao diện tối",
     "nav.languageToggle": "Chuyển ngôn ngữ sang tiếng Anh",

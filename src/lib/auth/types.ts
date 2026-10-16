@@ -83,9 +83,9 @@ export interface UpdateProfileInput {
 }
 
 // 1 booking trong GET /bookings/me (entity Booking của backend, chỉ khai báo
-// các field trang dùng). amount là tổng giá 1 đêm của các phòng (nghĩa cũ).
+// các field trang dùng). amount là tổng tiền CẢ kỳ ở (đã nhân số đêm).
 // Tổng tiền phải trả: payableAmount (đã trừ khuyến mãi, docs/DISCOUNT_API.md
-// mục 5) nếu backend có trả, không thì amount × số đêm như trước.
+// mục 5) nếu backend có trả, không thì amount.
 export interface MyBooking {
   id: number;
   amount: number;

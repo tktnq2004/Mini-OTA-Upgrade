@@ -276,6 +276,19 @@
     color: var(--color-text);
 }
 
+.bookingActions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.bookingActions a {
+    height: 36px;
+    font-size: 13px;
+    text-decoration: none;
+}
+
 .bookingSaved {
     margin-left: 8px;
     font-size: 11.5px;

@@ -1,6 +1,12 @@
 "use client";
 
-import { loadStripe, type ConfirmCardPaymentData, type Stripe, type StripeCardNumberElement } from "@stripe/stripe-js";
+import {
+  loadStripe,
+  type ConfirmCardPaymentData,
+  type PaymentIntent,
+  type Stripe,
+  type StripeCardNumberElement,
+} from "@stripe/stripe-js";
 import { PublicApiError, unwrapResponse } from "@/lib/hotels/envelope";
 import { AccountApiError, accountFetch } from "@/lib/auth/apiClient";
 
@@ -159,23 +165,55 @@ interface PayByCardArgs {
 // trừ) — webhook amount_capturable_updated bên backend mới capture rồi chuyển
 // booking sang Completed. Vì vậy "requires_capture" (và "processing") đều là
 // confirm THÀNH CÔNG ở phía trình duyệt, không chỉ "succeeded".
-const CONFIRMED_STATUSES = new Set(["requires_capture", "processing", "succeeded"]);
+export type ConfirmedIntentStatus = "requires_capture" | "processing" | "succeeded";
+const CONFIRMED_STATUSES = new Set<string>(["requires_capture", "processing", "succeeded"]);
 
-export async function payByCard({ stripe, method, bookingId, billing }: PayByCardArgs): Promise<void> {
+// Kết quả confirm phía trình duyệt — trang payment dựa vào status này để chọn
+// màn hình ngay (requires_capture/processing -> đang xử lý, succeeded -> đã
+// thanh toán), không đợi webhook.
+export interface ConfirmedIntent {
+  id: string;
+  status: ConfirmedIntentStatus;
+}
+
+const asConfirmed = (pi: PaymentIntent | undefined): ConfirmedIntent | null =>
+  pi && CONFIRMED_STATUSES.has(pi.status) ? { id: pi.id, status: pi.status as ConfirmedIntentStatus } : null;
+
+export async function payByCard({ stripe, method, bookingId, billing }: PayByCardArgs): Promise<ConfirmedIntent> {
   if ("savedCardId" in method) {
     const clientSecret = await createPaymentIntent(bookingId, method.savedCardId, false, billing.email);
-    const current = await stripe.retrievePaymentIntent(clientSecret);
-    if (current.paymentIntent && CONFIRMED_STATUSES.has(current.paymentIntent.status)) return;
-    await confirm(stripe, clientSecret, { payment_method: method.savedCardId });
-    return;
+    const current = asConfirmed((await stripe.retrievePaymentIntent(clientSecret)).paymentIntent);
+    if (current) return current;
+    return confirm(stripe, clientSecret, { payment_method: method.savedCardId });
   }
 
   const clientSecret = await createPaymentIntent(bookingId, null, Boolean(method.save), billing.email);
-  await confirm(stripe, clientSecret, { payment_method: { card: method.card, billing_details: billing } });
+  return confirm(stripe, clientSecret, { payment_method: { card: method.card, billing_details: billing } });
 }
 
-async function confirm(stripe: Stripe, clientSecret: string, data: ConfirmCardPaymentData): Promise<void> {
+async function confirm(stripe: Stripe, clientSecret: string, data: ConfirmCardPaymentData): Promise<ConfirmedIntent> {
   const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, data);
   if (error) throw new CardPaymentError(error.message || "");
-  if (!paymentIntent || !CONFIRMED_STATUSES.has(paymentIntent.status)) throw new CardPaymentError("");
+  const confirmed = asConfirmed(paymentIntent);
+  if (!confirmed) throw new CardPaymentError("");
+  return confirmed;
+}
+
+// POST /api/v1/payments/{bookingId}/sync (qua proxy /api/public, gắn Bearer
+// nếu đã đăng nhập) — báo backend đối soát PaymentIntent với Stripe ngay sau
+// khi confirm, khỏi đợi webhook. Body { paymentIntentId, email } (email cho
+// khách vãng lai, giống create-payment-intent). Màn hình KHÔNG phụ thuộc kết
+// quả gọi này (đã tin status từ Stripe.js), nên lỗi chỉ log — kể cả lúc
+// backend chưa có endpoint.
+export async function syncPayment(bookingId: number, paymentIntentId: string, email: string): Promise<void> {
+  try {
+    const res = await fetch(`/api/public/payments/${bookingId}/sync`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ paymentIntentId, email }),
+    });
+    if (!res.ok) console.warn(`payments/${bookingId}/sync -> HTTP ${res.status}`);
+  } catch (err) {
+    console.warn(`payments/${bookingId}/sync failed`, err);
+  }
 }

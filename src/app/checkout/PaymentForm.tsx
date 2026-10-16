@@ -18,7 +18,13 @@ import {
     type CardStatus,
 } from "@/components/payment/CardForms";
 import cardStyles from "@/components/payment/cards.module.css";
-import { CardPaymentError, payByCard, stripePromise, type SavedCard } from "@/lib/booking/payment";
+import {
+    CardPaymentError,
+    payByCard,
+    stripePromise,
+    type ConfirmedIntent,
+    type SavedCard,
+} from "@/lib/booking/payment";
 import controls from "@/styles/controls.module.css";
 import styles from "./checkout.module.css";
 
@@ -26,7 +32,7 @@ import styles from "./checkout.module.css";
 // có bookingId (clientSecret xin lúc pay, không cần có sẵn khi hiện ô thẻ).
 export interface PaymentFormHandle {
     validate: () => string | null;
-    pay: (bookingId: number, billing: { name: string; email: string; phone: string }) => Promise<void>;
+    pay: (bookingId: number, billing: { name: string; email: string; phone: string }) => Promise<ConfirmedIntent>;
 }
 
 export default function CardPayment({ ref }: { ref?: Ref<PaymentFormHandle> }) {
@@ -88,13 +94,12 @@ function CardChooser({ ref }: { ref?: Ref<PaymentFormHandle> }) {
         pay: async (bookingId, billing) => {
             if (useNewCard) {
                 if (!newCard.current) throw new CardPaymentError(t("checkout.errorCardUnavailable"));
-                await newCard.current.pay(bookingId, billing);
-                return;
+                return newCard.current.pay(bookingId, billing);
             }
             const stripe = await stripePromise;
             if (!stripe) throw new CardPaymentError(t("checkout.errorCardUnavailable"));
             if (!selected) throw new CardPaymentError(t("checkout.errorAddCard"));
-            await payByCard({ stripe, method: { savedCardId: selected }, bookingId, billing });
+            return payByCard({ stripe, method: { savedCardId: selected }, bookingId, billing });
         },
     }));
 
@@ -153,7 +158,7 @@ function PaymentForm({ ref, showSave }: { ref?: Ref<PaymentFormHandle>; showSave
         pay: async (bookingId, billing) => {
             const cardNumber = elements?.getElement(CardNumberElement);
             if (!stripe || !cardNumber) throw new CardPaymentError(t("checkout.errorCardUnavailable"));
-            await payByCard({
+            return payByCard({
                 stripe,
                 method: { card: cardNumber, save: showSave && saveCard },
                 bookingId,

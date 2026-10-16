@@ -23,6 +23,8 @@
     "bookings.status.PROCESSING": "Confirming payment",
     "bookings.status.REFUND_PENDING": "Refund pending",
     "bookings.status.REFUNDED": "Refunded",
+    "bookings.viewDetails": "View details",
+    "bookings.continuePayment": "Continue payment",
     "nav.themeToLight": "Switch to light theme",
     "nav.themeToDark": "Switch to dark theme",
     "nav.languageToggle": "Switch language to Vietnamese",

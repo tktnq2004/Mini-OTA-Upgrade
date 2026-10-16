@@ -30,7 +30,7 @@ import {
     type PaymentMethod,
 } from "@/lib/booking/resources";
 import { PublicApiError } from "@/lib/hotels/envelope";
-import { CardPaymentError } from "@/lib/booking/payment";
+import { CardPaymentError, syncPayment, type ConfirmedIntentStatus } from "@/lib/booking/payment";
 import CardPayment, { type PaymentFormHandle } from "../PaymentForm";
 import SePayPanel from "../SePayPanel";
 import controls from "@/styles/controls.module.css";
@@ -73,6 +73,15 @@ function viewStateOf(status: BookingPaymentStatus): ViewState | undefined {
     }
 }
 
+
+// Status PaymentIntent sau khi confirm ở trình duyệt -> màn hình, tin luôn
+// Stripe.js (chưa đợi webhook/sync): requires_capture (tiền đã giữ, chờ
+// backend capture) và processing -> đang xử lý; succeeded -> đã thanh toán.
+const INTENT_VIEW_STATE: Record<ConfirmedIntentStatus, ViewState> = {
+    requires_capture: "processing",
+    processing: "processing",
+    succeeded: "success",
+};
 
 function formatCountdown(ms: number): string {
     const total = Math.max(0, Math.round(ms / 1000));
@@ -182,11 +191,12 @@ export default function PaymentView() {
         }
         setPaying(true);
         try {
-            await paymentForm.current?.pay(booking.bookingId, { name: fullName, email, phone });
-            // Xác nhận client-side (stripe.js) xong chỉ là bước đầu — DB còn
-            // đang chờ webhook Stripe + webhook backend xác nhận thật, nên
-            // chuyển "processing", không coi đây là thành công.
-            setState("processing");
+            const form = paymentForm.current;
+            if (!form) throw new CardPaymentError("");
+            const intent = await form.pay(booking.bookingId, { name: fullName, email, phone });
+            // Nhờ backend đối soát intent ngay (không chặn màn hình, lỗi chỉ log).
+            void syncPayment(booking.bookingId, intent.id, email);
+            setState(INTENT_VIEW_STATE[intent.status]);
         } catch (err) {
             // Lỗi ở đây = "không thành công", đúng yêu cầu "quay về booking
             // infor" — vì chưa từng điều hướng đi đâu (vẫn ở method==="card"
@@ -358,6 +368,7 @@ export default function PaymentView() {
                             </div>
                             <h1>{t("checkoutPayment.cancelledTitle")}</h1>
                             <p className={styles.statusHint}>{t("checkoutPayment.cancelledHint")}</p>
+                            {invoiceBlock}
                             <Link href="/" className={controls.button}>
                                 {t("checkout.backHome")}
                             </Link>
@@ -379,6 +390,7 @@ export default function PaymentView() {
                                     ? t("checkoutPayment.refundedHint")
                                     : t("checkoutPayment.refundPendingHint", { code: `MO-${booking.bookingId}` })}
                             </p>
+                            {invoiceBlock}
                             <Link href="/" className={controls.button}>
                                 {t("checkout.backHome")}
                             </Link>

@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  ArrowRightIcon,
   BedIcon,
   CalendarBlankIcon,
+  CreditCardIcon,
   SuitcaseRollingIcon,
 } from "@phosphor-icons/react";
 import SiteHeader from "@/components/SiteHeader/SiteHeader";
@@ -40,6 +42,17 @@ const roomHref = (b: MyBooking, roomId?: number) =>
     : b.hotel?.id
       ? `/hotel/${b.hotel.id}/room/${roomId}`
       : `/room/${roomId}`;
+
+// Trang /checkout/payment tra booking qua lookup (id + email tài khoản), tự
+// hiện đúng màn theo trạng thái: Pending -> chọn phương thức (tiếp tục thanh
+// toán), Completed/PROCESSING/Cancelled/hoàn tiền -> màn trạng thái + hoá đơn.
+// createdAt = bookingDate để đếm ngược giữ chỗ tính từ lúc đặt thật, không
+// reset lại 15 phút mỗi lần mở.
+const bookingDetailHref = (b: MyBooking, email: string) => {
+  const params = new URLSearchParams({ bookingId: String(b.id), email });
+  if (b.bookingDate) params.set("createdAt", b.bookingDate);
+  return `/checkout/payment?${params.toString()}`;
+};
 
 export default function BookingsView() {
   const { t, language } = useLanguage();
@@ -173,8 +186,23 @@ export default function BookingsView() {
                       </span>
                     ) : null}
                   </span>
-                  <strong>{formatVnd(b.payableAmount ?? b.amount * Math.max(nights, 1))}</strong>
+                  <strong>{formatVnd(b.payableAmount ?? b.amount)}</strong>
                 </div>
+
+                {user && (
+                  <div className={styles.bookingActions}>
+                    <Link href={bookingDetailHref(b, user.email)} className={controls.buttonGhost}>
+                      {t("bookings.viewDetails")}
+                      <ArrowRightIcon size={14} weight="bold" />
+                    </Link>
+                    {status === "Pending" && (
+                      <Link href={bookingDetailHref(b, user.email)} className={controls.button}>
+                        <CreditCardIcon size={15} weight="bold" />
+                        {t("bookings.continuePayment")}
+                      </Link>
+                    )}
+                  </div>
+                )}
               </article>
             );
           })

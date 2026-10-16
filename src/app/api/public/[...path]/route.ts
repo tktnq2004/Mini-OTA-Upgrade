@@ -27,8 +27,12 @@ export async function GET(req: NextRequest, context: { params: Promise<{ path: s
 //  - payment/create-payment-intent: body { bookingId, paymentMethodId }, backend
 //    tự tính tiền theo booking và trả clientSecret để xác nhận thẻ. Booking gắn
 //    tài khoản thì backend đòi token của chủ booking -> cũng gắn Bearer.
+//  - payments/{bookingId}/sync: sau khi confirm thẻ ở trình duyệt, nhờ backend
+//    tự đối soát PaymentIntent với Stripe ngay (không đợi webhook). Gắn Bearer
+//    giống create-payment-intent.
 const PUBLIC_POST_PATHS = new Set(["bookings", "payment/create-payment-intent"]);
 const AUTH_OPTIONAL_PATHS = new Set(["bookings", "payment/create-payment-intent"]);
+const PAYMENT_SYNC_PATH = /^payments\/\d+\/sync$/;
 
 async function postBackend(url: string, body: string, token?: string) {
   return fetch(url, {
@@ -42,13 +46,14 @@ async function postBackend(url: string, body: string, token?: string) {
 export async function POST(req: NextRequest, context: { params: Promise<{ path: string[] }> }) {
   const { path } = await context.params;
   const joined = path.join("/");
-  if (!PUBLIC_POST_PATHS.has(joined)) {
+  const isSync = PAYMENT_SYNC_PATH.test(joined);
+  if (!PUBLIC_POST_PATHS.has(joined) && !isSync) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
 
   const url = `${getApiBaseUrl()}/${joined}`;
   const body = await req.text();
-  let accessToken = AUTH_OPTIONAL_PATHS.has(joined) ? req.cookies.get(ACCESS_COOKIE)?.value : undefined;
+  let accessToken = AUTH_OPTIONAL_PATHS.has(joined) || isSync ? req.cookies.get(ACCESS_COOKIE)?.value : undefined;
 
   let backendRes = await postBackend(url, body, accessToken);
   if (accessToken && backendRes.status === 401) {
