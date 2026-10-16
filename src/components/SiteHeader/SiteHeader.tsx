@@ -84,7 +84,7 @@ export default function SiteHeader() {
     return (
         <header className={styles.header}>
             <div className={styles.inner}>
-                <Link href="/" className={styles.logo} aria-label="Trạm OTA">
+                <Link href="/" className={styles.logo} aria-label={language === "en" ? "OTA Station" : "Trạm OTA"}>
                     <BrandLogo />
                 </Link>
 

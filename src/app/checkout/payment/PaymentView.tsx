@@ -204,8 +204,8 @@ export default function PaymentView() {
 
     const nights = booking ? nightsBetween(booking.checkIn, booking.checkOut) : 0;
     // Số tiền thật phải trả do backend chốt (payableAmount, đã trừ khuyến
-    // mãi). Backend cũ chưa có field này thì lùi về totalAmount × số đêm.
-    const grandTotal = booking ? bookingPayable(booking, nights) : 0;
+    // mãi). Chưa có field này thì lùi về totalAmount (đã là tổng cả kỳ ở).
+    const grandTotal = booking ? bookingPayable(booking) : 0;
     const discountAmount = booking?.discountAmount ?? 0;
 
     const remainingMs = HOLD_MS - (now - createdAtMs);

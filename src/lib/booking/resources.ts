@@ -36,8 +36,9 @@ export interface CreateBookingResult {
   checkIn: string;
   checkOut: string;
   status: BookingPaymentStatus;
-  // Nghĩa cũ: tổng giá 1 ĐÊM của các phòng, chưa nhân số đêm, chưa trừ khuyến
-  // mãi. Chỉ còn dùng làm fallback khi backend chưa trả payableAmount.
+  // Tổng tiền CẢ kỳ ở (đã nhân số đêm), ví dụ 2 phòng 2.390.000 + 2.700.000
+  // × 2 đêm = 10.180.000. Dùng làm số tiền phải trả khi backend chưa trả
+  // payableAmount.
   totalAmount: number;
   // Khuyến mãi (docs/DISCOUNT_API.md mục 5) — đều tính cho CẢ kỳ ở. Optional
   // tới khi backend triển khai; dùng bookingPayable() thay vì đọc trực tiếp.
@@ -75,9 +76,9 @@ export interface BookingRoomDiscount {
 }
 
 // Số tiền khách phải trả cho cả kỳ ở. Backend có payableAmount (đã trừ
-// khuyến mãi) thì dùng luôn; chưa có thì lùi về cách cũ totalAmount × số đêm.
-export function bookingPayable(booking: Pick<CreateBookingResult, "payableAmount" | "totalAmount">, nights: number): number {
-  return booking.payableAmount ?? booking.totalAmount * Math.max(nights, 1);
+// khuyến mãi) thì dùng luôn; chưa có thì lùi về totalAmount (đã là tổng cả kỳ ở).
+export function bookingPayable(booking: Pick<CreateBookingResult, "payableAmount" | "totalAmount">): number {
+  return booking.payableAmount ?? booking.totalAmount;
 }
 
 // POST /api/v1/bookings (qua proxy /api/public/bookings, tự gắn token nếu đã

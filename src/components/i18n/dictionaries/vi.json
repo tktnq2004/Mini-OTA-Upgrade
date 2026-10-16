@@ -519,5 +519,23 @@
 
     "notFound.title": "Không tìm thấy trang",
     "notFound.description": "Trang bạn tìm không tồn tại hoặc đã được di chuyển sang nơi khác.",
-    "notFound.backHome": "Về trang chủ"
+    "notFound.backHome": "Về trang chủ",
+
+    "admin.nav.overview": "Tổng quan",
+    "admin.nav.users": "Người dùng",
+    "admin.nav.roles": "Phân quyền",
+    "admin.nav.hotels": "Khách sạn",
+    "admin.nav.roomTypes": "Loại phòng",
+    "admin.nav.amenities": "Tiện nghi",
+    "admin.nav.views": "Hướng nhìn",
+    "admin.nav.discounts": "Khuyến mãi",
+    "admin.signedInAs": "Đăng nhập với",
+    "admin.overview.subtitle": "Quản trị dữ liệu Trạm OTA — chọn một mục bên trái để bắt đầu.",
+    "admin.overview.hotelsDesc": "Tạo, sửa, xoá khách sạn và quản lý phòng của từng khách sạn.",
+    "admin.overview.usersDesc": "Danh sách tài khoản, phân trang, gán role thật cho user.",
+    "admin.overview.rolesDesc": "Tạo role, gán quyền cho role — quyết định quyền thật của tài khoản.",
+    "admin.overview.roomTypesDesc": "Backend chưa có API liệt kê — tra cứu/sửa/xoá theo ID.",
+    "admin.overview.amenitiesDesc": "Danh sách tiện nghi gán cho phòng (wifi, hồ bơi...).",
+    "admin.overview.viewsDesc": "Danh sách hướng nhìn gán cho phòng (biển, thành phố...).",
+    "admin.overview.discountsDesc": "Tạo khuyến mãi (%/số tiền) và gán vào từng phòng kèm khung ngày."
 }

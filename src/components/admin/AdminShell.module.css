@@ -79,6 +79,32 @@
     color: var(--color-text);
 }
 
+.topbarActions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.iconButton {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    background: transparent;
+    color: var(--color-text-muted);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.iconButton:hover {
+    border-color: var(--color-text-faint);
+    color: var(--color-text);
+}
+
 .logoutButton {
     height: 32px;
     padding: 0 14px;
