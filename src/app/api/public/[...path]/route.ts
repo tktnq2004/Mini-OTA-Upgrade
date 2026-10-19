@@ -29,15 +29,20 @@ export async function GET(req: NextRequest, context: { params: Promise<{ path: s
 //    tài khoản thì backend đòi token của chủ booking -> cũng gắn Bearer.
 //  - payments/{bookingId}/sync: sau khi confirm thẻ ở trình duyệt, nhờ backend
 //    tự đối soát PaymentIntent với Stripe ngay (không đợi webhook). Gắn Bearer
-//    giống create-payment-intent.
+//    giống create-payment-intent; khách vãng lai thì chuyển tiếp header
+//    X-Booking-Token (token backend cấp lúc tạo booking).
 const PUBLIC_POST_PATHS = new Set(["bookings", "payment/create-payment-intent"]);
 const AUTH_OPTIONAL_PATHS = new Set(["bookings", "payment/create-payment-intent"]);
 const PAYMENT_SYNC_PATH = /^payments\/\d+\/sync$/;
 
-async function postBackend(url: string, body: string, token?: string) {
+async function postBackend(url: string, body: string, token?: string, bookingToken?: string) {
   return fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(bookingToken ? { "X-Booking-Token": bookingToken } : {}),
+    },
     body,
     cache: "no-store",
   });
@@ -55,12 +60,14 @@ export async function POST(req: NextRequest, context: { params: Promise<{ path: 
   const body = await req.text();
   let accessToken = AUTH_OPTIONAL_PATHS.has(joined) || isSync ? req.cookies.get(ACCESS_COOKIE)?.value : undefined;
 
-  let backendRes = await postBackend(url, body, accessToken);
+  const bookingToken = isSync ? (req.headers.get("x-booking-token") ?? undefined) : undefined;
+
+  let backendRes = await postBackend(url, body, accessToken, bookingToken);
   if (accessToken && backendRes.status === 401) {
     const refreshToken = req.cookies.get(REFRESH_COOKIE)?.value;
     const refreshed = refreshToken ? await refreshBackendSession(refreshToken) : null;
     accessToken = refreshed?.accessToken;
-    backendRes = await postBackend(url, body, accessToken);
+    backendRes = await postBackend(url, body, accessToken, bookingToken);
   }
 
   const text = await backendRes.text();

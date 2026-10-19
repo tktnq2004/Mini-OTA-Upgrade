@@ -25,6 +25,7 @@ import type { Hotel, Room } from "@/lib/hotels/types";
 import { nightsBetween } from "@/lib/searchFilters";
 import { getRoomsAvailability, isRangeBookable, type RoomsAvailability } from "@/lib/booking/availability";
 import { createBooking } from "@/lib/booking/resources";
+import { rememberBookingToken } from "@/lib/booking/payment";
 import { quoteRoom } from "@/lib/booking/discount";
 import DiscountTag from "@/components/DiscountTag/DiscountTag";
 import controls from "@/styles/controls.module.css";
@@ -185,6 +186,7 @@ export default function CheckoutView() {
                 checkOut,
                 guest: { fullName, email, phone },
             });
+            rememberBookingToken(result.bookingId, result.guestAccessToken);
             // Đặt xong thì bỏ các phòng vừa đặt khỏi wishlist (nếu có).
             rooms.forEach((r) => removeFromWishlist(hotelId, r.id));
             // createdAt: backend chưa có field này (ReqCreateBookingDTO/

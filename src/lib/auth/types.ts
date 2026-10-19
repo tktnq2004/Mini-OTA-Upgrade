@@ -96,6 +96,11 @@ export interface MyBooking {
   checkIn: string; // yyyy-mm-dd
   checkOut: string; // yyyy-mm-dd
   paymentStatus?: string; // "Pending" | "Completed" | ...
+  // Có = đã tạo PaymentIntent Stripe (xem BookingsView: sync). Backend mới
+  // trả stripePaymentIntentId; stripePaymentId là tên cũ, giữ để tương thích.
+  paymentProvider?: string | null; // "STRIPE" | "SEPAY" | ...
+  stripePaymentIntentId?: string | null;
+  stripePaymentId?: string | null;
   hotel?: { id: number; name?: string } | null; // chưa có trong response, có thì link thẳng tới phòng
   bookingRooms?: {
     id: number;

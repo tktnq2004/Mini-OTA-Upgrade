@@ -63,6 +63,10 @@ export interface CreateBookingResult {
   guestFullName?: string;
   guestEmail?: string;
   guestPhone?: string;
+  // Chỉ có trong response tạo booking của khách vãng lai — backend chỉ lưu
+  // hash nên không lấy lại được; cần cho header X-Booking-Token khi gọi
+  // POST /payments/{id}/sync (xem rememberBookingToken).
+  guestAccessToken?: string;
 }
 
 // 1 khuyến mãi backend đã áp cho 1 phòng của booking (snapshot lúc tạo).

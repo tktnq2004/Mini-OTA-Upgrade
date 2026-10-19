@@ -30,7 +30,7 @@ import {
     type PaymentMethod,
 } from "@/lib/booking/resources";
 import { PublicApiError } from "@/lib/hotels/envelope";
-import { CardPaymentError, syncPayment, type ConfirmedIntentStatus } from "@/lib/booking/payment";
+import { CardPaymentError, syncPayment } from "@/lib/booking/payment";
 import CardPayment, { type PaymentFormHandle } from "../PaymentForm";
 import SePayPanel from "../SePayPanel";
 import controls from "@/styles/controls.module.css";
@@ -74,14 +74,12 @@ function viewStateOf(status: BookingPaymentStatus): ViewState | undefined {
 }
 
 
-// Status PaymentIntent sau khi confirm ở trình duyệt -> màn hình, tin luôn
-// Stripe.js (chưa đợi webhook/sync): requires_capture (tiền đã giữ, chờ
-// backend capture) và processing -> đang xử lý; succeeded -> đã thanh toán.
-const INTENT_VIEW_STATE: Record<ConfirmedIntentStatus, ViewState> = {
-    requires_capture: "processing",
-    processing: "processing",
-    succeeded: "success",
-};
+// Sau khi confirm thẻ: gọi POST /payments/{id}/sync, booking chưa chốt
+// (Pending/PROCESSING — vd. lượt webhook/cron khác đang giữ lock capture) thì
+// gọi lại sau SYNC_INTERVAL_MS, tối đa SYNC_MAX_ATTEMPTS lần (~2 phút). Hết
+// lượt vẫn chưa chốt thì đứng ở màn "slow" — webhook/cron backend tự chốt.
+const SYNC_INTERVAL_MS = 3_000;
+const SYNC_MAX_ATTEMPTS = 40;
 
 function formatCountdown(ms: number): string {
     const total = Math.max(0, Math.round(ms / 1000));
@@ -110,6 +108,8 @@ export default function PaymentView() {
     const [method, setMethod] = useState<PaymentMethod | null>(null);
     const [paying, setPaying] = useState(false);
     const [payError, setPayError] = useState("");
+    // true = đang đối soát với backend (vòng gọi sync ở effect 4).
+    const [syncing, setSyncing] = useState(false);
     const paymentForm = useRef<PaymentFormHandle>(null);
 
     // Lazy initializer (hàm, chỉ chạy đúng 1 lần lúc mount) — KHÔNG phải
@@ -141,6 +141,9 @@ export default function PaymentView() {
                 setBooking(result);
                 const next = viewStateOf(result.status) ?? "selecting";
                 setState(next);
+                // Mở lại booking đang PROCESSING (vd. từ "Đặt phòng của tôi")
+                // -> đối soát luôn thay vì chỉ đứng chờ.
+                if (next === "processing") setSyncing(true);
             })
             .catch((err) => {
                 if (!alive) return;
@@ -170,6 +173,47 @@ export default function PaymentView() {
         return () => clearTimeout(id);
     }, [state]);
 
+    // 4) Đối soát thanh toán với backend tới khi booking chốt. Màn hình đứng
+    // ở "processing"/"slow" suốt lúc gọi; Completed -> "success" (tick xanh
+    // + hiệu ứng hoàn tất), Cancelled/hoàn tiền -> màn tương ứng.
+    useEffect(() => {
+        if (!syncing || !bookingId) return;
+        let alive = true;
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        let attempt = 0;
+
+        const run = async () => {
+            attempt += 1;
+            try {
+                const result = await syncPayment(bookingId);
+                if (!alive) return;
+                const next = viewStateOf(result.paymentStatus);
+                if (next && next !== "processing") {
+                    setBooking((b) => (b ? { ...b, status: result.paymentStatus } : b));
+                    setState(next);
+                    setSyncing(false);
+                    return;
+                }
+            } catch (err) {
+                if (!alive) return;
+                // 403/404 (vd. khách vãng lai mất token khi mở tab mới): gọi
+                // lại cũng vô ích -> thôi, để webhook/cron backend tự chốt.
+                if (err instanceof PublicApiError && (err.status === 403 || err.status === 404)) {
+                    setSyncing(false);
+                    return;
+                }
+            }
+            if (attempt < SYNC_MAX_ATTEMPTS) timer = setTimeout(run, SYNC_INTERVAL_MS);
+            else setSyncing(false);
+        };
+        void run();
+
+        return () => {
+            alive = false;
+            clearTimeout(timer);
+        };
+    }, [syncing, bookingId]);
+
     // Áp trạng thái booking mới nhận từ backend lên màn hình. Hiện chưa có gì
     // gọi — trang KHÔNG poll API; sẽ nối với SSE (event đổi trạng thái thanh
     // toán) sau. Pending thì giữ nguyên màn hiện tại (đang chọn phương thức /
@@ -193,10 +237,11 @@ export default function PaymentView() {
         try {
             const form = paymentForm.current;
             if (!form) throw new CardPaymentError("");
-            const intent = await form.pay(booking.bookingId, { name: fullName, email, phone });
-            // Nhờ backend đối soát intent ngay (không chặn màn hình, lỗi chỉ log).
-            void syncPayment(booking.bookingId, intent.id, email);
-            setState(INTENT_VIEW_STATE[intent.status]);
+            await form.pay(booking.bookingId, { name: fullName, email, phone });
+            // Stripe.js confirm xong chưa phải "đã trả" — đứng ở "processing"
+            // tới khi backend đối soát (sync) báo Completed.
+            setState("processing");
+            setSyncing(true);
         } catch (err) {
             // Lỗi ở đây = "không thành công", đúng yêu cầu "quay về booking
             // infor" — vì chưa từng điều hướng đi đâu (vẫn ở method==="card"

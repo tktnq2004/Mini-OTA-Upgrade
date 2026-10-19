@@ -16,6 +16,7 @@ import { useAccount } from "@/components/auth/AccountProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { AccountApiError } from "@/lib/auth/apiClient";
 import { getMyBookings } from "@/lib/auth/resources";
+import { syncPayment } from "@/lib/booking/payment";
 import type { MyBooking } from "@/lib/auth/types";
 import { formatDateVn, formatVnd } from "@/lib/format";
 import { nightsBetween } from "@/lib/searchFilters";
@@ -35,6 +36,13 @@ const STATUS_CLASS: Record<string, string> = {
   Failed: styles.statusCancelled,
   Cancelled: styles.statusCancelled,
 };
+
+// Booking còn Pending/PROCESSING nhưng đã có PaymentIntent Stripe: có thể
+// khách đã trả xong mà webhook chưa tới -> nhờ backend đối soát ngay
+// (POST /payments/{id}/sync) rồi cập nhật nhãn trạng thái trên thẻ.
+const needsSync = (b: MyBooking) =>
+  Boolean(b.stripePaymentIntentId ?? b.stripePaymentId) &&
+  (b.paymentStatus === "Pending" || b.paymentStatus === "PROCESSING");
 
 const roomHref = (b: MyBooking, roomId?: number) =>
   !roomId
@@ -71,8 +79,21 @@ export default function BookingsView() {
     }
     setLoading(true);
     getMyBookings()
-      // Mới nhất lên đầu.
-      .then((list) => setBookings([...list].sort((a, b) => b.id - a.id)))
+      .then((list) => {
+        // Mới nhất lên đầu.
+        setBookings([...list].sort((a, b) => b.id - a.id));
+        // Không chặn danh sách: từng booking sync xong thì tự cập nhật; lỗi
+        // (Stripe tạm lỗi, 403...) thì giữ nguyên trạng thái đang hiện.
+        list.filter(needsSync).forEach((b) => {
+          syncPayment(b.id)
+            .then((res) =>
+              setBookings((cur) =>
+                cur.map((x) => (x.id === res.bookingId ? { ...x, paymentStatus: res.paymentStatus } : x)),
+              ),
+            )
+            .catch(() => {});
+        });
+      })
       .catch((e) =>
         setLoadError(
           e instanceof AccountApiError ? e.message : t("bookings.loadError"),

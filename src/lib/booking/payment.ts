@@ -8,6 +8,7 @@ import {
   type StripeCardNumberElement,
 } from "@stripe/stripe-js";
 import { PublicApiError, unwrapResponse } from "@/lib/hotels/envelope";
+import type { BookingPaymentStatus } from "@/lib/booking/resources";
 import { AccountApiError, accountFetch } from "@/lib/auth/apiClient";
 
 // Cổng thanh toán thẻ. Khoá công khai thiếu -> null, ô thẻ hiện thông báo
@@ -199,21 +200,48 @@ async function confirm(stripe: Stripe, clientSecret: string, data: ConfirmCardPa
   return confirmed;
 }
 
-// POST /api/v1/payments/{bookingId}/sync (qua proxy /api/public, gắn Bearer
-// nếu đã đăng nhập) — báo backend đối soát PaymentIntent với Stripe ngay sau
-// khi confirm, khỏi đợi webhook. Body { paymentIntentId, email } (email cho
-// khách vãng lai, giống create-payment-intent). Màn hình KHÔNG phụ thuộc kết
-// quả gọi này (đã tin status từ Stripe.js), nên lỗi chỉ log — kể cả lúc
-// backend chưa có endpoint.
-export async function syncPayment(bookingId: number, paymentIntentId: string, email: string): Promise<void> {
+// Token khách vãng lai (guestAccessToken lúc tạo booking) — giữ trong
+// sessionStorage theo bookingId để trang payment gửi kèm khi sync. Không đưa
+// lên URL (lọt vào lịch sử/log). Đóng tab là mất: khi đó sync trả 403, trang
+// vẫn đứng ở "đang xử lý" và webhook/cron backend tự chốt.
+const bookingTokenKey = (bookingId: number) => `MiniOTA-booking-token-${bookingId}`;
+
+export function rememberBookingToken(bookingId: number, token: string | undefined): void {
+  if (!token) return;
   try {
-    const res = await fetch(`/api/public/payments/${bookingId}/sync`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ paymentIntentId, email }),
-    });
-    if (!res.ok) console.warn(`payments/${bookingId}/sync -> HTTP ${res.status}`);
-  } catch (err) {
-    console.warn(`payments/${bookingId}/sync failed`, err);
+    sessionStorage.setItem(bookingTokenKey(bookingId), token);
+  } catch {
+    // Trình duyệt chặn storage -> chỉ mất khả năng sync cho khách vãng lai.
   }
+}
+
+function readBookingToken(bookingId: number): string | null {
+  try {
+    return sessionStorage.getItem(bookingTokenKey(bookingId));
+  } catch {
+    return null;
+  }
+}
+
+// Response POST /payments/{id}/sync (ResPaymentSyncDTO) — trạng thái booking
+// SAU khi backend đối soát với Stripe (có thể đã capture xong ngay trong lần
+// gọi). stripeStatus null = booking đã chốt, backend không hỏi Stripe nữa.
+export interface PaymentSyncResult {
+  bookingId: number;
+  paymentStatus: BookingPaymentStatus;
+  captureStatus: "NOT_STARTED" | "IN_PROGRESS" | "SUCCEEDED" | "FAILED" | string;
+  stripeStatus: string | null;
+}
+
+// POST /api/v1/payments/{bookingId}/sync (qua proxy /api/public) — nhờ
+// backend đối soát PaymentIntent với Stripe ngay sau khi confirm, khỏi đợi
+// webhook/cron. Backend tự retrieve intent, không nhận status từ FE. Quyền:
+// Bearer (đã đăng nhập, proxy tự gắn) hoặc X-Booking-Token (khách vãng lai).
+export async function syncPayment(bookingId: number): Promise<PaymentSyncResult> {
+  const token = readBookingToken(bookingId);
+  const res = await fetch(`/api/public/payments/${bookingId}/sync`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...(token ? { "X-Booking-Token": token } : {}) },
+  });
+  return unwrapResponse<PaymentSyncResult>(res);
 }
