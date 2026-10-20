@@ -19,7 +19,6 @@ import {
 } from "@phosphor-icons/react";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
-import { useCurrency } from "@/components/currency/CurrencyProvider";
 import { useWishlist } from "@/components/wishlist/WishlistProvider";
 import { useAccount } from "@/components/auth/AccountProvider";
 import BrandLogo from "@/components/BrandLogo/BrandLogo";
@@ -28,7 +27,6 @@ import styles from "./SiteHeader.module.css";
 export default function SiteHeader() {
     const { theme, toggleTheme } = useTheme();
     const { language, toggleLanguage, t } = useLanguage();
-    const { currency, toggleCurrency } = useCurrency();
     const { count: wishlistCount } = useWishlist();
     const { user, ready, logout } = useAccount();
     const router = useRouter();
@@ -116,16 +114,6 @@ export default function SiteHeader() {
                         aria-label={t("nav.languageToggle")}
                     >
                         {language === "vi" ? "EN" : "VI"}
-                    </button>
-
-                    <button
-                        type="button"
-                        className={`${styles.iconButton} ${styles.desktopOnly}`}
-                        onClick={toggleCurrency}
-                        aria-label={currency === "VND" ? t("nav.currencyToUsd") : t("nav.currencyToVnd")}
-                        title={currency === "VND" ? t("nav.currencyToUsd") : t("nav.currencyToVnd")}
-                    >
-                        {currency === "VND" ? "$" : "₫"}
                     </button>
 
                     <button
@@ -258,9 +246,6 @@ export default function SiteHeader() {
                         <div className={styles.mobileToggles}>
                             <button type="button" className={styles.ghostButton} onClick={toggleLanguage}>
                                 {language === "vi" ? "English" : "Tiếng Việt"}
-                            </button>
-                            <button type="button" className={styles.ghostButton} onClick={toggleCurrency}>
-                                {currency === "VND" ? t("nav.currencyUsd") : t("nav.currencyVnd")}
                             </button>
                             <button type="button" className={styles.ghostButton} onClick={toggleTheme}>
                                 {theme === "light" ? <MoonIcon size={15} weight="bold" /> : <SunIcon size={15} weight="bold" />}

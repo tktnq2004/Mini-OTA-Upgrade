@@ -25,7 +25,7 @@
     "bookings.status.REFUNDED": "Refunded",
     "bookings.viewDetails": "View details",
     "bookings.continuePayment": "Continue payment",
-<<<<<<< HEAD
+
     "bookings.cancel": "Cancel booking",
     "bookings.cancelConfirm": "Cancel this booking?",
     "bookings.cancelYes": "Yes, cancel",
@@ -46,7 +46,7 @@
     "bookings.track.hint.Cancelled": "This booking has been cancelled.",
     "bookings.track.hint.Failed": "The payment didn't go through, so the booking wasn't confirmed.",
     "bookings.track.hint.REFUND_PENDING": "Your refund is on its way to your payment method.",
-=======
+
     "bookings.track.show": "Track status",
     "bookings.track.hide": "Hide status",
     "bookings.track.pending": "Booked",
@@ -62,7 +62,7 @@
     "bookings.track.hint.Cancelled": "This booking was cancelled.",
     "bookings.track.hint.Failed": "Payment didn't go through. Please book again or try another method.",
     "bookings.track.hint.REFUND_PENDING": "Your refund is being processed and will reach your account soon.",
->>>>>>> 65480a1 (tracking status)
+
     "bookings.track.hint.REFUNDED": "Your refund has been completed.",
     "nav.themeToLight": "Switch to light theme",
     "nav.themeToDark": "Switch to dark theme",
