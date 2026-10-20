@@ -1,9 +1,12 @@
+<<<<<<< HEAD
 /* Thanh theo dõi trạng thái booking (mở khi bấm mã đơn trên thẻ). Các bước
    xếp ngang, mỗi bước chia đều bề rộng; đường nối nằm ở nửa trái của bước
    sau, vẽ từ tâm chấm trước tới tâm chấm hiện tại.
 
    Hiệu ứng mở: tiến độ "chạy" từ trái sang — chấm bước i bật lên ở
    i × --step-time, đường nối tới nó lấp đầy ngay trước đó. --i do TSX gán. */
+=======
+>>>>>>> 65480a1 (tracking status)
 .tracker {
     --step-time: 0.55s;
     /* Chờ 1 nhịp sau khi bấm (khung kịp mở ra) rồi mới chạy tiến độ. */

@@ -309,12 +309,14 @@
     gap: 8px;
 }
 
-.bookingActions a {
+.bookingActions a,
+.bookingActions button {
     height: 36px;
     font-size: 13px;
     text-decoration: none;
 }
 
+<<<<<<< HEAD
 /* Huỷ đơn: nằm sát trái hàng nút, tách khỏi các nút điều hướng bên phải. */
 .cancelBookingButton,
 .cancelConfirm {
@@ -385,6 +387,19 @@
 .bookingActionError {
     margin: 0;
     text-align: right;
+=======
+.trackToggle {
+    margin-right: auto;
+    cursor: pointer;
+}
+
+.trackToggle svg {
+    transition: transform 0.2s ease;
+}
+
+.trackToggle[aria-expanded="true"] svg {
+    transform: rotate(180deg);
+>>>>>>> 65480a1 (tracking status)
 }
 
 .bookingSaved {

@@ -8,6 +8,7 @@ import {
   BedIcon,
   CaretDownIcon,
   CalendarBlankIcon,
+  CaretDownIcon,
   CreditCardIcon,
   SuitcaseRollingIcon,
   XCircleIcon,
@@ -83,6 +84,7 @@ export default function BookingsView() {
   const [bookings, setBookings] = useState<MyBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+<<<<<<< HEAD
   // Booking đang mở thanh theo dõi trạng thái (bấm mã đơn để mở/đóng).
   const [trackedId, setTrackedId] = useState<number | null>(null);
   // Huỷ đơn: đang hỏi xác nhận ở thẻ nào / đang gửi / lỗi của thẻ nào.
@@ -106,6 +108,10 @@ export default function BookingsView() {
       setCancellingId(null);
     }
   };
+=======
+  // Booking đang mở thanh theo dõi trạng thái (mỗi lúc chỉ mở 1 thẻ).
+  const [trackingId, setTrackingId] = useState<number | null>(null);
+>>>>>>> 65480a1 (tracking status)
 
   const loadBookings = () => {
     if (!ready) return;
@@ -179,8 +185,13 @@ export default function BookingsView() {
             const statusKey = `bookings.status.${status}`;
             const statusLabel = t(statusKey);
             const rooms = b.bookingRooms ?? [];
+<<<<<<< HEAD
             const tracking = trackedId === b.id;
             const trackerId = `booking-track-${b.id}`;
+=======
+            const tracking = trackingId === b.id;
+            const trackerId = `booking-${b.id}-tracker`;
+>>>>>>> 65480a1 (tracking status)
             return (
               <article key={b.id} className={styles.bookingCard}>
                 <div className={styles.bookingHead}>
@@ -270,8 +281,17 @@ export default function BookingsView() {
                   <strong>{formatPrice(b.payableAmount ?? b.amount)}</strong>
                 </div>
 
+                {tracking && (
+                  <BookingTracker
+                    id={trackerId}
+                    status={status}
+                    bookedOn={b.bookingDate ? formatDateVn(b.bookingDate, language) : undefined}
+                  />
+                )}
+
                 {user && (
                   <div className={styles.bookingActions}>
+<<<<<<< HEAD
                     {canCancel(b) &&
                       (confirmCancelId === b.id ? (
                         <span className={styles.cancelConfirm}>
@@ -309,6 +329,18 @@ export default function BookingsView() {
                           {t("bookings.cancel")}
                         </button>
                       ))}
+=======
+                    <button
+                      type="button"
+                      className={`${controls.buttonGhost} ${styles.trackToggle}`}
+                      aria-expanded={tracking}
+                      aria-controls={trackerId}
+                      onClick={() => setTrackingId(tracking ? null : b.id)}
+                    >
+                      {t(tracking ? "bookings.track.hide" : "bookings.track.show")}
+                      <CaretDownIcon size={14} weight="bold" />
+                    </button>
+>>>>>>> 65480a1 (tracking status)
                     <Link href={bookingDetailHref(b, user.email)} className={controls.buttonGhost}>
                       {t("bookings.viewDetails")}
                       <ArrowRightIcon size={14} weight="bold" />
