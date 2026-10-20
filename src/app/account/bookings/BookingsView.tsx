@@ -8,7 +8,6 @@ import {
   BedIcon,
   CaretDownIcon,
   CalendarBlankIcon,
-  
   CreditCardIcon,
   SuitcaseRollingIcon,
   XCircleIcon,
@@ -108,10 +107,6 @@ export default function BookingsView() {
       setCancellingId(null);
     }
   };
-
-  // Booking đang mở thanh theo dõi trạng thái (mỗi lúc chỉ mở 1 thẻ).
-  const [trackingId, setTrackingId] = useState<number | null>(null);
-
 
   const loadBookings = () => {
     if (!ready) return;
@@ -275,14 +270,6 @@ export default function BookingsView() {
                   </span>
                   <strong>{formatPrice(b.payableAmount ?? b.amount)}</strong>
                 </div>
-
-                {tracking && (
-                  <BookingTracker
-                    id={trackerId}
-                    status={status}
-                    bookedOn={b.bookingDate ? formatDateVn(b.bookingDate, language) : undefined}
-                  />
-                )}
 
                 {user && (
                   <div className={styles.bookingActions}>
