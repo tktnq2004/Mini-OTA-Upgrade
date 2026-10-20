@@ -85,13 +85,66 @@ export function bookingPayable(booking: Pick<CreateBookingResult, "payableAmount
   return booking.payableAmount ?? booking.totalAmount;
 }
 
+// Idempotency-Key cho POST /bookings: 1 key cho 1 "lượt đặt" = đúng bộ
+// phòng + ngày + thông tin khách. Bấm lại / mạng rớt rồi gửi lại / reload
+// trang rồi bấm tiếp với cùng nội dung -> cùng key, backend trả lại booking
+// đã tạo thay vì tạo booking thứ 2. Đổi bất kỳ field nào -> key mới. Tạo
+// xong thì xoá key (đặt lại y hệt sau này là lượt mới). Lỗi thì GIỮ key: lần
+// gửi lại có thể là retry của chính request đã tới được backend.
+const IDEMPOTENCY_PREFIX = "MiniOTA-booking-idem-";
+
+function bookingFingerprint(p: CreateBookingPayload): string {
+  return JSON.stringify([
+    [...p.roomIds].sort((a, b) => a - b),
+    p.checkIn,
+    p.checkOut,
+    p.guest.fullName.trim(),
+    p.guest.email.trim().toLowerCase(),
+    p.guest.phone.trim(),
+  ]);
+}
+
+function newIdempotencyKey(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  // randomUUID chỉ có ở secure context (https/localhost) — mở dev qua IP LAN thì lùi về getRandomValues.
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+// Dự phòng khi sessionStorage bị chặn (private mode...).
+const memoryKeys: Record<string, string> = {};
+
+function bookingIdempotencyKey(fingerprint: string): string {
+  const storageKey = IDEMPOTENCY_PREFIX + fingerprint;
+  try {
+    const existing = sessionStorage.getItem(storageKey);
+    if (existing) return existing;
+    const key = newIdempotencyKey();
+    sessionStorage.setItem(storageKey, key);
+    return key;
+  } catch {
+    // Storage bị chặn: vẫn chống trùng trong 1 lượt bấm nhờ key nhớ tạm.
+    return (memoryKeys[fingerprint] ??= newIdempotencyKey());
+  }
+}
+
+function forgetIdempotencyKey(fingerprint: string): void {
+  delete memoryKeys[fingerprint];
+  try {
+    sessionStorage.removeItem(IDEMPOTENCY_PREFIX + fingerprint);
+  } catch {
+    // bỏ qua
+  }
+}
+
 // POST /api/v1/bookings (qua proxy /api/public/bookings, tự gắn token nếu đã
 // đăng nhập). Phòng đã bị đặt trong lúc chờ -> 409, message nằm trong
-// PublicApiError để UI hiển thị.
+// PublicApiError để UI hiển thị. Kèm header Idempotency-Key (xem trên).
 export async function createBooking(payload: CreateBookingPayload): Promise<CreateBookingResult> {
+  const fingerprint = bookingFingerprint(payload);
   const res = await fetch("/api/public/bookings", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "Idempotency-Key": bookingIdempotencyKey(fingerprint) },
     body: JSON.stringify({
       roomIds: payload.roomIds,
       checkIn: payload.checkIn,
@@ -101,7 +154,9 @@ export async function createBooking(payload: CreateBookingPayload): Promise<Crea
       guestPhone: payload.guest.phone,
     }),
   });
-  return unwrapResponse<CreateBookingResult>(res);
+  const result = await unwrapResponse<CreateBookingResult>(res);
+  forgetIdempotencyKey(fingerprint);
+  return result;
 }
 
 // GET /api/v1/bookings/lookup (qua proxy /api/public, public — không cần

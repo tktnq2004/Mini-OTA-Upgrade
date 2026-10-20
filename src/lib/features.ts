@@ -6,4 +6,10 @@ export const FEATURES = {
     promoCodes: false,
     /** Khung "Nhận ưu đãi sớm nhất" + "Ứng dụng Trạm OTA" — cần API nhận email và app trên store. */
     newsletterAndApp: false,
+    /**
+     * CHỈ ĐỂ TEST idempotency backend: không khoá nút "Tiếp tục thanh toán" (tạo booking) và
+     * "Thanh toán" (thẻ) lúc đang gửi -> bấm liên tiếp được nhiều lần. Bật bằng
+     * NEXT_PUBLIC_ALLOW_DOUBLE_SUBMIT=true trong .env.local (không commit), restart dev server.
+     */
+    allowDoubleSubmit: process.env.NEXT_PUBLIC_ALLOW_DOUBLE_SUBMIT === "true",
 } as const;

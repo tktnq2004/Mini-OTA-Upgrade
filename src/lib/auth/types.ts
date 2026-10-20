@@ -96,6 +96,10 @@ export interface MyBooking {
   checkIn: string; // yyyy-mm-dd
   checkOut: string; // yyyy-mm-dd
   paymentStatus?: string; // "Pending" | "Completed" | ...
+  // Hạn giữ chỗ (LocalDateTime, không múi giờ). ResMyBookingDTO hiện CHƯA
+  // trả field này — có thì FE ẩn nút huỷ khi đã hết hạn, chưa có thì để
+  // backend chặn (409 "expired").
+  expirationTime?: string | null;
   // Có = đã tạo PaymentIntent Stripe (xem BookingsView: sync). Backend mới
   // trả stripePaymentIntentId; stripePaymentId là tên cũ, giữ để tương thích.
   paymentProvider?: string | null; // "STRIPE" | "SEPAY" | ...

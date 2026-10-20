@@ -3,7 +3,7 @@ import { BuildingsIcon, MapPinIcon } from "@phosphor-icons/react";
 import MapArt from "@/components/home/MapArt/MapArt";
 import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
-import { formatCompactVnd, formatVnd } from "@/lib/format";
+import { useCurrency } from "@/components/currency/CurrencyProvider";
 import type { JourneyHotel } from "../journeyData";
 import styles from "../BookingJourney.module.css";
 
@@ -19,6 +19,7 @@ const PIN_POSITIONS = [
 // Màn 2 — bản đồ tối giản, các pin giá bật lên lần lượt, pin rẻ nhất được chọn và mở thẻ xem nhanh.
 export default function MapScreen({ hotels }: { hotels: JourneyHotel[] }) {
     const { t } = useLanguage();
+    const { formatPrice, formatCompactPrice } = useCurrency();
     const selected = hotels[0];
 
     return (
@@ -37,7 +38,7 @@ export default function MapScreen({ hotels }: { hotels: JourneyHotel[] }) {
                         } as CSSProperties
                     }
                 >
-                    {formatCompactVnd(hotel.price)}
+                    {formatCompactPrice(hotel.price)}
                 </span>
             ))}
 
@@ -58,7 +59,7 @@ export default function MapScreen({ hotels }: { hotels: JourneyHotel[] }) {
                             {selected.address}
                         </span>
                         <span className={styles.mapCardPrice}>
-                            <strong>{formatVnd(selected.price)}</strong> {t("room.perNight")}
+                            <strong>{formatPrice(selected.price)}</strong> {t("room.perNight")}
                         </span>
                     </div>
                 </div>

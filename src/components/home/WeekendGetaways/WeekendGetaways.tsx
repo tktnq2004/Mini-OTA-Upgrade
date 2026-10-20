@@ -8,7 +8,8 @@ import Reveal from "@/components/home/Reveal/Reveal";
 import Skeleton from "@/components/Skeleton/Skeleton";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import type { Hotel } from "@/lib/hotels/types";
-import { formatCompactVnd, formatDateVn, formatVnd } from "@/lib/format";
+import { formatDateVn } from "@/lib/format";
+import { useCurrency } from "@/components/currency/CurrencyProvider";
 import { addDaysIso, filtersToSearchParams, todayIso } from "@/lib/searchFilters";
 import styles from "./WeekendGetaways.module.css";
 
@@ -54,6 +55,7 @@ export default function WeekendGetaways({
     loading = false,
 }: WeekendGetawaysProps) {
     const { t, language } = useLanguage();
+    const { formatPrice, formatCompactPrice } = useCurrency();
 
     const presets = useMemo(() => {
         const thisFriday = upcomingFriday(todayIso());
@@ -164,12 +166,12 @@ export default function WeekendGetaways({
                                         {card.minPrice !== null && (
                                             <span className={styles.price}>
                                                 {t("home.weekend.from")}{" "}
-                                                <strong>{formatCompactVnd(card.minPrice)}</strong>
+                                                <strong>{formatCompactPrice(card.minPrice)}</strong>
                                                 {t("room.perNight")}
                                                 <span className={styles.total}>
                                                     {t("home.weekend.total", {
                                                         nights: NIGHTS,
-                                                        total: formatVnd(card.minPrice * NIGHTS),
+                                                        total: formatPrice(card.minPrice * NIGHTS),
                                                     })}
                                                 </span>
                                             </span>

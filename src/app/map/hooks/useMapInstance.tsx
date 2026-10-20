@@ -7,7 +7,6 @@ import { createRoot, type Root } from "react-dom/client";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { Feature, FeatureCollection, Point } from "geojson";
 import type { Hotel } from "@/lib/hotels/types";
-import { formatCompactVnd } from "@/lib/format";
 import { getProvinceById } from "@/data/locations.data";
 import type { BoundsBox } from "@/lib/geo";
 import HotelPopupCard from "../HotelPopupCard";
@@ -31,8 +30,11 @@ import { MAPTILER_STYLE_URL, PROVINCE_ZOOM, VIETNAM_CENTER, VIETNAM_ZOOM } from 
 const SOURCE_ID = "hotels";
 const BUTTON_LAYER_ID = "hotels-button";
 
-function hotelLabel(hotel: Hotel, noPriceLabel: string): string {
-    return hotel.averagePrice != null ? formatCompactVnd(hotel.averagePrice) : noPriceLabel;
+// formatPrice: rút gọn theo tiền tệ đang chọn (nút ₫/$ ở header, xem useCurrency).
+type PriceFormatter = (vnd: number) => string;
+
+function hotelLabel(hotel: Hotel, noPriceLabel: string, formatPrice: PriceFormatter): string {
+    return hotel.averagePrice != null ? formatPrice(hotel.averagePrice) : noPriceLabel;
 }
 
 interface HotelMarkerProperties {
@@ -42,12 +44,16 @@ interface HotelMarkerProperties {
 
 // Toạ độ THẬT của từng hotel — chưa tách marker chồng nhau (xem
 // buildMarkerFeatureCollection, nơi áp dụng spiderfy dựa trên map hiện tại).
-function hotelsToFeatures(hotels: Hotel[], noPriceLabel: string): Feature<Point, HotelMarkerProperties>[] {
+function hotelsToFeatures(
+    hotels: Hotel[],
+    noPriceLabel: string,
+    formatPrice: PriceFormatter,
+): Feature<Point, HotelMarkerProperties>[] {
     return hotels.map((hotel) => ({
         type: "Feature",
         id: hotel.id,
         geometry: { type: "Point", coordinates: [Number(hotel.longitude), Number(hotel.latitude)] },
-        properties: { id: hotel.id, iconId: hotelMarkerIconId(hotelLabel(hotel, noPriceLabel)) },
+        properties: { id: hotel.id, iconId: hotelMarkerIconId(hotelLabel(hotel, noPriceLabel, formatPrice)) },
     }));
 }
 
@@ -55,8 +61,16 @@ function hotelsToFeatures(hotels: Hotel[], noPriceLabel: string): Feature<Point,
 // spiderfyFeatures) khi đã zoom đủ gần. Phải nhận `map` vì spiderfy cần biết
 // zoom/kích thước màn hình hiện tại để tính khoảng cách pixel giữa các
 // marker.
-function buildMarkerFeatureCollection(map: MapLibreMap, hotels: Hotel[], noPriceLabel: string): FeatureCollection<Point, HotelMarkerProperties> {
-    return { type: "FeatureCollection", features: spiderfyFeatures(map, hotelsToFeatures(hotels, noPriceLabel)) };
+function buildMarkerFeatureCollection(
+    map: MapLibreMap,
+    hotels: Hotel[],
+    noPriceLabel: string,
+    formatPrice: PriceFormatter,
+): FeatureCollection<Point, HotelMarkerProperties> {
+    return {
+        type: "FeatureCollection",
+        features: spiderfyFeatures(map, hotelsToFeatures(hotels, noPriceLabel, formatPrice)),
+    };
 }
 
 // Chỉ dùng nội bộ để dọn dẹp popup/React root đang mở khi mở popup khác hoặc
@@ -80,6 +94,8 @@ interface UseMapInstanceOptions {
     // Chữ hiện trên nút của hotel CHƯA có averagePrice (vd. "Xem"/"View") —
     // truyền vào thay vì hardcode để còn đổi theo ngôn ngữ đang chọn.
     noPriceLabel: string;
+    // Rút gọn giá trên marker theo tiền tệ đang chọn — đổi thì vẽ lại nhãn.
+    formatCompactPrice: PriceFormatter;
     onBookHotel: (hotelId: number) => void;
     onViewportChange: (bounds: BoundsBox) => void;
     // Toạ độ Y (viewport, px) của mép dưới lớp overlay (thanh tìm kiếm) —
@@ -99,6 +115,7 @@ export function useMapInstance({
     language,
     bookLabel,
     noPriceLabel,
+    formatCompactPrice,
     onBookHotel,
     onViewportChange,
     getOverlayBottomPx,
@@ -116,6 +133,7 @@ export function useMapInstance({
     const hotelsRef = useRef(hotels);
     const bookLabelRef = useRef(bookLabel);
     const noPriceLabelRef = useRef(noPriceLabel);
+    const formatCompactPriceRef = useRef(formatCompactPrice);
     const getOverlayBottomPxRef = useRef(getOverlayBottomPx);
     useEffect(() => {
         onViewportChangeRef.current = onViewportChange;
@@ -123,14 +141,20 @@ export function useMapInstance({
         hotelsRef.current = hotels;
         bookLabelRef.current = bookLabel;
         noPriceLabelRef.current = noPriceLabel;
+        formatCompactPriceRef.current = formatCompactPrice;
         getOverlayBottomPxRef.current = getOverlayBottomPx;
     });
 
     // Build feature collection (đã spiderfy) + ghi lại vào lastFeaturesRef —
     // dùng chung cho mọi chỗ cần setData để openPopupFor luôn có đúng vị trí
     // marker MỚI NHẤT đang hiển thị, không bị lệch với data cũ.
-    const computeMarkerData = (map: MapLibreMap, hotelsList: Hotel[], noPriceLabelValue: string) => {
-        const collection = buildMarkerFeatureCollection(map, hotelsList, noPriceLabelValue);
+    const computeMarkerData = (
+        map: MapLibreMap,
+        hotelsList: Hotel[],
+        noPriceLabelValue: string,
+        formatPrice: PriceFormatter,
+    ) => {
+        const collection = buildMarkerFeatureCollection(map, hotelsList, noPriceLabelValue, formatPrice);
         lastFeaturesRef.current = collection.features;
         return collection;
     };
@@ -180,18 +204,21 @@ export function useMapInstance({
             container: mapContainerRef.current,
             style: MAPTILER_STYLE_URL,
             center: initialProvince ? [initialProvince.lng, initialProvince.lat] : VIETNAM_CENTER,
-            zoom: initialProvince ? PROVINCE_ZOOM : VIETNAM_ZOOM,
+            zoom: initialProvince ? (initialProvince.zoom ?? PROVINCE_ZOOM) : VIETNAM_ZOOM,
         });
 
         map.addControl(new maplibregl.NavigationControl(), "bottom-right");
         map.addControl(new maplibregl.ScaleControl(), "bottom-left");
 
         map.on("load", () => {
-            ensureHotelMarkerIcons(map, hotelsRef.current.map((h) => hotelLabel(h, noPriceLabelRef.current)));
+            ensureHotelMarkerIcons(
+                map,
+                hotelsRef.current.map((h) => hotelLabel(h, noPriceLabelRef.current, formatCompactPriceRef.current)),
+            );
 
             map.addSource(SOURCE_ID, {
                 type: "geojson",
-                data: computeMarkerData(map, hotelsRef.current, noPriceLabelRef.current),
+                data: computeMarkerData(map, hotelsRef.current, noPriceLabelRef.current, formatCompactPriceRef.current),
             });
 
             map.addLayer({
@@ -248,7 +275,9 @@ export function useMapInstance({
         // độc lập với việc danh sách hotel có đổi hay không.
         const handleZoomEnd = () => {
             const source = map.getSource(SOURCE_ID) as GeoJSONSource | undefined;
-            source?.setData(computeMarkerData(map, hotelsRef.current, noPriceLabelRef.current));
+            source?.setData(
+                computeMarkerData(map, hotelsRef.current, noPriceLabelRef.current, formatCompactPriceRef.current),
+            );
         };
         map.on("zoomend", handleZoomEnd);
 
@@ -274,10 +303,10 @@ export function useMapInstance({
     useEffect(() => {
         const map = mapRef.current;
         if (!map) return;
-        ensureHotelMarkerIcons(map, hotels.map((h) => hotelLabel(h, noPriceLabel)));
+        ensureHotelMarkerIcons(map, hotels.map((h) => hotelLabel(h, noPriceLabel, formatCompactPrice)));
         const source = map.getSource(SOURCE_ID) as GeoJSONSource | undefined;
-        source?.setData(computeMarkerData(map, hotels, noPriceLabel));
-    }, [hotels, language, noPriceLabel]);
+        source?.setData(computeMarkerData(map, hotels, noPriceLabel, formatCompactPrice));
+    }, [hotels, language, noPriceLabel, formatCompactPrice]);
 
     const flyTo = (center: [number, number], zoom: number) => {
         mapRef.current?.flyTo({ center, zoom, duration: 1000 });

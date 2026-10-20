@@ -18,7 +18,7 @@ import {
 } from "@phosphor-icons/react";
 import type { Hotel, Room } from "@/lib/hotels/types";
 import type { MediaAsset } from "@/lib/media/types";
-import { formatVnd } from "@/lib/format";
+import { useCurrency } from "@/components/currency/CurrencyProvider";
 import { addDaysIso, nightsBetween, parseFilters, todayIso } from "@/lib/searchFilters";
 import { nightReduction, quoteRoom } from "@/lib/booking/discount";
 import DiscountTag from "@/components/DiscountTag/DiscountTag";
@@ -49,6 +49,7 @@ interface RoomDetailViewProps {
 
 export default function RoomDetailView({ hotel, room, thumbnail, panorama, roomThumbnails }: RoomDetailViewProps) {
     const { t } = useLanguage();
+    const { formatPrice } = useCurrency();
     const router = useRouter();
     const searchParams = useSearchParams();
     const { isSaved, add, remove } = useWishlist();
@@ -261,8 +262,8 @@ export default function RoomDetailView({ hotel, room, thumbnail, panorama, roomT
                     <div className={styles.bookingCard}>
                         {headline && <DiscountTag discount={headline.discount} />}
                         <div className={styles.priceHead}>
-                            {headline && <s className={styles.priceOriginal}>{formatVnd(room.price)}</s>}
-                            <strong>{formatVnd(nightlyPrice)}</strong>
+                            {headline && <s className={styles.priceOriginal}>{formatPrice(room.price)}</s>}
+                            <strong>{formatPrice(nightlyPrice)}</strong>
                             <span>{t("room.perNight")}</span>
                         </div>
 
@@ -286,19 +287,19 @@ export default function RoomDetailView({ hotel, room, thumbnail, panorama, roomT
                             <div className={styles.discountLines}>
                                 <div>
                                     <span>{t("discount.subtotal")}</span>
-                                    <span>{formatVnd(quote.subtotal)}</span>
+                                    <span>{formatPrice(quote.subtotal)}</span>
                                 </div>
                                 {quote.applied.map((a) => (
                                     <div key={a.discount.id} className={styles.discountLine}>
                                         <span>{t("discount.line", { name: a.discount.name, count: a.nights })}</span>
-                                        <span>-{formatVnd(a.amount)}</span>
+                                        <span>-{formatPrice(a.amount)}</span>
                                     </div>
                                 ))}
                             </div>
                         )}
                         <div className={styles.priceBreakdown}>
                             <span>{t("wishlist.summaryTotal")}</span>
-                            <strong>{nights > 0 ? formatVnd(total) : t("checkout.pickDatesForTotal")}</strong>
+                            <strong>{nights > 0 ? formatPrice(total) : t("checkout.pickDatesForTotal")}</strong>
                         </div>
 
                         <div className={styles.bookingActions}>

@@ -64,10 +64,10 @@ export const createHotel = (input: HotelInput) => adminPost<Hotel>("hotels", inp
 export const updateHotel = (id: number, input: HotelInput) => adminPut<Hotel>("hotels", { id, ...input });
 export const deleteHotel = (id: number) => adminDelete<void>(`hotels/${id}`);
 
-// ---- Provinces / Wards (chỉ trả về TÊN, không có id — xem ADMIN.md) ----
-export const listProvinceNames = () => adminGet<string[]>("provinces");
-export const listWardNamesByProvinceId = (provinceId: number) =>
-  adminGet<string[]>(`wards/provinces/${provinceId}`);
+// ---- Provinces / Wards — backend trả [{ id, name }] (id = mã, vd. "01", "US-CA") ----
+export const listProvinces = () => adminGet<{ id: string; name: string }[]>("provinces");
+export const listWardsByProvinceId = (provinceId: string) =>
+  adminGet<{ id: string; name: string }[]>(`wards/provinces/${encodeURIComponent(provinceId)}`);
 
 export const createRoom = (input: RoomInput) => {
   const { roomTypeId, ...rest } = input;

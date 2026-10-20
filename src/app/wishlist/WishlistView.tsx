@@ -15,7 +15,7 @@ import SiteHeader from "@/components/SiteHeader/SiteHeader";
 import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
 import { useWishlist } from "@/components/wishlist/WishlistProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
-import { formatVnd } from "@/lib/format";
+import { useCurrency } from "@/components/currency/CurrencyProvider";
 import { addDaysIso, todayIso } from "@/lib/searchFilters";
 import { nightReduction, quoteRoom } from "@/lib/booking/discount";
 import DiscountTag from "@/components/DiscountTag/DiscountTag";
@@ -31,6 +31,7 @@ import WishlistSkeleton from "./WishlistSkeleton";
 
 export default function WishlistView() {
     const { t } = useLanguage();
+    const { formatPrice } = useCurrency();
     const router = useRouter();
     const { items, remove } = useWishlist();
 
@@ -222,9 +223,9 @@ export default function WishlistView() {
 
                                                         <div className={styles.roomPrice}>
                                                             {headline && (
-                                                                <s className={styles.roomPriceOriginal}>{formatVnd(room.price)}</s>
+                                                                <s className={styles.roomPriceOriginal}>{formatPrice(room.price)}</s>
                                                             )}
-                                                            {formatVnd(
+                                                            {formatPrice(
                                                                 headline
                                                                     ? room.price - nightReduction(room.price, headline.discount)
                                                                     : room.price

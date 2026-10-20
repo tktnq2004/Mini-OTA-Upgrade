@@ -10,7 +10,7 @@ import Skeleton from "@/components/Skeleton/Skeleton";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { provinces } from "@/data/locations.data";
 import type { Hotel } from "@/lib/hotels/types";
-import { formatCompactVnd } from "@/lib/format";
+import { useCurrency } from "@/components/currency/CurrencyProvider";
 import styles from "./RegionDestinations.module.css";
 
 // Chia vùng theo mã tỉnh của danh mục 34 tỉnh mới (mã tăng dần từ Bắc vào Nam):
@@ -41,6 +41,7 @@ const SKELETON_CARDS = 6;
  */
 export default function RegionDestinations({ hotels, sectionClassName, loading = false }: RegionDestinationsProps) {
     const { t } = useLanguage();
+    const { formatCompactPrice } = useCurrency();
 
     const regions = useMemo(() => {
         const byProvince = new Map<string, Hotel[]>();
@@ -159,7 +160,7 @@ export default function RegionDestinations({ hotels, sectionClassName, loading =
                                         {province.minPrice !== null && (
                                             <>
                                                 {" · "}
-                                                {t("home.regions.from", { price: formatCompactVnd(province.minPrice) })}
+                                                {t("home.regions.from", { price: formatCompactPrice(province.minPrice) })}
                                             </>
                                         )}
                                     </span>

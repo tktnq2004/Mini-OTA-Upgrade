@@ -5,6 +5,8 @@ import { useSearchParams } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader/SiteHeader";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { useHotelFilters } from "@/hooks/useHotelFilters";
+import { getWardById } from "@/data/locations.data";
+import { useCurrency } from "@/components/currency/CurrencyProvider";
 import LoadError from "@/components/LoadError/LoadError";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { useMapInstance } from "./hooks/useMapInstance";
@@ -15,6 +17,7 @@ import styles from "./Map.module.css";
 export default function MapView() {
     const searchParams = useSearchParams();
     const { t, language } = useLanguage();
+    const { formatCompactPrice } = useCurrency();
 
     const {
         filters,
@@ -44,6 +47,7 @@ export default function MapView() {
         language,
         bookLabel: t("map.viewRoomsAndBook"),
         noPriceLabel: t("map.viewHotelMarker"),
+        formatCompactPrice,
         onBookHotel: bookHotel,
         onViewportChange: setBounds,
         getOverlayBottomPx: () => overlayRef.current?.getBoundingClientRect().bottom ?? 0,
@@ -78,8 +82,15 @@ export default function MapView() {
     useEffect(() => {
         if (hasBounds || nearby) return;
 
-        if (selectedProvince) {
-            flyTo([selectedProvince.lng, selectedProvince.lat], filters.wardId ? WARD_ZOOM : PROVINCE_ZOOM);
+        // Xã/thành phố có toạ độ riêng (hiện chỉ California) -> bay thẳng tới đó.
+        const ward = getWardById(filters.wardId);
+        if (ward?.lat != null && ward.lng != null && ward.provinceId === selectedProvince?.id) {
+            flyTo([ward.lng, ward.lat], WARD_ZOOM);
+        } else if (selectedProvince && Number.isFinite(selectedProvince.lat)) {
+            flyTo(
+                [selectedProvince.lng, selectedProvince.lat],
+                filters.wardId ? WARD_ZOOM : (selectedProvince.zoom ?? PROVINCE_ZOOM),
+            );
         } else {
             flyTo(VIETNAM_CENTER, VIETNAM_ZOOM);
         }

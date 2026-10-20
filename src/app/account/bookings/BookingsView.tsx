@@ -6,23 +6,27 @@ import { useRouter } from "next/navigation";
 import {
   ArrowRightIcon,
   BedIcon,
+  CaretDownIcon,
   CalendarBlankIcon,
   CreditCardIcon,
   SuitcaseRollingIcon,
+  XCircleIcon,
 } from "@phosphor-icons/react";
 import SiteHeader from "@/components/SiteHeader/SiteHeader";
 import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
 import { useAccount } from "@/components/auth/AccountProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { AccountApiError } from "@/lib/auth/apiClient";
-import { getMyBookings } from "@/lib/auth/resources";
+import { cancelMyBooking, getMyBookings } from "@/lib/auth/resources";
 import { syncPayment } from "@/lib/booking/payment";
 import type { MyBooking } from "@/lib/auth/types";
-import { formatDateVn, formatVnd } from "@/lib/format";
+import { formatDateVn } from "@/lib/format";
+import { useCurrency } from "@/components/currency/CurrencyProvider";
 import { nightsBetween } from "@/lib/searchFilters";
 import controls from "@/styles/controls.module.css";
 import styles from "../account.module.css";
 import BookingCardSkeleton from "./BookingCardSkeleton";
+import BookingTracker from "./BookingTracker";
 
 const SKELETON_CARDS = 3;
 
@@ -44,6 +48,14 @@ const needsSync = (b: MyBooking) =>
   Boolean(b.stripePaymentIntentId ?? b.stripePaymentId) &&
   (b.paymentStatus === "Pending" || b.paymentStatus === "PROCESSING");
 
+// Khớp BookingCancellationService.assertCancellable: chỉ Pending còn hạn.
+// expirationTime chưa có trong response thì coi như còn hạn (backend vẫn chặn).
+const canCancel = (b: MyBooking) => {
+  if ((b.paymentStatus ?? "Pending") !== "Pending") return false;
+  const expiresAt = b.expirationTime ? Date.parse(b.expirationTime) : NaN;
+  return !(Number.isFinite(expiresAt) && expiresAt < Date.now());
+};
+
 const roomHref = (b: MyBooking, roomId?: number) =>
   !roomId
     ? "#"
@@ -64,12 +76,36 @@ const bookingDetailHref = (b: MyBooking, email: string) => {
 
 export default function BookingsView() {
   const { t, language } = useLanguage();
+  const { formatPrice } = useCurrency();
   const { user, ready } = useAccount();
   const router = useRouter();
 
   const [bookings, setBookings] = useState<MyBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  // Booking đang mở thanh theo dõi trạng thái (bấm mã đơn để mở/đóng).
+  const [trackedId, setTrackedId] = useState<number | null>(null);
+  // Huỷ đơn: đang hỏi xác nhận ở thẻ nào / đang gửi / lỗi của thẻ nào.
+  const [confirmCancelId, setConfirmCancelId] = useState<number | null>(null);
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [cancelError, setCancelError] = useState<{ id: number; message: string } | null>(null);
+
+  const handleCancel = async (id: number) => {
+    setCancellingId(id);
+    setCancelError(null);
+    try {
+      await cancelMyBooking(id);
+      setBookings((cur) => cur.map((x) => (x.id === id ? { ...x, paymentStatus: "Cancelled" } : x)));
+      setConfirmCancelId(null);
+    } catch (e) {
+      setCancelError({
+        id,
+        message: e instanceof AccountApiError && e.message ? e.message : t("bookings.cancelError"),
+      });
+    } finally {
+      setCancellingId(null);
+    }
+  };
 
   const loadBookings = () => {
     if (!ready) return;
@@ -143,11 +179,27 @@ export default function BookingsView() {
             const statusKey = `bookings.status.${status}`;
             const statusLabel = t(statusKey);
             const rooms = b.bookingRooms ?? [];
+            const tracking = trackedId === b.id;
+            const trackerId = `booking-track-${b.id}`;
             return (
               <article key={b.id} className={styles.bookingCard}>
                 <div className={styles.bookingHead}>
                   <div>
-                    <strong>MO-{b.id}</strong>
+                    <button
+                      type="button"
+                      className={styles.bookingCodeButton}
+                      aria-expanded={tracking}
+                      aria-controls={trackerId}
+                      title={t("bookings.track.toggle")}
+                      onClick={() => setTrackedId(tracking ? null : b.id)}
+                    >
+                      <strong>MO-{b.id}</strong>
+                      <CaretDownIcon
+                        size={13}
+                        weight="bold"
+                        className={tracking ? styles.caretOpen : styles.caret}
+                      />
+                    </button>
                     {b.bookingDate && (
                       <span className={styles.bookedOn}>
                         {t("bookings.bookedOn", {
@@ -162,6 +214,14 @@ export default function BookingsView() {
                     {statusLabel === statusKey ? status : statusLabel}
                   </span>
                 </div>
+
+                {tracking && (
+                  <BookingTracker
+                    id={trackerId}
+                    status={status}
+                    bookedOn={b.bookingDate ? formatDateVn(b.bookingDate, language) : undefined}
+                  />
+                )}
 
                 <p className={styles.bookingMeta}>
                   <CalendarBlankIcon size={14} />
@@ -190,7 +250,7 @@ export default function BookingsView() {
                             {br.room?.name}
                           </span>
                           <span className={styles.roomPrice}>
-                            {formatVnd(br.pricePerNight)} {t("room.perNight")}
+                            {formatPrice(br.pricePerNight)} {t("room.perNight")}
                           </span>
                         </Link>
                       </li>
@@ -203,15 +263,52 @@ export default function BookingsView() {
                     {t("wishlist.summaryTotal")}
                     {b.discountAmount ? (
                       <span className={styles.bookingSaved}>
-                        {t("discount.youSave", { amount: formatVnd(b.discountAmount) })}
+                        {t("discount.youSave", { amount: formatPrice(b.discountAmount) })}
                       </span>
                     ) : null}
                   </span>
-                  <strong>{formatVnd(b.payableAmount ?? b.amount)}</strong>
+                  <strong>{formatPrice(b.payableAmount ?? b.amount)}</strong>
                 </div>
 
                 {user && (
                   <div className={styles.bookingActions}>
+                    {canCancel(b) &&
+                      (confirmCancelId === b.id ? (
+                        <span className={styles.cancelConfirm}>
+                          <span className={styles.cancelQuestion}>{t("bookings.cancelConfirm")}</span>
+                          <button
+                            type="button"
+                            className={styles.cancelYesButton}
+                            disabled={cancellingId === b.id}
+                            onClick={() => handleCancel(b.id)}
+                          >
+                            {cancellingId === b.id ? t("bookings.cancelling") : t("bookings.cancelYes")}
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.cancelKeepButton}
+                            disabled={cancellingId === b.id}
+                            onClick={() => {
+                              setConfirmCancelId(null);
+                              setCancelError(null);
+                            }}
+                          >
+                            {t("bookings.cancelKeep")}
+                          </button>
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          className={styles.cancelBookingButton}
+                          onClick={() => {
+                            setConfirmCancelId(b.id);
+                            setCancelError(null);
+                          }}
+                        >
+                          <XCircleIcon size={15} weight="bold" />
+                          {t("bookings.cancel")}
+                        </button>
+                      ))}
                     <Link href={bookingDetailHref(b, user.email)} className={controls.buttonGhost}>
                       {t("bookings.viewDetails")}
                       <ArrowRightIcon size={14} weight="bold" />
@@ -223,6 +320,10 @@ export default function BookingsView() {
                       </Link>
                     )}
                   </div>
+                )}
+
+                {cancelError?.id === b.id && (
+                  <p className={`${controls.error} ${styles.bookingActionError}`}>{cancelError.message}</p>
                 )}
               </article>
             );

@@ -35,13 +35,25 @@ const PUBLIC_POST_PATHS = new Set(["bookings", "payment/create-payment-intent"])
 const AUTH_OPTIONAL_PATHS = new Set(["bookings", "payment/create-payment-intent"]);
 const PAYMENT_SYNC_PATH = /^payments\/\d+\/sync$/;
 
-async function postBackend(url: string, body: string, token?: string, bookingToken?: string) {
+// Header client gửi lên được chuyển tiếp nguyên văn tới backend (theo path):
+//  - X-Booking-Token: token khách vãng lai, chỉ cho payments/{id}/sync.
+//  - Idempotency-Key: chống tạo trùng booking khi bấm lại/gửi lại, chỉ cho bookings.
+function forwardedHeaders(req: NextRequest, joined: string, isSync: boolean): Record<string, string> {
+  const out: Record<string, string> = {};
+  const bookingToken = isSync ? req.headers.get("x-booking-token") : null;
+  if (bookingToken) out["X-Booking-Token"] = bookingToken;
+  const idempotencyKey = joined === "bookings" ? req.headers.get("idempotency-key") : null;
+  if (idempotencyKey) out["Idempotency-Key"] = idempotencyKey;
+  return out;
+}
+
+async function postBackend(url: string, body: string, token: string | undefined, extra: Record<string, string>) {
   return fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(bookingToken ? { "X-Booking-Token": bookingToken } : {}),
+      ...extra,
     },
     body,
     cache: "no-store",
@@ -60,14 +72,14 @@ export async function POST(req: NextRequest, context: { params: Promise<{ path: 
   const body = await req.text();
   let accessToken = AUTH_OPTIONAL_PATHS.has(joined) || isSync ? req.cookies.get(ACCESS_COOKIE)?.value : undefined;
 
-  const bookingToken = isSync ? (req.headers.get("x-booking-token") ?? undefined) : undefined;
+  const extra = forwardedHeaders(req, joined, isSync);
 
-  let backendRes = await postBackend(url, body, accessToken, bookingToken);
+  let backendRes = await postBackend(url, body, accessToken, extra);
   if (accessToken && backendRes.status === 401) {
     const refreshToken = req.cookies.get(REFRESH_COOKIE)?.value;
     const refreshed = refreshToken ? await refreshBackendSession(refreshToken) : null;
     accessToken = refreshed?.accessToken;
-    backendRes = await postBackend(url, body, accessToken, bookingToken);
+    backendRes = await postBackend(url, body, accessToken, extra);
   }
 
   const text = await backendRes.text();

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { MapPinIcon, CalendarBlankIcon, UsersIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
-import { provinces, getWardsByProvince } from "@/data/locations.data";
+import { useProvinceOptions, useWardOptions } from "@/hooks/useLocationOptions";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import {
     addDaysIso,
@@ -57,7 +57,9 @@ export default function SearchWidget({
         setGuests(initialFilters.guests);
     }
 
-    const wardOptions = getWardsByProvince(provinceId);
+    // Tỉnh / xã lấy từ API: /provinces, /wards/provinces/{id}.
+    const provinceOptions = useProvinceOptions(provinceId);
+    const wardOptions = useWardOptions(provinceId, wardId);
     const minCheckin = todayIso();
     const minCheckout = addDaysIso(checkin || minCheckin, 1);
 
@@ -94,7 +96,7 @@ export default function SearchWidget({
                     onChange={(e) => handleProvinceChange(e.target.value)}
                 >
                     <option value="">{t("search.provinceAllOption")}</option>
-                    {provinces.map((p) => (
+                    {provinceOptions.map((p) => (
                         <option key={p.id} value={p.id}>
                             {p.name}
                         </option>

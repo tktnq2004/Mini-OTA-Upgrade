@@ -20,7 +20,8 @@ import {
 } from "@phosphor-icons/react";
 import SiteHeader from "@/components/SiteHeader/SiteHeader";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
-import { formatDateVn, formatVnd } from "@/lib/format";
+import { formatDateVn, formatVnd, VND_PER_USD } from "@/lib/format";
+import { useCurrency } from "@/components/currency/CurrencyProvider";
 import { nightsBetween } from "@/lib/searchFilters";
 import {
     bookingPayable,
@@ -33,6 +34,7 @@ import { PublicApiError } from "@/lib/hotels/envelope";
 import { CardPaymentError, syncPayment } from "@/lib/booking/payment";
 import CardPayment, { type PaymentFormHandle } from "../PaymentForm";
 import SePayPanel from "../SePayPanel";
+import { FEATURES } from "@/lib/features";
 import controls from "@/styles/controls.module.css";
 import checkoutStyles from "../checkout.module.css";
 import styles from "./payment.module.css";
@@ -90,6 +92,7 @@ function formatCountdown(ms: number): string {
 
 export default function PaymentView() {
     const { t, language } = useLanguage();
+    const { currency, formatPrice } = useCurrency();
     const searchParams = useSearchParams();
 
     const bookingId = Number(searchParams.get("bookingId")) || null;
@@ -317,13 +320,13 @@ export default function PaymentView() {
                             <BedIcon size={14} weight="light" />
                             <span className={styles.invoiceRoomName}>{room.roomName}</span>
                             <span className={styles.invoiceRoomPrice}>
-                                {formatVnd(room.pricePerNight)} × {nights}
+                                {formatPrice(room.pricePerNight)} × {nights}
                             </span>
                         </div>
                         {room.discounts?.map((d, i) => (
                             <div key={d.discountId ?? i} className={styles.invoiceDiscountRow}>
                                 <span>{t("discount.line", { name: d.name, count: d.nights })}</span>
-                                <span>-{formatVnd(d.amount)}</span>
+                                <span>-{formatPrice(d.amount)}</span>
                             </div>
                         ))}
                     </div>
@@ -362,19 +365,25 @@ export default function PaymentView() {
                 <div className={styles.invoiceDiscountSummary}>
                     <div>
                         <span>{t("discount.subtotal")}</span>
-                        <span>{formatVnd(booking.subtotalAmount ?? grandTotal + discountAmount)}</span>
+                        <span>{formatPrice(booking.subtotalAmount ?? grandTotal + discountAmount)}</span>
                     </div>
                     <div className={styles.invoiceDiscountRow}>
                         <span>{t("discount.totalDiscount")}</span>
-                        <span>-{formatVnd(discountAmount)}</span>
+                        <span>-{formatPrice(discountAmount)}</span>
                     </div>
                 </div>
             )}
 
             <div className={styles.invoiceTotalRow}>
                 <span>{t("wishlist.summaryTotal")}</span>
-                <strong>{formatVnd(grandTotal)}</strong>
+                <strong>{formatPrice(grandTotal)}</strong>
             </div>
+            {/* Giá USD chỉ để tham khảo — Stripe/SePay thu bằng VND. */}
+            {currency === "USD" && (
+                <p className={styles.currencyNote}>
+                    {t("currency.chargedInVnd", { amount: formatVnd(grandTotal), rate: VND_PER_USD.toLocaleString("vi-VN") })}
+                </p>
+            )}
 
             <div className={styles.invoiceCode}>
                 {t("checkoutPayment.bookingCode")}: <strong>MO-{booking.bookingId}</strong>
@@ -546,12 +555,12 @@ export default function PaymentView() {
                                         <button
                                             type="button"
                                             className={controls.button}
-                                            disabled={paying}
+                                            disabled={paying && !FEATURES.allowDoubleSubmit}
                                             onClick={handlePayNow}
                                         >
                                             {paying
                                                 ? t("checkout.submitting")
-                                                : t("checkoutPayment.payNowButton", { total: formatVnd(grandTotal) })}
+                                                : t("checkoutPayment.payNowButton", { total: formatPrice(grandTotal) })}
                                         </button>
                                     </>
                                 )}

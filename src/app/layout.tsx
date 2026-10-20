@@ -4,6 +4,7 @@ import { Inter, Nunito } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider, themeInitScript } from "@/components/theme/ThemeProvider";
 import { LanguageProvider } from "@/components/i18n/LanguageProvider";
+import { CurrencyProvider } from "@/components/currency/CurrencyProvider";
 import { WishlistProvider } from "@/components/wishlist/WishlistProvider";
 import { AccountProvider } from "@/components/auth/AccountProvider";
 import { SITE_URL } from "@/lib/site";
@@ -71,9 +72,11 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         <ThemeProvider>
           <LanguageProvider>
-            <AccountProvider>
-              <WishlistProvider>{children}</WishlistProvider>
-            </AccountProvider>
+            <CurrencyProvider>
+              <AccountProvider>
+                <WishlistProvider>{children}</WishlistProvider>
+              </AccountProvider>
+            </CurrencyProvider>
           </LanguageProvider>
         </ThemeProvider>
       </body>

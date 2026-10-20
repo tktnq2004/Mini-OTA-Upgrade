@@ -44,6 +44,12 @@ export const resetPassword = (input: ResetPasswordInput) => accountPost<void>("u
 // public ở trên), backend gửi link đổi mật khẩu về đúng email của chính mình.
 export const requestPasswordChange = () => accountFetch<void>("users/me/password-change-request", { method: "POST" });
 
+// PATCH /bookings/{id}/cancel (qua proxy /api/account, cần đăng nhập). Backend
+// chỉ cho huỷ booking Pending còn hạn — Processing/Completed/hoàn tiền/đã
+// huỷ/hết hạn -> 409 kèm message (BookingCancellationService). Có intent
+// Stripe thì backend huỷ intent trước (nhả tiền đang giữ).
+export const cancelMyBooking = (id: number) => accountFetch<void>(`bookings/${id}/cancel`, { method: "PATCH" });
+
 // GET /bookings/me — booking của user đang đăng nhập. Backend có thể trả mảng
 // thẳng hoặc dạng phân trang { meta, result } -> chuẩn hoá về mảng.
 export const getMyBookings = async (): Promise<MyBooking[]> => {
