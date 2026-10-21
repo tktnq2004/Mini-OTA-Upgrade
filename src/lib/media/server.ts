@@ -1,5 +1,5 @@
 import { getApiBaseUrl } from "@/lib/hotels/config";
-import { unwrapResponse } from "@/lib/hotels/envelope";
+import { unwrapResponse } from "@/lib/api/public";
 import type { MediaAsset, MediaKind, MediaOwnerType } from "./types";
 
 // Dùng trong Server Component (trang public hotel/room) — gọi thẳng backend

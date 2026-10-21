@@ -115,9 +115,8 @@ export function pickPopupAnchor(point: Pixel, viewport: PopupViewport, otherPoin
     return pool[0].anchor;
 }
 
-// Bán kính offset mặc định của maplibregl.Popup trước đây (`offset: 25`) —
-// giữ nguyên số này để hành vi KHÔNG đổi ở mọi trường hợp không liên quan
-// tới mép search. Công thức cornerOffset copy đúng cách MapLibre tự quy đổi
+// Bán kính offset của popup (`offset: 25`, cũng là giá trị dùng khi popup
+// không bị mép thanh tìm kiếm che). Công thức cornerOffset copy đúng cách MapLibre tự quy đổi
 // offset dạng số cho các anchor chéo (top-left/bottom-right...): chia đều
 // theo 2 trục bằng offset/√2, để khoảng cách thực đo ra đúng bằng bán kính.
 const DEFAULT_OFFSET_PX = 25;

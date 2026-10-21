@@ -1,56 +1,16 @@
 // Type khớp response thật của backend Mini-OTA cho các API đọc công khai
-// (GET /hotels, /rooms/{id}, /amenity, /view...) — thay cho dữ liệu mock cũ
-// ở src/data/hotels.data.ts / rooms.data.ts (đã xoá).
+// (GET /hotels, /rooms/{id}, /amenity, /view...). Phần dùng chung với admin
+// nằm ở lib/api/types.ts.
 
 import type { RoomDiscount } from "@/lib/booking/discount";
+import type { Amenity, HotelBase, RoomBase, RoomImage, RoomType } from "@/lib/api/types";
 
-export interface Province {
-  id: string;
-  name: string;
-}
-
-export interface Ward {
-  id: string;
-  name: string;
-  province: Province;
-}
-
-export interface Amenity {
-  id: number;
-  name: string;
-  icon: string;
-}
-
-export interface View {
-  id: number;
-  name: string;
-  icon: string;
-}
-
-export interface RoomType {
-  id: number;
-  roomTypeName: string;
-}
-
-export interface RoomImage {
-  id: number;
-  image: string;
-}
+// Kiểu dùng chung với phía admin — khai báo ở lib/api/types.ts.
+export type { Amenity, Meta, Paginated, Province, RoomImage, RoomType, View, Ward } from "@/lib/api/types";
 
 // Room không có field diện tích (sizeSqm) hay "view" — backend không có cột
-// tương ứng / @JsonIgnore field views (xem ADMIN.md mục Giới hạn UX). Room
-// KHÔNG bao giờ chứa `hotel` (JsonIgnore) — id khách sạn phải lấy từ context
-// gọi (route param, hoặc từ Hotel.rooms[].id lúc đang duyệt theo hotel).
-export interface Room {
-  id: number;
-  name: string;
-  price: number;
-  thumbnail: string;
-  capacity: number;
-  allowSmoking: boolean;
-  allowPets: boolean;
-  cancellationPolicy: boolean;
-  description: string;
+// tương ứng / @JsonIgnore field views (xem ADMIN.md mục Giới hạn UX).
+export interface Room extends RoomBase {
   amenities: Amenity[];
   roomType: RoomType | null;
   images: RoomImage[];
@@ -67,14 +27,7 @@ export interface Room {
   discounts?: RoomDiscount[];
 }
 
-export interface Hotel {
-  id: number;
-  name: string;
-  address: string;
-  image: string;
-  latitude: string;
-  longitude: string;
-  ward: Ward;
+export interface Hotel extends HotelBase {
   rooms?: Room[];
   // Giá phòng trung bình (VNĐ) — BE tự tính lại (AVG price mọi room của
   // hotel này) mỗi khi 1 room được thêm/sửa giá/xoá, không cho sửa tay.
@@ -97,14 +50,3 @@ export interface Review {
   user: ReviewAuthor;
 }
 
-export interface Meta {
-  current: number;
-  pageSize: number;
-  total: number;
-  totalPages: number;
-}
-
-export interface Paginated<T> {
-  meta: Meta;
-  result: T[];
-}

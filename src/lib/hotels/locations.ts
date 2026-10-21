@@ -1,6 +1,6 @@
 "use client";
 
-import { unwrapResponse } from "@/lib/hotels/envelope";
+import { unwrapResponse } from "@/lib/api/public";
 import {
     getProvinceById,
     getWardsByProvince,

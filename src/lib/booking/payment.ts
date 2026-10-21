@@ -7,7 +7,7 @@ import {
   type Stripe,
   type StripeCardNumberElement,
 } from "@stripe/stripe-js";
-import { PublicApiError, unwrapResponse } from "@/lib/hotels/envelope";
+import { PublicApiError, unwrapResponse } from "@/lib/api/public";
 import type { BookingPaymentStatus } from "@/lib/booking/resources";
 import { AccountApiError, accountFetch } from "@/lib/auth/apiClient";
 

@@ -1,4 +1,4 @@
-import { errorMessageFrom, readEnvelope, unwrapEnvelope } from "@/lib/apiEnvelope";
+import { errorMessageFrom, readEnvelope, unwrapEnvelope } from "@/lib/api/envelope";
 
 export class AdminApiError extends Error {
   status: number;

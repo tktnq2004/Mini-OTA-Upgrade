@@ -50,4 +50,4 @@ export const getRoomType = (id: number) => publicGet<RoomType>(`roomtype/${id}`)
 export const listHotelReviews = (hotelId: number) => publicGet<Review[]>(`hotels/${hotelId}/reviews`);
 export const listRoomReviews = (roomId: number) => publicGet<Review[]>(`rooms/${roomId}/reviews`);
 
-export { PublicApiError } from "./envelope";
+export { PublicApiError } from "@/lib/api/public";

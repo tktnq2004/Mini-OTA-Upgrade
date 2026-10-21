@@ -56,7 +56,7 @@ async function fetchAllMatching(params: FetchScopeParams): Promise<Hotel[]> {
 export interface UseHotelFiltersOptions {
     // Cho phép /hotels chuyển sang phân trang SERVER thật (gọi lại API mỗi
     // lần đổi trang, không tải hết) khi đang duyệt TOÀN QUỐC (không tỉnh,
-    // không tìm quanh đây) — đúng chỗ trước đây bị cắt cứng còn 100 hotel.
+    // không tìm quanh đây) — số hotel lớn, tải hết 1 lần sẽ nặng.
     // /map luôn cần tải hết (vẽ marker phân bố cả nước) nên KHÔNG bật cờ
     // này — mặc định false.
     serverPaginate?: boolean;

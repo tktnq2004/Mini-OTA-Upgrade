@@ -24,7 +24,8 @@ export default function MediaGallery({ ownerType, ownerId, kind }: MediaGalleryP
   const { images, loading, uploading, error, reload, upload, remove } = useMediaUpload(ownerType, ownerId, kind);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  useEffect(reload, [reload]); // eslint-disable-line react-hooks/set-state-in-effect -- tải danh sách ảnh ban đầu từ API, một external system
+  // Tải danh sách ảnh ban đầu từ API.
+  useEffect(reload, [reload]);
 
   const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.length) upload(e.target.files);

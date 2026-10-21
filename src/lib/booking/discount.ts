@@ -103,6 +103,30 @@ export function quoteRoom(
   };
 }
 
+export interface StayQuote<R> {
+  rooms: { room: R; quote: RoomQuote | null }[];
+  subtotal: number;
+  discountTotal: number;
+  total: number;
+}
+
+// Giá xem trước của CẢ đơn (nhiều phòng, cùng kỳ ở) — dùng ở checkout. Chưa
+// chọn đủ ngày thì mọi quote là null và các tổng = 0.
+export function quoteStay<R extends { price: number; discounts?: RoomDiscount[] | null }>(
+  rooms: R[],
+  checkIn: string | null,
+  checkOut: string | null,
+): StayQuote<R> {
+  const hasDates = Boolean(checkIn && checkOut && checkIn < checkOut);
+  const quoted = rooms.map((room) => ({
+    room,
+    quote: hasDates ? quoteRoom(room, checkIn as string, checkOut as string) : null,
+  }));
+  const subtotal = quoted.reduce((sum, { quote }) => sum + (quote?.subtotal ?? 0), 0);
+  const discountTotal = quoted.reduce((sum, { quote }) => sum + (quote?.discountAmount ?? 0), 0);
+  return { rooms: quoted, subtotal, discountTotal, total: subtotal - discountTotal };
+}
+
 // Discount để gắn tag cho 1 phòng trong kỳ ở đang chọn: cái giảm được nhiều
 // tiền nhất trong kỳ. Chưa chọn ngày thì nơi gọi tự truyền đêm hôm nay
 // (today → today+1) để tag phản ánh khuyến mãi đang chạy.

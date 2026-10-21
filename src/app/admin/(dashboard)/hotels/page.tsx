@@ -11,11 +11,9 @@ import { deleteHotel, listHotels } from "@/lib/admin/resources";
 import type { Hotel } from "@/lib/admin/types";
 
 export default function HotelsPage() {
-    // Đã đối chiếu với catalog permission thật qua GET /auth/me — gate đúng
-    // từng nút theo permission thật thay vì cả module (trước đây hasModule
-    // ("HOTEL") cho qua bất kỳ ai có BẤT KỲ quyền HOTEL_* nào, kể cả chỉ có
-    // HOTEL_READ — nút "Thêm khách sạn"/"Xoá" vẫn hiện dù không được tạo/xoá,
-    // bấm vào thì backend mới chặn 403, trải nghiệm dở).
+    // Ẩn/hiện từng nút theo đúng permission (GET /auth/me), không theo cả
+    // module: hasModule("HOTEL") cho qua cả người chỉ có HOTEL_READ, nút
+    // "Thêm khách sạn"/"Xoá" sẽ hiện ra rồi bấm vào mới bị backend chặn 403.
     const { hasPermission } = useAdminAccess();
     const canCreateHotel = hasPermission("HOTEL_CREATE");
     const canDeleteHotel = hasPermission("HOTEL_DELETE_OWN") || hasPermission("HOTEL_DELETE_ALL");
@@ -41,7 +39,7 @@ export default function HotelsPage() {
             .finally(() => setLoading(false));
     };
 
-    useEffect(load, [page, provinceId, wardId]); // eslint-disable-line react-hooks/set-state-in-effect -- tải dữ liệu ban đầu từ API, một external system
+    useEffect(load, [page, provinceId, wardId]); // eslint-disable-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps -- tải dữ liệu từ API (external system); query chỉ áp khi bấm Tìm (handleSearchSubmit), không tải lại mỗi lần gõ
 
     const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault();

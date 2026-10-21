@@ -12,7 +12,7 @@
 // thêm 1 bảng phụ roomId -> hotelId trong localStorage (loadHotelMap), và với
 // phòng chưa có trong bảng thì dò qua danh sách khách sạn (resolveHotelIds).
 
-import { unwrapResponse } from "@/lib/hotels/envelope";
+import { unwrapResponse } from "@/lib/api/public";
 import { listHotels } from "@/lib/hotels/resources";
 
 export interface WishlistItem {

@@ -14,7 +14,8 @@ export interface SessionUser {
   name: string;
 }
 
-export type LegacyRole = "ADMIN" | "CUSTOMER";
+import type { LegacyRole } from "@/lib/api/types";
+export type { LegacyRole };
 
 // Hồ sơ đầy đủ — khớp ResUser bên backend.
 export interface AccountProfile {

@@ -1,5 +1,5 @@
 import { getApiBaseUrl } from "./config";
-import { unwrapResponse } from "./envelope";
+import { unwrapResponse } from "@/lib/api/public";
 import type { Hotel, Room } from "./types";
 
 async function backendGet<T>(path: string): Promise<T | null> {

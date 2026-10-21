@@ -441,8 +441,6 @@
     "wishlist.roomCountPicked": "{count} rooms · {picked} selected",
     "wishlist.collapse": "Collapse room list",
     "wishlist.expand": "Show room list",
-    "wishlist.collapseAll": "Collapse all",
-    "wishlist.expandAll": "Expand all",
 
     "checkout.title": "Book your stay",
     "checkout.loading": "Loading room details...",
@@ -536,7 +534,8 @@
     "checkoutPayment.refundedTitle": "Payment refunded",
     "checkoutPayment.refundedHint": "This booking was cancelled and your payment has been refunded.",
     "checkoutPayment.countdownLabel": "Your hold expires in",
-    "checkoutPayment.countdownExpired": "The expected hold window has passed — you can still continue to pay normally.",
+    "checkoutPayment.countdownExpired": "Your hold has expired.",
+    "checkoutPayment.expiredHint": "This booking will be cancelled automatically and the room released. Please book again if you still want to stay.",
     "checkoutPayment.chooseMethodTitle": "Choose a payment method",
     "checkoutPayment.confirmPayAtHotel": "Confirm",
     "checkoutPayment.payNowButton": "Pay {total}",

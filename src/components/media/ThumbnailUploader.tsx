@@ -21,7 +21,8 @@ export default function ThumbnailUploader({ ownerType, ownerId }: ThumbnailUploa
   const inputRef = useRef<HTMLInputElement | null>(null);
   const current = images[0];
 
-  useEffect(reload, [reload]); // eslint-disable-line react-hooks/set-state-in-effect -- tải ảnh thumbnail hiện tại từ API, một external system
+  // Tải ảnh thumbnail hiện tại từ API.
+  useEffect(reload, [reload]);
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.length) upload([e.target.files[0]]);

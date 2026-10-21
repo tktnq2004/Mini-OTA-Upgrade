@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { CompassIcon, MagnifyingGlassMinusIcon, MagnifyingGlassPlusIcon, WarningCircleIcon, XIcon } from "@phosphor-icons/react";
+import { useRef } from "react";
+import { useSearchParams } from "next/navigation";
+import { CompassIcon, MagnifyingGlassMinusIcon, MagnifyingGlassPlusIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import PanoramaCanvas, { type PanoramaViewHandle } from "@/components/panorama/PanoramaCanvas";
 import styles from "./PanoramaReviewView.module.css";
 
@@ -16,21 +16,10 @@ const ZOOM_STEP = 8;
 // panorama) không dùng trang này — mở thẳng URL gốc trên R2 là đủ (xem lib/media/review.ts).
 // Lỗi tải ảnh (404, CORS...) đã được PanoramaCanvas tự hiện, không cần xử lý thêm ở đây.
 export default function PanoramaReviewView() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const src = searchParams.get("src") ?? "";
-  const name = searchParams.get("name");
 
   const viewRef = useRef<PanoramaViewHandle | null>(null);
-  const [ready, setReady] = useState(false);
-
-  // window.close() chỉ đóng được tab do script/link mở (đúng trường hợp ở đây: luôn mở qua
-  // <a target="_blank">) — nếu trình duyệt từ chối (hiếm, vd. đã điều hướng trong tab) thì
-  // quay lại trang trước, cùng quy ước với TourEditor.handleClose.
-  const handleClose = () => {
-    window.close();
-    window.setTimeout(() => router.back(), 250);
-  };
 
   if (!src) {
     return (
@@ -46,7 +35,7 @@ export default function PanoramaReviewView() {
   return (
     <div className={styles.root}>
       <div className={styles.stage}>
-        <PanoramaCanvas ref={viewRef} imageUrl={src} hotspots={[]} onReady={() => setReady(true)} />
+        <PanoramaCanvas ref={viewRef} imageUrl={src} hotspots={[]} />
 
         <div className={styles.controls}>
           <button type="button" className={styles.controlButton} onClick={() => viewRef.current?.zoom(-ZOOM_STEP)} title="Phóng to" aria-label="Phóng to">

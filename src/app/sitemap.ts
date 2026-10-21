@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { getApiBaseUrl } from "@/lib/hotels/config";
-import { unwrapResponse } from "@/lib/hotels/envelope";
+import { unwrapResponse } from "@/lib/api/public";
 import type { Hotel, Paginated } from "@/lib/hotels/types";
 import { SITE_URL } from "@/lib/site";
 

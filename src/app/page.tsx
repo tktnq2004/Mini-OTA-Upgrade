@@ -113,7 +113,7 @@ export default function Home() {
         setRecentlyViewed(loadRecentlyViewed());
     }, []);
 
-    // Mang theo cả ngày nhận/trả + số khách (trước đây chỉ tỉnh/xã nên ngày vừa chọn bị mất).
+    // Mang theo cả ngày nhận/trả + số khách sang trang kết quả, không chỉ tỉnh/xã.
     const handleSearch = (filters: SearchFilters) => {
         const params = filtersToSearchParams(filters);
         router.push(`/map?${params.toString()}`);

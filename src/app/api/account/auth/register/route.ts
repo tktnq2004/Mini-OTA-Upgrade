@@ -8,10 +8,9 @@ import {
 } from "@/lib/auth/session";
 
 // Bước cuối đăng ký — cần đã gọi .../auth/register/send-otp-register trước
-// đó để có mã OTP. Khác bản cũ (gọi POST /users rồi login riêng): backend
-// /auth/register giờ tự kiểm tra OTP, tạo tài khoản VÀ trả luôn
-// access_token + cookie refresh trong 1 lần gọi (y hệt /auth/login), nên
-// không cần gọi login lần 2 nữa.
+// đó để có mã OTP. Backend /auth/register tự kiểm tra OTP, tạo tài khoản VÀ
+// trả luôn access_token + cookie refresh trong 1 lần gọi (y hệt /auth/login),
+// nên không cần gọi login thêm lần nữa.
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   if (!body?.fullName || !body?.username || !body?.email || !body?.password || !body?.phone || !body?.otp) {

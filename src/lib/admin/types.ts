@@ -1,28 +1,18 @@
-export interface Meta {
-  current: number;
-  pageSize: number;
-  totalPages: number;
-  total: number;
-}
+import type { Amenity, HotelBase, LegacyRole, RoomBase, RoomImage } from "@/lib/api/types";
 
-export interface Paginated<T> {
-  meta: Meta;
-  result: T[];
-}
-
-// Envelope RestResponse<T> mà backend bọc quanh MỌI response thành công
-// (và phần lớn response lỗi) — xem util/FormatResponse.java. apiClient.ts
-// tự bóc "data" ra, code còn lại trong app không cần biết tới envelope này.
-export interface BackendEnvelope<T> {
-  statuscode: number;
-  error: string | string[] | null;
-  message: string;
-  data: T;
-}
-
-// role ở đây chỉ còn ý nghĩa hiển thị — quyền thật do bảng Role/Permission
-// (mục Roles) quyết định, JWT không còn mang role/permission nào cả.
-export type LegacyRole = "ADMIN" | "CUSTOMER";
+// Kiểu dùng chung với phía khách — khai báo ở lib/api/types.ts.
+export type {
+  Amenity,
+  BackendEnvelope,
+  LegacyRole,
+  Meta,
+  Paginated,
+  Province,
+  RoomImage,
+  RoomType,
+  View,
+  Ward,
+} from "@/lib/api/types";
 
 export interface AdminSessionUser {
   id: number;
@@ -30,31 +20,10 @@ export interface AdminSessionUser {
   name: string;
 }
 
-// id giờ là mã hành chính VN thật (string, vd. "01"/"00070") — KHÔNG còn id
-// tự tăng nữa, khớp thẳng với src/data/vn-provinces-wards.json ở frontend
-// (cùng 1 nguồn id dùng chung cho cả FE lẫn BE, xem ProvinceWardSelect.tsx).
-export interface Province {
-  id: string;
-  name: string;
-}
-
-export interface Ward {
-  id: string;
-  name: string;
-  province: Province;
-}
-
 // Hotel trả về từ GET /hotels, /hotels/{id} (ResHotelDTo) — không có field audit.
 // Hotel trả về từ POST/PUT /hotels là entity thô, CÓ thêm field audit.
 // Gộp chung 1 interface, các field audit để optional cho khớp cả 2 trường hợp.
-export interface Hotel {
-  id: number;
-  name: string;
-  address: string;
-  image: string;
-  latitude: string;
-  longitude: string;
-  ward: Ward;
+export interface Hotel extends HotelBase {
   rooms?: Room[];
   createdAt?: string;
   createdBy?: string;
@@ -71,41 +40,10 @@ export interface HotelInput {
   wardId: string;
 }
 
-export interface RoomImage {
-  id: number;
-  image: string;
-}
-
-export interface Amenity {
-  id: number;
-  name: string;
-  icon: string;
-}
-
-export interface View {
-  id: number;
-  name: string;
-  icon: string;
-}
-
-export interface RoomType {
-  id: number;
-  roomTypeName: string;
-}
-
-// Room response KHÔNG bao giờ chứa hotel/roomType/views (đều @JsonIgnore bên
+// Room trả về từ API admin KHÔNG chứa hotel/roomType/views (@JsonIgnore bên
 // Java) — dù 3 field đó là bắt buộc lúc tạo. Không có cách nào đọc lại từ
 // API, phải tự nhớ hoặc tra qua hotel.rooms.
-export interface Room {
-  id: number;
-  name: string;
-  price: number;
-  thumbnail: string;
-  capacity: number;
-  allowSmoking: boolean;
-  allowPets: boolean;
-  cancellationPolicy: boolean;
-  description: string;
+export interface Room extends RoomBase {
   createdAt?: string;
   updatedAt?: string;
   images?: RoomImage[];
@@ -142,11 +80,8 @@ export interface RoomUpdateInput {
 }
 
 // fullName/username/phone vẫn khai báo nullable vì tài khoản seed/tạo qua
-// đường khác (Google OAuth...) có thể thiếu các field này. id trước đây có
-// bug (GET /users danh sách luôn trả null) — đã xác nhận backend sửa xong
-// (UserService.fetch_all gọi resUser.setId(t.getId()) đầy đủ), nên hết
-// nullable. hotelId giờ là field thật (0 = admin toàn hệ thống, khác 0 =
-// owner/staff của đúng hotel đó, null = customer/chưa gán).
+// đường khác (Google OAuth...) có thể thiếu các field này. hotelId: 0 = admin
+// toàn hệ thống, khác 0 = owner/staff của đúng hotel đó, null = customer/chưa gán.
 export interface AppUser {
   id: number;
   email: string;
@@ -191,8 +126,7 @@ export interface UserInput {
   // ReqUpdateAllLocalDTO).
   hotelId: number | null;
   // Role THẬT (khác field "role" ở trên). Lúc SỬA: gửi thẳng trong cùng
-  // request PUT /admin/users/{id} (ReqUpdateAllLocalDTO.roleId, gộp từ
-  // endpoint POST /users/{userId}/roles cũ đã xoá) — backend chặn gán role
+  // request PUT /admin/users/{id} (ReqUpdateAllLocalDTO.roleId) — backend chặn gán role
   // có level <= level người gọi. Lúc TẠO: KHÔNG được gửi qua POST /users
   // (ReqCreateUserDTO không có field này) vì endpoint đó public/không xác
   // thực — cho phép gán role tuỳ ý ở đây sẽ là lỗ hổng tự nâng quyền qua

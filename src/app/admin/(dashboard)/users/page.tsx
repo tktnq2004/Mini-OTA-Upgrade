@@ -69,7 +69,7 @@ export default function UsersPage() {
             .finally(() => setLoading(false));
     };
 
-    useEffect(load, [page]); // eslint-disable-line react-hooks/set-state-in-effect -- tải dữ liệu ban đầu từ API, một external system
+    useEffect(load, [page]); // eslint-disable-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps -- tải dữ liệu từ API (external system); query chỉ áp khi bấm Tìm (handleSearchSubmit), không tải lại mỗi lần gõ
 
     const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -310,10 +310,9 @@ export default function UsersPage() {
                         </div>
                         <div className={controls.field}>
                             <label className={controls.label}>Vai trò</label>
-                            {/* Gộp thẳng vào form user (không còn khối/nút "Gán vai trò" riêng
-                                — trước đây bấm nhầm "Cập nhật" thay vì nút riêng đó làm role chọn
-                                bị bỏ qua, còn request PUT thì báo lỗi "Nothing change" dù có ý
-                                định đổi role thật). Lúc SỬA, dropdown prefill đúng role hiện tại
+                            {/* Vai trò nằm chung form user, lưu bằng cùng nút "Cập nhật" — tách
+                                nút riêng thì dễ bấm nhầm nút, làm role vừa chọn bị bỏ qua. Lúc
+                                SỬA, dropdown prefill đúng role hiện tại
                                 (khác hotelId — role cần thấy ngay giá trị đang có). Lúc TẠO, chọn
                                 role ở đây thì FE tự gọi thêm 1 lần cập nhật ngay sau khi tạo xong
                                 (POST /users public nên không nhận field này — xem

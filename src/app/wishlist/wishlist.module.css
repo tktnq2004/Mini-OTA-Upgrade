@@ -164,8 +164,7 @@
     transition: border-bottom-color 0.2s ease;
 }
 
-.collapseButton,
-.collapseAllButton {
+.collapseButton {
     flex: none;
     display: inline-flex;
     align-items: center;
@@ -181,17 +180,11 @@
     transition: border-color 0.15s ease, color 0.15s ease;
 }
 
-.collapseButton:hover,
-.collapseAllButton:hover {
+.collapseButton:hover {
     border-color: var(--color-text-faint);
     color: var(--color-text);
 }
 
-.groupsToolbar {
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: 10px;
-}
 
 .caret {
     color: var(--color-text-faint);

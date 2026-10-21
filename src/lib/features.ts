@@ -6,6 +6,8 @@ export const FEATURES = {
     promoCodes: false,
     /** Khung "Nhận ưu đãi sớm nhất" + "Ứng dụng Trạm OTA" — cần API nhận email và app trên store. */
     newsletterAndApp: false,
+    /** Lựa chọn "Ví MoMo" ở trang thanh toán — backend chưa có cổng MoMo (MomoPayment chưa làm gì). */
+    momoPayment: false,
     /**
      * CHỈ ĐỂ TEST idempotency backend: không khoá nút "Tiếp tục thanh toán" (tạo booking) và
      * "Thanh toán" (thẻ) lúc đang gửi -> bấm liên tiếp được nhiều lần. Bật bằng

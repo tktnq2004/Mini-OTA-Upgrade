@@ -44,3 +44,17 @@ export function formatDistanceKm(km: number, locale: "vi" | "en" = "vi"): string
     const intlLocale = locale === "en" ? "en-US" : "vi-VN";
     return km.toLocaleString(intlLocale, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 }
+
+// Mốc thời gian backend trả dạng LocalDateTime của Java: "2026-11-15T15:53:11.169122"
+// — KHÔNG kèm múi giờ, là giờ địa phương của server (Việt Nam, UTC+7), phần lẻ
+// giây tới 6 chữ số. Date.parse thẳng sẽ hiểu theo múi giờ của TRÌNH DUYỆT
+// (lệch giờ nếu khách ở nước khác) và không đảm bảo nhận >3 chữ số lẻ, nên
+// cắt phần lẻ về mili giây rồi gắn +07:00. Chuỗi đã có múi giờ (Z / ±hh:mm)
+// thì giữ nguyên. Trả NaN nếu rỗng hoặc không parse được.
+const SERVER_UTC_OFFSET = "+07:00";
+export function parseServerDateTime(value: string | null | undefined): number {
+    if (!value) return NaN;
+    const hasZone = /(Z|[+-]\d{2}:?\d{2})$/i.test(value);
+    const trimmed = value.replace(/(\.\d{3})\d+/, "$1");
+    return Date.parse(hasZone ? trimmed : trimmed + SERVER_UTC_OFFSET);
+}

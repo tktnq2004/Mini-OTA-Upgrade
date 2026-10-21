@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowSquareOutIcon, CheckCircleIcon, WarningCircleIcon, XIcon } from "@phosphor-icons/react";
+import { WarningCircleIcon } from "@phosphor-icons/react";
 import PanoramaCanvas, { type PanoramaViewHandle } from "@/components/panorama/PanoramaCanvas";
 import type { HotspotItem } from "@/components/panorama/types";
 import { AdminApiError } from "@/lib/admin/apiClient";
@@ -20,13 +20,16 @@ import SceneSettings from "./SceneSettings";
 import StageToolbar, { type ActiveTool } from "./StageToolbar";
 import { newDraft, toDrafts, toInputs, validateDrafts, type HotspotDraft } from "./draft";
 import { useDraftState } from "./draftHistory";
+import { useEditorShortcuts, useRefreshOnFocus, useWarnBeforeUnload } from "./editorHooks";
+import EditorToasts from "./EditorToasts";
+import EmptyStage from "./EmptyStage";
 import { emitCursor } from "./hudBus";
+import InspectorPanel, { type InspectorTab } from "./InspectorPanel";
 import ViewControls from "./ViewControls";
 import ViewHud from "./ViewHud";
 import styles from "./TourEditor.module.css";
 
 type Placing = { mode: "new"; type: HotspotType } | { mode: "move"; key: string };
-type InspectorTab = "hotspot" | "panorama";
 
 // Mỗi lần bấm nút/phím +/− đổi FOV bấy nhiêu độ.
 const ZOOM_STEP = 8;
@@ -131,30 +134,10 @@ export default function TourEditor({ hotelId }: { hotelId: number }) {
       refreshingRef.current = false;
     }
   };
-  const refreshRef = useRef(refreshFromServer);
-  useEffect(() => {
-    refreshRef.current = refreshFromServer;
-  });
-  useEffect(() => {
-    const onFocus = () => void refreshRef.current();
-    window.addEventListener("focus", onFocus);
-    document.addEventListener("visibilitychange", onFocus);
-    return () => {
-      window.removeEventListener("focus", onFocus);
-      document.removeEventListener("visibilitychange", onFocus);
-    };
-  }, []);
+  const refreshRef = useRefreshOnFocus(refreshFromServer);
 
   // Cảnh báo khi đóng/tải lại tab lúc còn hotspot chưa lưu.
-  useEffect(() => {
-    if (!dirty) return;
-    const handler = (e: BeforeUnloadEvent) => {
-      if (skipUnloadRef.current) return;
-      e.preventDefault();
-    };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
-  }, [dirty]);
+  useWarnBeforeUnload(dirty, skipUnloadRef);
 
   const confirmDiscard = () => !dirty || window.confirm("Panorama hiện tại có hotspot chưa lưu. Bỏ các thay đổi đó?");
 
@@ -184,7 +167,8 @@ export default function TourEditor({ hotelId }: { hotelId: number }) {
       setDirty(true);
       setPlacing(null);
     },
-    [placing, applyDraft]
+    // setTab là setter ổn định — khai báo để luật react-hooks (compiler) khớp phụ thuộc.
+    [placing, applyDraft, setTab]
   );
 
   // Kéo marker trực tiếp trên ảnh: gộp cả lần kéo thành một bước hoàn tác.
@@ -344,61 +328,20 @@ export default function TourEditor({ hotelId }: { hotelId: number }) {
     setPlacing(tool === "select" ? null : { mode: "new", type: tool });
   };
 
-  // Phím tắt: N / I chọn công cụ, Esc huỷ, Delete xoá hotspot đang chọn, Ctrl+S lưu, Ctrl+Z /
-  // Ctrl+Shift+Z hoàn tác/làm lại, Ctrl+D nhân bản, F chế độ tập trung, +/−/0 điều khiển góc
-  // nhìn. Bỏ qua khi đang gõ vào ô nhập (để Ctrl+Z gõ chữ vẫn là của trình duyệt). Đọc
-  // hàm/state mới nhất qua ref để chỉ cần đăng ký listener một lần.
-  const shortcutsRef = useRef({ save: handleSaveHotspots, remove: handleRemoveHotspot, duplicate: handleDuplicateHotspot, undo: handleUndo, redo: handleRedo, selectedKey });
-  useEffect(() => {
-    shortcutsRef.current = { save: handleSaveHotspots, remove: handleRemoveHotspot, duplicate: handleDuplicateHotspot, undo: handleUndo, redo: handleRedo, selectedKey };
+  useEditorShortcuts({
+    save: handleSaveHotspots,
+    undo: handleUndo,
+    redo: handleRedo,
+    remove: handleRemoveHotspot,
+    duplicate: handleDuplicateHotspot,
+    selectedKey,
+    startPlacing: (type) => setPlacing({ mode: "new", type }),
+    cancelPlacing: () => setPlacing(null),
+    toggleFocus: () => setFocusMode((v) => !v),
+    zoomIn: () => viewRef.current?.zoom(-ZOOM_STEP),
+    zoomOut: () => viewRef.current?.zoom(ZOOM_STEP),
+    resetView: () => viewRef.current?.reset(),
   });
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const ctx = shortcutsRef.current;
-      const mod = e.ctrlKey || e.metaKey;
-      const key = e.key.toLowerCase();
-      if (mod && key === "s") {
-        e.preventDefault();
-        ctx.save();
-        return;
-      }
-      const el = e.target as HTMLElement | null;
-      const typing = el && (["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName) || el.isContentEditable);
-      if (typing) return;
-
-      if (mod && key === "z") {
-        e.preventDefault();
-        if (e.shiftKey) ctx.redo();
-        else ctx.undo();
-        return;
-      }
-      if (mod && key === "y") {
-        e.preventDefault();
-        ctx.redo();
-        return;
-      }
-      if (mod && key === "d") {
-        e.preventDefault();
-        if (ctx.selectedKey) ctx.duplicate(ctx.selectedKey);
-        return;
-      }
-      if (mod || e.altKey) return;
-
-      if (e.key === "Escape") setPlacing(null);
-      else if (key === "n") setPlacing({ mode: "new", type: "NAVIGATION" });
-      else if (key === "i") setPlacing({ mode: "new", type: "INFO" });
-      else if (key === "f") setFocusMode((v) => !v);
-      else if (e.key === "+" || e.key === "=") viewRef.current?.zoom(-ZOOM_STEP);
-      else if (e.key === "-" || e.key === "_") viewRef.current?.zoom(ZOOM_STEP);
-      else if (e.key === "0") viewRef.current?.reset();
-      else if ((e.key === "Delete" || e.key === "Backspace") && ctx.selectedKey) {
-        e.preventDefault();
-        ctx.remove(ctx.selectedKey);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
 
   const canvasHotspots: HotspotItem[] = useMemo(
     () =>
@@ -419,7 +362,7 @@ export default function TourEditor({ hotelId }: { hotelId: number }) {
           previewLabel: target?.nameVi,
         };
       }),
-    [draft, selectedKey, scenes]
+    [draft, selectedKey, scenes, setTab]
   );
 
   if (loading) {
@@ -513,95 +456,45 @@ export default function TourEditor({ hotelId }: { hotelId: number }) {
               {hint && <div className={styles.floatBottomActive}>{hint}</div>}
             </>
           ) : (
-            <div className={styles.emptyStage}>
-              <p className={styles.emptyTitle}>Khách sạn này chưa có panorama nào</p>
-              <p className={styles.hint} style={{ maxWidth: 400 }}>
-                Upload ảnh 360° ở trang quản lý khách sạn (hành lang, sảnh…) và ở từng phòng. Quay lại tab này là thấy ngay
-                trong danh sách bên trái — sau đó mới gắn hotspot để nối chúng lại.
-              </p>
-              <a
-                className={styles.primaryButton}
-                href={`/admin/hotels/${hotelId}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ textDecoration: "none" }}
-              >
-                Mở trang quản lý khách sạn
-                <ArrowSquareOutIcon size={14} weight="bold" />
-              </a>
-            </div>
+            <EmptyStage hotelId={hotelId} />
           )}
 
-          <div className={styles.toasts}>
-            {error && (
-              <div className={styles.toastError} role="alert">
-                <WarningCircleIcon className={styles.toastIcon} size={16} weight="fill" color="var(--color-error)" />
-                <span>{error}</span>
-                <button type="button" className={styles.toastClose} onClick={() => setError("")} aria-label="Đóng thông báo">
-                  <XIcon size={13} weight="bold" />
-                </button>
-              </div>
-            )}
-            {!error && notice && (
-              <div className={styles.toast} role="status">
-                <CheckCircleIcon className={styles.toastIcon} size={16} weight="fill" color="var(--color-success)" />
-                <span>{notice}</span>
-              </div>
-            )}
-          </div>
+          <EditorToasts error={error} notice={notice} onDismissError={() => setError("")} />
         </main>
 
         {inspectorOpen && !focusMode && selectedScene && (
-          <aside className={styles.inspector}>
-            <div className={styles.tabs} role="tablist">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={tab === "hotspot"}
-                className={tab === "hotspot" ? styles.tabActive : styles.tab}
-                onClick={() => setTab("hotspot")}
-              >
-                Hotspot ({draft.length})
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={tab === "panorama"}
-                className={tab === "panorama" ? styles.tabActive : styles.tab}
-                onClick={() => setTab("panorama")}
-              >
-                Panorama
-              </button>
-            </div>
-            <div className={styles.scroll}>
-              {tab === "hotspot" ? (
-                <HotspotPanel
-                  drafts={draft}
-                  selectedKey={selectedKey}
-                  currentScene={selectedScene}
-                  scenes={scenes}
-                  roomOrder={roomOrder}
-                  roomName={roomName}
-                  disabled={busy}
-                  onSelect={handleSelectHotspot}
-                  onChange={patchDraft}
-                  onRemove={handleRemoveHotspot}
-                  onMove={(key) => setPlacing({ mode: "move", key })}
-                  onDuplicate={handleDuplicateHotspot}
-                  onCreateReverse={handleCreateReverse}
-                />
-              ) : (
-                <SceneSettings
-                  key={selectedScene.id}
-                  hotelId={hotelId}
-                  scene={selectedScene}
-                  scopeLabel={scopeLabel(selectedScene)}
-                  busy={busy}
-                  onSave={handleUpdateScene}
-                />
-              )}
-            </div>
-          </aside>
+          <InspectorPanel
+            tab={tab}
+            onTabChange={setTab}
+            hotspotCount={draft.length}
+            hotspotPanel={
+              <HotspotPanel
+                drafts={draft}
+                selectedKey={selectedKey}
+                currentScene={selectedScene}
+                scenes={scenes}
+                roomOrder={roomOrder}
+                roomName={roomName}
+                disabled={busy}
+                onSelect={handleSelectHotspot}
+                onChange={patchDraft}
+                onRemove={handleRemoveHotspot}
+                onMove={(key) => setPlacing({ mode: "move", key })}
+                onDuplicate={handleDuplicateHotspot}
+                onCreateReverse={handleCreateReverse}
+              />
+            }
+            sceneSettings={
+              <SceneSettings
+                key={selectedScene.id}
+                hotelId={hotelId}
+                scene={selectedScene}
+                scopeLabel={scopeLabel(selectedScene)}
+                busy={busy}
+                onSave={handleUpdateScene}
+              />
+            }
+          />
         )}
       </div>
     </div>

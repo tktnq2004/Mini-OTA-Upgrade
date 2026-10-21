@@ -1,6 +1,7 @@
-
-
-import { errorMessageFrom, readEnvelope, unwrapEnvelope } from "@/lib/apiEnvelope";
+// Client cho API công khai (qua proxy /api/public): bóc envelope backend,
+// lỗi thì ném PublicApiError (message đọc được + HTTP status). Dùng chung cho
+// khách sạn, booking, thanh toán... — không riêng gì lib/hotels.
+import { errorMessageFrom, readEnvelope, unwrapEnvelope } from "@/lib/api/envelope";
 
 export class PublicApiError extends Error {
   status: number;

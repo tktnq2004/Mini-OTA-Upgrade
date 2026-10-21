@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ACCESS_COOKIE, REFRESH_COOKIE, getApiBaseUrl, refreshBackendSession } from "@/lib/auth/session";
+import { BACKEND_TIMEOUT_MS, backendUnavailable } from "@/lib/api/backendProxy";
 
 async function forward(req: NextRequest, path: string[], accessToken: string, bodyText: string | undefined) {
   const url = `${getApiBaseUrl()}/${path.join("/")}${req.nextUrl.search}`;
@@ -12,6 +13,7 @@ async function forward(req: NextRequest, path: string[], accessToken: string, bo
     },
     body: hasBody ? bodyText : undefined,
     cache: "no-store",
+    signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
   });
 }
 
@@ -26,18 +28,24 @@ async function handle(req: NextRequest, context: { params: Promise<{ path: strin
 
   const bodyText = req.method === "GET" || req.method === "HEAD" ? undefined : await req.text();
 
-  let backendRes = await forward(req, path, accessToken, bodyText);
+  let backendRes: Response;
   let refreshedCookies: { accessToken: string; accessMaxAge: number; refreshToken?: string; refreshMaxAge?: number } | null = null;
-
-  if (backendRes.status === 401 && refreshToken) {
-    const refreshed = await refreshBackendSession(refreshToken);
-    if (refreshed) {
-      refreshedCookies = refreshed;
-      backendRes = await forward(req, path, refreshed.accessToken, bodyText);
+  let responseText: string;
+  try {
+    backendRes = await forward(req, path, accessToken, bodyText);
+    if (backendRes.status === 401 && refreshToken) {
+      const refreshed = await refreshBackendSession(refreshToken);
+      if (refreshed) {
+        refreshedCookies = refreshed;
+        backendRes = await forward(req, path, refreshed.accessToken, bodyText);
+      }
     }
+    responseText = await backendRes.text();
+  } catch (err) {
+    // Không đụng cookie: backend chết không có nghĩa là phiên hết hạn.
+    return backendUnavailable(err, `${req.method} ${path.join("/")}`);
   }
 
-  const responseText = await backendRes.text();
   const contentType = backendRes.headers.get("content-type") ?? "application/json";
   const res = new NextResponse(responseText, {
     status: backendRes.status,

@@ -43,6 +43,9 @@ export default function ImageWithFallback({
     }
 
     return (
+        // <img> thường có chủ đích: ảnh từ nhiều nguồn (R2, URL ngoài) + cần onError để
+        // rơi về fallback. Chuyển sang next/image (cấu hình remotePatterns) là việc riêng.
+        // eslint-disable-next-line @next/next/no-img-element
         <img
             ref={imgRef}
             src={src}

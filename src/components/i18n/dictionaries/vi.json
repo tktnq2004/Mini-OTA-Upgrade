@@ -441,8 +441,6 @@
     "wishlist.roomCountPicked": "{count} phòng · đã chọn {picked}",
     "wishlist.collapse": "Thu gọn danh sách phòng",
     "wishlist.expand": "Mở danh sách phòng",
-    "wishlist.collapseAll": "Thu gọn tất cả",
-    "wishlist.expandAll": "Mở rộng tất cả",
 
     "checkout.title": "Đặt phòng",
     "checkout.loading": "Đang tải thông tin phòng...",
@@ -536,7 +534,8 @@
     "checkoutPayment.refundedTitle": "Đã hoàn tiền",
     "checkoutPayment.refundedHint": "Đặt phòng này đã bị huỷ và khoản thanh toán của bạn đã được hoàn lại.",
     "checkoutPayment.countdownLabel": "Giữ chỗ còn hiệu lực trong",
-    "checkoutPayment.countdownExpired": "Đã quá thời gian giữ chỗ dự kiến — bạn vẫn có thể tiếp tục thanh toán bình thường.",
+    "checkoutPayment.countdownExpired": "Đã hết thời gian giữ chỗ.",
+    "checkoutPayment.expiredHint": "Booking này sẽ được tự động huỷ và phòng được mở lại cho khách khác. Vui lòng đặt lại nếu bạn vẫn muốn ở.",
     "checkoutPayment.chooseMethodTitle": "Chọn phương thức thanh toán",
     "checkoutPayment.confirmPayAtHotel": "Xác nhận",
     "checkoutPayment.payNowButton": "Thanh toán {total}",

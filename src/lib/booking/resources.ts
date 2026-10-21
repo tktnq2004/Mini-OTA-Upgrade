@@ -1,6 +1,6 @@
 "use client";
 
-import { unwrapResponse } from "@/lib/hotels/envelope";
+import { unwrapResponse } from "@/lib/api/public";
 import type { DiscountUnit } from "@/lib/booking/discount";
 
 // Tạo booking. QUY TẮC: 1 request = 1 booking = 1 khách sạn + 1 khoảng ngày
@@ -36,6 +36,10 @@ export interface CreateBookingResult {
   checkIn: string;
   checkOut: string;
   status: BookingPaymentStatus;
+  // Hạn giữ chỗ thật do backend đặt lúc tạo (now + app.booking.expiration-minutes,
+  // mặc định 15 phút). Quá hạn mà còn Pending thì BookingScheduler tự huỷ.
+  // LocalDateTime không múi giờ — đọc bằng parseServerDateTime (lib/format).
+  expirationTime?: string | null;
   // Tổng tiền CẢ kỳ ở (đã nhân số đêm), ví dụ 2 phòng 2.390.000 + 2.700.000
   // × 2 đêm = 10.180.000. Dùng làm số tiền phải trả khi backend chưa trả
   // payableAmount.

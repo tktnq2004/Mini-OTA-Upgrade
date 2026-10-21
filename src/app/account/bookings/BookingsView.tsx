@@ -20,7 +20,7 @@ import { AccountApiError } from "@/lib/auth/apiClient";
 import { cancelMyBooking, getMyBookings } from "@/lib/auth/resources";
 import { syncPayment } from "@/lib/booking/payment";
 import type { MyBooking } from "@/lib/auth/types";
-import { formatDateVn, formatVnd } from "@/lib/format";
+import { formatDateVn, formatVnd, parseServerDateTime } from "@/lib/format";
 import { nightsBetween } from "@/lib/searchFilters";
 import controls from "@/styles/controls.module.css";
 import styles from "../account.module.css";
@@ -51,7 +51,7 @@ const needsSync = (b: MyBooking) =>
 // expirationTime chưa có trong response thì coi như còn hạn (backend vẫn chặn).
 const canCancel = (b: MyBooking) => {
   if ((b.paymentStatus ?? "Pending") !== "Pending") return false;
-  const expiresAt = b.expirationTime ? Date.parse(b.expirationTime) : NaN;
+  const expiresAt = parseServerDateTime(b.expirationTime);
   return !(Number.isFinite(expiresAt) && expiresAt < Date.now());
 };
 
@@ -65,11 +65,8 @@ const roomHref = (b: MyBooking, roomId?: number) =>
 // Trang /checkout/payment tra booking qua lookup (id + email tài khoản), tự
 // hiện đúng màn theo trạng thái: Pending -> chọn phương thức (tiếp tục thanh
 // toán), Completed/PROCESSING/Cancelled/hoàn tiền -> màn trạng thái + hoá đơn.
-// createdAt = bookingDate để đếm ngược giữ chỗ tính từ lúc đặt thật, không
-// reset lại 15 phút mỗi lần mở.
 const bookingDetailHref = (b: MyBooking, email: string) => {
   const params = new URLSearchParams({ bookingId: String(b.id), email });
-  if (b.bookingDate) params.set("createdAt", b.bookingDate);
   return `/checkout/payment?${params.toString()}`;
 };
 

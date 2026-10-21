@@ -39,7 +39,7 @@ export default function NameIconManager({ title, subtitle, nameLabel = "Tên", l
             .finally(() => setLoading(false));
     };
 
-    useEffect(load, []); // eslint-disable-line react-hooks/set-state-in-effect -- tải dữ liệu ban đầu từ API, một external system
+    useEffect(load, []); // eslint-disable-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps -- tải dữ liệu ban đầu từ API (external system), 1 lần lúc mount
 
     const resetForm = () => {
         setEditingId(null);

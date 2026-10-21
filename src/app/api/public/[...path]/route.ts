@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiBaseUrl } from "@/lib/hotels/config";
 import { ACCESS_COOKIE, REFRESH_COOKIE, refreshBackendSession } from "@/lib/auth/session";
+import { BACKEND_TIMEOUT_MS, backendUnavailable } from "@/lib/api/backendProxy";
 
 // Proxy GET (mọi path) + POST (chỉ whitelist bên dưới), không cần cookie/token — cho các trang công khai (client
 // component: Map, danh sách khách sạn, giỏ hàng...) gọi qua same-origin
@@ -13,10 +14,18 @@ export async function GET(req: NextRequest, context: { params: Promise<{ path: s
   const { path } = await context.params;
   const url = `${getApiBaseUrl()}/${path.join("/")}${req.nextUrl.search}`;
 
-  const backendRes = await fetch(url, { method: "GET", cache: "no-store" });
-  const text = await backendRes.text();
-  const contentType = backendRes.headers.get("content-type") ?? "application/json";
-  return new NextResponse(text, { status: backendRes.status, headers: { "content-type": contentType } });
+  try {
+    const backendRes = await fetch(url, {
+      method: "GET",
+      cache: "no-store",
+      signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
+    });
+    const text = await backendRes.text();
+    const contentType = backendRes.headers.get("content-type") ?? "application/json";
+    return new NextResponse(text, { status: backendRes.status, headers: { "content-type": contentType } });
+  } catch (err) {
+    return backendUnavailable(err, `GET ${path.join("/")}`);
+  }
 }
 
 // POST công khai — chỉ các path backend đã permitAll (SecurityConfig.PUBLIC_POST_ENDPOINTS).
@@ -57,6 +66,7 @@ async function postBackend(url: string, body: string, token: string | undefined,
     },
     body,
     cache: "no-store",
+    signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
   });
 }
 
@@ -74,15 +84,19 @@ export async function POST(req: NextRequest, context: { params: Promise<{ path: 
 
   const extra = forwardedHeaders(req, joined, isSync);
 
-  let backendRes = await postBackend(url, body, accessToken, extra);
-  if (accessToken && backendRes.status === 401) {
-    const refreshToken = req.cookies.get(REFRESH_COOKIE)?.value;
-    const refreshed = refreshToken ? await refreshBackendSession(refreshToken) : null;
-    accessToken = refreshed?.accessToken;
-    backendRes = await postBackend(url, body, accessToken, extra);
-  }
+  try {
+    let backendRes = await postBackend(url, body, accessToken, extra);
+    if (accessToken && backendRes.status === 401) {
+      const refreshToken = req.cookies.get(REFRESH_COOKIE)?.value;
+      const refreshed = refreshToken ? await refreshBackendSession(refreshToken) : null;
+      accessToken = refreshed?.accessToken;
+      backendRes = await postBackend(url, body, accessToken, extra);
+    }
 
-  const text = await backendRes.text();
-  const contentType = backendRes.headers.get("content-type") ?? "application/json";
-  return new NextResponse(text, { status: backendRes.status, headers: { "content-type": contentType } });
+    const text = await backendRes.text();
+    const contentType = backendRes.headers.get("content-type") ?? "application/json";
+    return new NextResponse(text, { status: backendRes.status, headers: { "content-type": contentType } });
+  } catch (err) {
+    return backendUnavailable(err, `POST ${joined}`);
+  }
 }

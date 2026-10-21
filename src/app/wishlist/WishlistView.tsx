@@ -61,7 +61,6 @@ export default function WishlistView() {
     const groups = groupWishlistByHotel(items, hotelsById)
         .map((g) => ({ ...g, items: g.items.filter((it) => findRoom(it.hotelId, it.roomId, hotelsById)) }))
         .filter((g) => g.items.length > 0);
-    const allCollapsed = groups.length > 0 && groups.every((g) => collapsed.has(g.hotel.id));
 
     const toggleCollapsed = (hotelId: number) => {
         setCollapsed((cur) => {
@@ -70,10 +69,6 @@ export default function WishlistView() {
             else next.add(hotelId);
             return next;
         });
-    };
-
-    const toggleAllCollapsed = () => {
-        setCollapsed(allCollapsed ? new Set() : new Set(groups.map((g) => g.hotel.id)));
     };
 
     // roomId đã bị bỏ khỏi wishlist mà vẫn còn trong `selected` là vô hại:
