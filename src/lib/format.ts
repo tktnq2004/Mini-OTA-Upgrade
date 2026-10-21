@@ -3,32 +3,6 @@ export function formatVnd(amount: number): string {
     return `${amount.toLocaleString("vi-VN")} ₫`;
 }
 
-// Tỉ giá cố định để HIỂN THỊ giá bằng USD (nút ₫/$ ở header, xem
-// CurrencyProvider) — không dùng để thu tiền, mọi khoản thu vẫn bằng VND.
-// Đổi bằng NEXT_PUBLIC_VND_PER_USD (cần restart dev server).
-const envRate = Number(process.env.NEXT_PUBLIC_VND_PER_USD);
-export const VND_PER_USD = Number.isFinite(envRate) && envRate > 0 ? envRate : 26_000;
-
-export function vndToUsd(vnd: number): number {
-    return vnd / VND_PER_USD;
-}
-
-// $1,234.56 — dưới $100 giữ 2 số lẻ, từ $100 trở lên làm tròn đô cho gọn.
-export function formatUsd(usd: number): string {
-    return usd.toLocaleString("en-US", {
-        style: "currency",
-        currency: "USD",
-        maximumFractionDigits: Math.abs(usd) < 100 ? 2 : 0,
-        minimumFractionDigits: 0,
-    });
-}
-
-// Bản rút gọn cho marker bản đồ / thẻ nhỏ: $92, $1.2k
-export function formatCompactUsd(usd: number): string {
-    if (usd >= 1000) return `$${(Math.round(usd / 100) / 10).toLocaleString("en-US")}k`;
-    return `$${Math.round(usd).toLocaleString("en-US")}`;
-}
-
 // Rút gọn giá cho marker bản đồ — 30.000 -> "30k vnđ", 1.500.000 -> "1,5Tr vnđ"
 // (từ 1 triệu trở lên đổi sang đơn vị Tr, làm tròn 1 chữ số thập phân, để
 // không hiện số quá dài trong marker chật chỗ). Chỉ dùng ở chỗ cần cực ngắn

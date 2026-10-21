@@ -10,12 +10,13 @@ import {
     TrashIcon,
     MapPinIcon,
     InfoIcon,
+    CaretDownIcon,
 } from "@phosphor-icons/react";
 import SiteHeader from "@/components/SiteHeader/SiteHeader";
 import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
 import { useWishlist } from "@/components/wishlist/WishlistProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
-import { useCurrency } from "@/components/currency/CurrencyProvider";
+import { formatVnd } from "@/lib/format";
 import { addDaysIso, todayIso } from "@/lib/searchFilters";
 import { nightReduction, quoteRoom } from "@/lib/booking/discount";
 import DiscountTag from "@/components/DiscountTag/DiscountTag";
@@ -31,7 +32,6 @@ import WishlistSkeleton from "./WishlistSkeleton";
 
 export default function WishlistView() {
     const { t } = useLanguage();
-    const { formatPrice } = useCurrency();
     const router = useRouter();
     const { items, remove } = useWishlist();
 
@@ -40,6 +40,10 @@ export default function WishlistView() {
     // roomId đã tick để chuẩn bị đặt. Theo quyết định 3a: chỉ cho chọn các
     // phòng CÙNG 1 khách sạn trong một lần đặt.
     const [selected, setSelected] = useState<Set<number>>(new Set());
+    // hotelId đang thu gọn danh sách phòng — mặc định mở hết. Thu gọn chỉ ẩn
+    // danh sách phòng, phòng đã tick vẫn giữ nguyên và footer (số phòng đã
+    // chọn + nút đặt) vẫn hiện.
+    const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
 
     const itemsKey = items.map((i) => `${i.hotelId}:${i.roomId}`).join(",");
 
@@ -52,7 +56,25 @@ export default function WishlistView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(loadHotels, [itemsKey]); // eslint-disable-line react-hooks/set-state-in-effect -- tải hotel/room từ API theo wishlist hiện tại
 
-    const groups = groupWishlistByHotel(items, hotelsById);
+    // Bỏ qua các dòng trỏ tới phòng không còn tồn tại (đã bị xoá) — cả nhóm
+    // rỗng thì ẩn luôn.
+    const groups = groupWishlistByHotel(items, hotelsById)
+        .map((g) => ({ ...g, items: g.items.filter((it) => findRoom(it.hotelId, it.roomId, hotelsById)) }))
+        .filter((g) => g.items.length > 0);
+    const allCollapsed = groups.length > 0 && groups.every((g) => collapsed.has(g.hotel.id));
+
+    const toggleCollapsed = (hotelId: number) => {
+        setCollapsed((cur) => {
+            const next = new Set(cur);
+            if (next.has(hotelId)) next.delete(hotelId);
+            else next.add(hotelId);
+            return next;
+        });
+    };
+
+    const toggleAllCollapsed = () => {
+        setCollapsed(allCollapsed ? new Set() : new Set(groups.map((g) => g.hotel.id)));
+    };
 
     // roomId đã bị bỏ khỏi wishlist mà vẫn còn trong `selected` là vô hại:
     // selectedHotelId / bookHotel đều lọc lại theo `groups` nên không dùng tới
@@ -99,7 +121,6 @@ export default function WishlistView() {
             <div className={styles.layout}>
                 <div className={styles.header}>
                     <h1>{t("wishlist.title")}</h1>
-                    <p>{t("wishlist.subtitle")}</p>
                 </div>
 
                 {loading ? (
@@ -122,14 +143,9 @@ export default function WishlistView() {
                         )}
 
                         <div className={styles.groups}>
-                            {groups.map(({ hotel, items: hotelItems }) => {
-                                // Bỏ qua các dòng trỏ tới phòng không còn tồn tại
-                                // (đã bị xoá) — cả nhóm rỗng thì ẩn luôn.
-                                const rows = hotelItems.filter((it) =>
-                                    findRoom(it.hotelId, it.roomId, hotelsById)
-                                );
-                                if (rows.length === 0) return null;
-
+                            {groups.map(({ hotel, items: rows }) => {
+                                const isCollapsed = collapsed.has(hotel.id);
+                                const roomListId = `wishlist-rooms-${hotel.id}`;
                                 const locked =
                                     selectedHotelId !== null && selectedHotelId !== hotel.id;
                                 const pickedInHotel = rows.filter((it) =>
@@ -139,7 +155,7 @@ export default function WishlistView() {
                                 return (
                                     <section
                                         key={hotel.id}
-                                        className={`${styles.hotelGroup} ${locked ? styles.hotelGroupLocked : ""}`}
+                                        className={`${styles.hotelGroup} ${locked ? styles.hotelGroupLocked : ""} ${isCollapsed ? styles.hotelGroupCollapsed : ""}`}
                                     >
                                         <div className={styles.hotelHead}>
                                             <ImageWithFallback
@@ -162,104 +178,130 @@ export default function WishlistView() {
                                             >
                                                 {t("wishlist.viewHotel")}
                                             </Link>
-                                        </div>
-
-                                        <ul className={styles.roomList}>
-                                            {rows.map((item) => {
-                                                const room = findRoom(
-                                                    item.hotelId,
-                                                    item.roomId,
-                                                    hotelsById
-                                                );
-                                                if (!room) return null;
-                                                const checked = selected.has(item.roomId);
-                                                const roomHref = `/hotel/${item.hotelId}/room/${item.roomId}`;
-                                                // Wishlist không có ngày ở — tag/giá xem trước theo đêm nay.
-                                                const headline =
-                                                    quoteRoom(room, todayIso(), addDaysIso(todayIso(), 1)).applied[0] ?? null;
-
-                                                return (
-                                                    <li key={item.roomId} className={styles.roomRow}>
-                                                        <label className={styles.checkWrap}>
-                                                            <input
-                                                                type="checkbox"
-                                                                className={styles.check}
-                                                                checked={checked}
-                                                                disabled={locked}
-                                                                onChange={() => toggleRoom(item.roomId)}
-                                                                aria-label={t("wishlist.selectRoomAria", {
-                                                                    name: room.name,
-                                                                })}
-                                                            />
-                                                        </label>
-
-                                                        <Link
-                                                            href={roomHref}
-                                                            className={styles.roomThumbLink}
-                                                            tabIndex={-1}
-                                                            aria-hidden="true"
-                                                        >
-                                                            <ImageWithFallback
-                                                                src={room.thumbnail}
-                                                                alt={room.name}
-                                                                className={styles.roomThumb}
-                                                                fallbackClassName={styles.roomThumbFallback}
-                                                                fallback={<BedIcon size={18} weight="light" />}
-                                                            />
-                                                        </Link>
-
-                                                        <Link
-                                                            href={roomHref}
-                                                            className={`${styles.roomInfo} ${styles.roomLink}`}
-                                                        >
-                                                            {room.roomType && (
-                                                                <span className={styles.roomType}>
-                                                                    {room.roomType.roomTypeName}
-                                                                </span>
-                                                            )}
-                                                            <span className={styles.roomName}>{room.name}</span>
-                                                            {headline && <DiscountTag discount={headline.discount} />}
-                                                        </Link>
-
-                                                        <div className={styles.roomPrice}>
-                                                            {headline && (
-                                                                <s className={styles.roomPriceOriginal}>{formatPrice(room.price)}</s>
-                                                            )}
-                                                            {formatPrice(
-                                                                headline
-                                                                    ? room.price - nightReduction(room.price, headline.discount)
-                                                                    : room.price
-                                                            )}
-                                                            <span>{t("room.perNight")}</span>
-                                                        </div>
-
-                                                        <button
-                                                            type="button"
-                                                            className={styles.removeButton}
-                                                            onClick={() => remove(item.hotelId, item.roomId)}
-                                                            aria-label={t("wishlist.remove")}
-                                                        >
-                                                            <TrashIcon size={15} />
-                                                        </button>
-                                                    </li>
-                                                );
-                                            })}
-                                        </ul>
-
-                                        <div className={styles.groupFooter}>
-                                            <span className={styles.groupCount}>
-                                                {pickedInHotel > 0
-                                                    ? t("wishlist.roomsPicked", { count: pickedInHotel })
-                                                    : t("wishlist.pickToBook")}
-                                            </span>
                                             <button
                                                 type="button"
-                                                className={controls.button}
-                                                disabled={pickedInHotel === 0}
-                                                onClick={() => bookHotel(hotel.id)}
+                                                className={styles.collapseButton}
+                                                aria-expanded={!isCollapsed}
+                                                aria-controls={roomListId}
+                                                title={isCollapsed ? t("wishlist.expand") : t("wishlist.collapse")}
+                                                onClick={() => toggleCollapsed(hotel.id)}
                                             >
-                                                {t("wishlist.bookThisHotel")}
+                                               
+                                                {pickedInHotel > 0
+                                                    ? t("wishlist.roomCountPicked", { count: rows.length, picked: pickedInHotel })
+                                                    : t("wishlist.roomCount", { count: rows.length })}
+                                                <CaretDownIcon
+                                                    size={12}
+                                                    weight="bold"
+                                                    className={isCollapsed ? styles.caret : styles.caretOpen}
+                                                />
                                             </button>
+                                        </div>
+
+                                        <div
+                                            id={roomListId}
+                                            className={isCollapsed ? styles.roomListWrapCollapsed : styles.roomListWrap}
+                                            inert={isCollapsed}
+                                        >
+                                            <div className={styles.collapsible}>
+                                                <ul className={styles.roomList}>
+                                                    {rows.map((item) => {
+                                                        const room = findRoom(
+                                                            item.hotelId,
+                                                            item.roomId,
+                                                            hotelsById
+                                                        );
+                                                        if (!room) return null;
+                                                        const checked = selected.has(item.roomId);
+                                                        const roomHref = `/hotel/${item.hotelId}/room/${item.roomId}`;
+                                                        // Wishlist không có ngày ở — tag/giá xem trước theo đêm nay.
+                                                        const headline =
+                                                            quoteRoom(room, todayIso(), addDaysIso(todayIso(), 1)).applied[0] ?? null;
+
+                                                        return (
+                                                            <li key={item.roomId} className={styles.roomRow}>
+                                                                <label className={styles.checkWrap}>
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        className={styles.check}
+                                                                        checked={checked}
+                                                                        disabled={locked}
+                                                                        onChange={() => toggleRoom(item.roomId)}
+                                                                        aria-label={t("wishlist.selectRoomAria", {
+                                                                            name: room.name,
+                                                                        })}
+                                                                    />
+                                                                </label>
+
+                                                                <Link
+                                                                    href={roomHref}
+                                                                    className={styles.roomThumbLink}
+                                                                    tabIndex={-1}
+                                                                    aria-hidden="true"
+                                                                >
+                                                                    <ImageWithFallback
+                                                                        src={room.thumbnail}
+                                                                        alt={room.name}
+                                                                        className={styles.roomThumb}
+                                                                        fallbackClassName={styles.roomThumbFallback}
+                                                                        fallback={<BedIcon size={18} weight="light" />}
+                                                                    />
+                                                                </Link>
+
+                                                                <Link
+                                                                    href={roomHref}
+                                                                    className={`${styles.roomInfo} ${styles.roomLink}`}
+                                                                >
+                                                                    {room.roomType && (
+                                                                        <span className={styles.roomType}>
+                                                                            {room.roomType.roomTypeName}
+                                                                        </span>
+                                                                    )}
+                                                                    <span className={styles.roomName}>{room.name}</span>
+                                                                    {headline && <DiscountTag discount={headline.discount} />}
+                                                                </Link>
+
+                                                                <div className={styles.roomPrice}>
+                                                                    {headline && (
+                                                                        <s className={styles.roomPriceOriginal}>{formatVnd(room.price)}</s>
+                                                                    )}
+                                                                    {formatVnd(
+                                                                        headline
+                                                                            ? room.price - nightReduction(room.price, headline.discount)
+                                                                            : room.price
+                                                                    )}
+                                                                    <span>{t("room.perNight")}</span>
+                                                                </div>
+
+                                                                <button
+                                                                    type="button"
+                                                                    className={styles.removeButton}
+                                                                    onClick={() => remove(item.hotelId, item.roomId)}
+                                                                    aria-label={t("wishlist.remove")}
+                                                                >
+                                                                    <TrashIcon size={15} />
+                                                                </button>
+                                                            </li>
+                                                        );
+                                                    })}
+                                                </ul>
+
+                                                <div className={styles.groupFooter}>
+                                                    <span className={styles.groupCount}>
+                                                        {pickedInHotel > 0
+                                                            ? t("wishlist.roomsPicked", { count: pickedInHotel })
+                                                            : t("wishlist.pickToBook")}
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        className={controls.button}
+                                                        disabled={pickedInHotel === 0}
+                                                        onClick={() => bookHotel(hotel.id)}
+                                                    >
+                                                        {t("wishlist.bookThisHotel")}
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
                                     </section>
                                 );

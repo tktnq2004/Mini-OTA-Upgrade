@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BedIcon, UsersIcon, CheckIcon } from "@phosphor-icons/react";
 import type { Room } from "@/lib/hotels/types";
-import { useCurrency } from "@/components/currency/CurrencyProvider";
+import { formatVnd } from "@/lib/format";
 import { nightReduction, quoteRoom } from "@/lib/booking/discount";
 import DiscountTag from "@/components/DiscountTag/DiscountTag";
 import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
@@ -28,7 +28,6 @@ interface RoomCardProps {
 
 export default function RoomCard({ hotelId, room, coverImage, nights, checkin, checkout, guests }: RoomCardProps) {
     const { t } = useLanguage();
-    const { formatPrice } = useCurrency();
     const router = useRouter();
     const { isSaved, add, remove } = useWishlist();
     const selected = isSaved(hotelId, room.id);
@@ -117,14 +116,14 @@ export default function RoomCard({ hotelId, room, coverImage, nights, checkin, c
 
                 <div className={styles.footer}>
                     <div className={styles.price}>
-                        {headline && <s className={styles.priceOriginal}>{formatPrice(room.price)}</s>}
+                        {headline && <s className={styles.priceOriginal}>{formatVnd(room.price)}</s>}
                         <div>
-                            <strong>{formatPrice(nightlyPrice)}</strong>
+                            <strong>{formatVnd(nightlyPrice)}</strong>
                             <span> {t("room.perNight")}</span>
                         </div>
                         {nights > 1 && (
                             <span className={styles.priceTotal}>
-                                {t("room.totalForNights", { total: formatPrice(total), count: nights })}
+                                {t("room.totalForNights", { total: formatVnd(total), count: nights })}
                                 {headline && discountedNights < quote.nights && (
                                     <> · {t("discount.partialNights", { count: discountedNights, total: quote.nights })}</>
                                 )}

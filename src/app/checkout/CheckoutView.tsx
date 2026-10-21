@@ -18,8 +18,7 @@ import DateRangeField from "@/components/DateRangePicker/DateRangeField";
 import { useAccount } from "@/components/auth/AccountProvider";
 import { useWishlist } from "@/components/wishlist/WishlistProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
-import { useCurrency } from "@/components/currency/CurrencyProvider";
-import { formatVnd, VND_PER_USD } from "@/lib/format";
+import { formatVnd } from "@/lib/format";
 import { getMyProfile } from "@/lib/auth/resources";
 import { getHotel, PublicApiError } from "@/lib/hotels/resources";
 import type { Hotel, Room } from "@/lib/hotels/types";
@@ -36,7 +35,6 @@ import CheckoutSkeleton from "./CheckoutSkeleton";
 
 export default function CheckoutView() {
     const { t } = useLanguage();
-    const { currency, formatPrice } = useCurrency();
     const router = useRouter();
     const searchParams = useSearchParams();
     const { remove: removeFromWishlist } = useWishlist();
@@ -388,23 +386,23 @@ export default function CheckoutView() {
                                             </span>
                                             <span className={styles.summaryRoomMeta}>
                                                 {nights > 0
-                                                    ? `${formatPrice(room.price)} × ${t("hotel.nightsSuffix", { count: nights })}`
-                                                    : `${formatPrice(room.price)} ${t("room.perNight")}`}
+                                                    ? `${formatVnd(room.price)} × ${t("hotel.nightsSuffix", { count: nights })}`
+                                                    : `${formatVnd(room.price)} ${t("room.perNight")}`}
                                             </span>
                                             {quote?.applied.map((a) => (
                                                 <span key={a.discount.id} className={styles.summaryRoomDiscount}>
                                                     <DiscountTag discount={a.discount} />
                                                     <span>
-                                                        {t("hotel.nightsSuffix", { count: a.nights })} · -{formatPrice(a.amount)}
+                                                        {t("hotel.nightsSuffix", { count: a.nights })} · -{formatVnd(a.amount)}
                                                     </span>
                                                 </span>
                                             ))}
                                         </div>
                                         <span className={styles.summaryRoomPrice}>
                                             {quote && quote.discountAmount > 0 && (
-                                                <s className={styles.summaryRoomPriceOriginal}>{formatPrice(quote.subtotal)}</s>
+                                                <s className={styles.summaryRoomPriceOriginal}>{formatVnd(quote.subtotal)}</s>
                                             )}
-                                            {quote ? formatPrice(quote.total) : "—"}
+                                            {quote ? formatVnd(quote.total) : "—"}
                                         </span>
                                     </div>
                                 ))}
@@ -414,26 +412,20 @@ export default function CheckoutView() {
                                 <div className={styles.summaryDiscountRows}>
                                     <div>
                                         <span>{t("discount.subtotal")}</span>
-                                        <span>{formatPrice(subtotal)}</span>
+                                        <span>{formatVnd(subtotal)}</span>
                                     </div>
                                     <div className={styles.summaryDiscountAmount}>
                                         <span>{t("discount.totalDiscount")}</span>
-                                        <span>-{formatPrice(discountTotal)}</span>
+                                        <span>-{formatVnd(discountTotal)}</span>
                                     </div>
                                 </div>
                             )}
 
                             <div className={styles.summaryTotalRow}>
                                 <span>{t("wishlist.summaryTotal")}</span>
-                                <strong>{nights > 0 ? formatPrice(grandTotal) : t("checkout.pickDatesForTotal")}</strong>
+                                <strong>{nights > 0 ? formatVnd(grandTotal) : t("checkout.pickDatesForTotal")}</strong>
                             </div>
                             {discountTotal > 0 && <p className={styles.summaryDiscountNote}>{t("discount.previewNote")}</p>}
-                            {/* Giá USD chỉ để tham khảo — báo rõ số VND sẽ thật sự bị thu. */}
-                            {currency === "USD" && nights > 0 && (
-                                <p className={styles.summaryDiscountNote}>
-                                    {t("currency.chargedInVnd", { amount: formatVnd(grandTotal), rate: VND_PER_USD.toLocaleString("vi-VN") })}
-                                </p>
-                            )}
 
                             <button
                                 type="submit"

@@ -483,7 +483,7 @@ export default function DiscountsPage() {
                                 return (
                                     <tr key={d.id}>
                                         <td>
-                                            <DiscountTag discount={d} formatPrice={formatVnd} />
+                                            <DiscountTag discount={d} />
                                         </td>
                                         {isSuperAdmin && <td>{hotelName(d)}</td>}
                                         <td className={page.dateCell}>

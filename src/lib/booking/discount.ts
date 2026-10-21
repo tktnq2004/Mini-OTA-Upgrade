@@ -1,4 +1,5 @@
 import { addDaysIso } from "@/lib/searchFilters";
+import { formatVnd } from "@/lib/format";
 
 // Tính giá XEM TRƯỚC sau khuyến mãi — chạy y hệt quy tắc backend (docs/
 // DISCOUNT_API.md mục 1) để tag/giá gạch ngang/tổng ở checkout khớp với số
@@ -113,12 +114,9 @@ export function headlineDiscount(
   return quoteRoom(room, checkIn, checkOut).applied[0] ?? null;
 }
 
-// "-20%" / "-50.000 ₫" (hoặc "-$1.92" — formatPrice theo tiền tệ đang chọn, xem useCurrency)
-export function formatDiscountBadge(
-  discount: Pick<RoomDiscount, "discountValue" | "discountUnit">,
-  formatPrice: (vnd: number) => string,
-): string {
+// "-20%" / "-50.000 ₫"
+export function formatDiscountBadge(discount: Pick<RoomDiscount, "discountValue" | "discountUnit">): string {
   return discount.discountUnit === "PERCENT"
     ? `-${discount.discountValue}%`
-    : `-${formatPrice(discount.discountValue)}`;
+    : `-${formatVnd(discount.discountValue)}`;
 }

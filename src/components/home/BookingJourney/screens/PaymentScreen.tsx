@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import { BuildingsIcon, CheckCircleIcon, CreditCardIcon, LockSimpleIcon } from "@phosphor-icons/react";
 import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
-import { useCurrency } from "@/components/currency/CurrencyProvider";
+import { formatVnd } from "@/lib/format";
 import type { JourneyHotel } from "../journeyData";
 import styles from "../BookingJourney.module.css";
 
@@ -18,7 +18,6 @@ const CARD_GROUPS = ["4242", "••••", "••••", "4242"];
 // Màn 3 — tóm tắt đặt phòng (dữ liệu khách sạn thật), số thẻ tự điền, nút thanh toán chuyển ✓.
 export default function PaymentScreen({ hotel, checkin, checkout, nights }: PaymentScreenProps) {
     const { t } = useLanguage();
-    const { formatPrice } = useCurrency();
     const rows = [
         { label: t("search.checkinLabel"), value: checkin },
         { label: t("search.checkoutLabel"), value: checkout },
@@ -50,7 +49,7 @@ export default function PaymentScreen({ hotel, checkin, checkout, nights }: Paym
                     ))}
                     <div className={styles.summaryTotal}>
                         <dt>{t("home.steps.pay.total", { nights })}</dt>
-                        <dd>{formatPrice(hotel.price * nights)}</dd>
+                        <dd>{formatVnd(hotel.price * nights)}</dd>
                     </div>
                 </dl>
             </div>
@@ -77,7 +76,7 @@ export default function PaymentScreen({ hotel, checkin, checkout, nights }: Paym
             <div className={styles.payButton}>
                 <span className={styles.payIdle}>
                     <LockSimpleIcon size={14} weight="bold" />
-                    {t("home.steps.pay.button", { amount: formatPrice(hotel.price * nights) })}
+                    {t("home.steps.pay.button", { amount: formatVnd(hotel.price * nights) })}
                 </span>
                 <span className={styles.payDone}>
                     <CheckCircleIcon size={16} weight="fill" />

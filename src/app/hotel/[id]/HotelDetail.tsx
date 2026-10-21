@@ -13,8 +13,7 @@ import {
     ArrowsClockwiseIcon,
 } from "@phosphor-icons/react";
 import type { Hotel } from "@/lib/hotels/types";
-import { formatDateVn } from "@/lib/format";
-import { useCurrency } from "@/components/currency/CurrencyProvider";
+import { formatDateVn, formatVnd } from "@/lib/format";
 import { rememberHotelView } from "@/lib/recentlyViewed";
 import {
     addDaysIso,
@@ -48,7 +47,6 @@ interface HotelDetailProps {
 
 export default function HotelDetail({ hotel, coverImage, roomThumbnails }: HotelDetailProps) {
     const { t, language } = useLanguage();
-    const { formatPrice } = useCurrency();
     const searchParams = useSearchParams();
     // Chỉ đọc query string một lần lúc vào trang để khởi tạo bộ lọc — sau đó
     // bộ lọc trên trang khách sạn do người dùng tự điều khiển tại đây.
@@ -231,7 +229,7 @@ export default function HotelDetail({ hotel, coverImage, roomThumbnails }: Hotel
                             <div className={styles.priceLabelRow}>
                                 <span className={controls.label}>{t("hotel.maxPriceLabel")}</span>
                                 <span className={styles.priceValue}>
-                                    {maxPrice >= PRICE_CEILING ? t("hotel.unlimitedPrice") : formatPrice(maxPrice)}
+                                    {maxPrice >= PRICE_CEILING ? t("hotel.unlimitedPrice") : formatVnd(maxPrice)}
                                 </span>
                             </div>
                             <input

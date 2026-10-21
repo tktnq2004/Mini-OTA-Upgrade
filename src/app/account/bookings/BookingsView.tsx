@@ -20,8 +20,7 @@ import { AccountApiError } from "@/lib/auth/apiClient";
 import { cancelMyBooking, getMyBookings } from "@/lib/auth/resources";
 import { syncPayment } from "@/lib/booking/payment";
 import type { MyBooking } from "@/lib/auth/types";
-import { formatDateVn } from "@/lib/format";
-import { useCurrency } from "@/components/currency/CurrencyProvider";
+import { formatDateVn, formatVnd } from "@/lib/format";
 import { nightsBetween } from "@/lib/searchFilters";
 import controls from "@/styles/controls.module.css";
 import styles from "../account.module.css";
@@ -76,7 +75,6 @@ const bookingDetailHref = (b: MyBooking, email: string) => {
 
 export default function BookingsView() {
   const { t, language } = useLanguage();
-  const { formatPrice } = useCurrency();
   const { user, ready } = useAccount();
   const router = useRouter();
 
@@ -251,7 +249,7 @@ export default function BookingsView() {
                             {br.room?.name}
                           </span>
                           <span className={styles.roomPrice}>
-                            {formatPrice(br.pricePerNight)} {t("room.perNight")}
+                            {formatVnd(br.pricePerNight)} {t("room.perNight")}
                           </span>
                         </Link>
                       </li>
@@ -264,11 +262,11 @@ export default function BookingsView() {
                     {t("wishlist.summaryTotal")}
                     {b.discountAmount ? (
                       <span className={styles.bookingSaved}>
-                        {t("discount.youSave", { amount: formatPrice(b.discountAmount) })}
+                        {t("discount.youSave", { amount: formatVnd(b.discountAmount) })}
                       </span>
                     ) : null}
                   </span>
-                  <strong>{formatPrice(b.payableAmount ?? b.amount)}</strong>
+                  <strong>{formatVnd(b.payableAmount ?? b.amount)}</strong>
                 </div>
 
                 {user && (

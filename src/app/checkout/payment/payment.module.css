@@ -406,11 +406,3 @@
     justify-content: space-between;
     gap: 12px;
 }
-
-/* Giá đang hiện bằng USD -> nhắc số VND thật sự bị thu. */
-.currencyNote {
-    margin: -6px 0 0;
-    font-size: 11.5px;
-    color: var(--color-text-faint);
-    text-align: right;
-}

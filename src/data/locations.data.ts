@@ -1,5 +1,4 @@
 import rawUnits from "./vn-provinces-wards.json";
-import { EXTRA_PROVINCES } from "./extra-locations.data";
 
 export interface Province {
   id: string;
@@ -7,7 +6,6 @@ export interface Province {
   fullName: string;
   lat: number;
   lng: number;
-  zoom?: number; // chỉ tỉnh ngoài VN (extra-locations) — mặc định PROVINCE_ZOOM
 }
 
 export interface Ward {
@@ -15,9 +13,6 @@ export interface Ward {
   provinceId: string;
   name: string;
   fullName: string;
-  // Toạ độ riêng của xã/thành phố — hiện chỉ có ở extra-locations (California).
-  lat?: number;
-  lng?: number;
 }
 
 interface RawWard {
@@ -101,33 +96,18 @@ export const wards: Ward[] = RAW.flatMap((p) =>
   }))
 );
 
-// Tỉnh/xã ngoài file VN (extra-locations.data.ts). KHÔNG gộp vào `provinces`
-// / `wards` ở trên (các nơi liệt kê toàn bộ tỉnh VN như trang chủ, admin vẫn
-// giữ nguyên) — chỉ tra cứu theo id bên dưới mới thấy, đủ cho bộ lọc + bản đồ.
-const extraProvinces: Province[] = EXTRA_PROVINCES.map((p) => ({
-  id: p.id,
-  name: p.name,
-  fullName: p.name,
-  lat: p.lat,
-  lng: p.lng,
-  zoom: p.zoom,
-}));
-const extraWards: Ward[] = EXTRA_PROVINCES.flatMap((p) =>
-  p.wards.map((w) => ({ ...w, provinceId: p.id, fullName: w.name }))
-);
-
 export function getWardsByProvince(provinceId: string | undefined | null): Ward[] {
   if (!provinceId) return [];
-  return [...wards, ...extraWards].filter((w) => w.provinceId === provinceId);
+  return wards.filter((w) => w.provinceId === provinceId);
 }
 
 export function getProvinceById(id: string | undefined | null): Province | undefined {
   if (!id) return undefined;
-  return provinces.find((p) => p.id === id) ?? extraProvinces.find((p) => p.id === id);
+  return provinces.find((p) => p.id === id);
 }
 
 export function getWardById(id: string | undefined | null): Ward | undefined {
   if (!id) return undefined;
-  return wards.find((w) => w.id === id) ?? extraWards.find((w) => w.id === id);
+  return wards.find((w) => w.id === id);
 }
 

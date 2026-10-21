@@ -133,9 +133,82 @@
     text-decoration: underline;
 }
 
+/* Thu gọn danh sách phòng + footer: lưới 1 hàng 1fr <-> 0fr để trượt mượt
+   (height: auto không transition được). .collapsible bên trong phải có
+   min-height: 0 + overflow: hidden thì hàng 0fr mới co về 0 được. */
+.roomListWrap,
+.roomListWrapCollapsed {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows 0.2s ease;
+}
+
+.roomListWrapCollapsed {
+    grid-template-rows: 0fr;
+}
+
+.collapsible {
+    min-height: 0;
+    overflow: hidden;
+}
+
 .roomList {
     display: flex;
     flex-direction: column;
+}
+
+/* Thu gọn thì card chỉ còn phần đầu — viền dưới của .hotelHead sẽ đè lên
+   viền card thành 2 vạch, nên ẩn đi. */
+.hotelGroupCollapsed .hotelHead {
+    border-bottom-color: transparent;
+    transition: border-bottom-color 0.2s ease;
+}
+
+.collapseButton,
+.collapseAllButton {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 9px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: var(--color-panel);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.collapseButton:hover,
+.collapseAllButton:hover {
+    border-color: var(--color-text-faint);
+    color: var(--color-text);
+}
+
+.groupsToolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 10px;
+}
+
+.caret {
+    color: var(--color-text-faint);
+    transition: transform 0.2s ease;
+}
+
+.caretOpen {
+    composes: caret;
+    transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .roomListWrap,
+    .roomListWrapCollapsed,
+    .caret {
+        transition: none;
+    }
 }
 
 .roomRow {
@@ -274,6 +347,22 @@
 }
 
 @media (max-width: 640px) {
+    /* Tên + địa chỉ khách sạn chiếm trọn hàng trên, "Xem khách sạn" + nút
+       thu gọn xuống hàng dưới (thẳng hàng với chữ, bỏ qua ảnh 44px + gap 12px). */
+    .hotelHead {
+        flex-wrap: wrap;
+        row-gap: 8px;
+    }
+
+    .hotelInfo {
+        flex-basis: calc(100% - 56px);
+    }
+
+    .viewHotelLink {
+        margin-left: 56px;
+        margin-right: auto;
+    }
+
     .roomRow {
         flex-wrap: wrap;
     }

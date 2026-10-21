@@ -20,8 +20,7 @@ import {
 } from "@phosphor-icons/react";
 import SiteHeader from "@/components/SiteHeader/SiteHeader";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
-import { formatDateVn, formatVnd, VND_PER_USD } from "@/lib/format";
-import { useCurrency } from "@/components/currency/CurrencyProvider";
+import { formatDateVn, formatVnd } from "@/lib/format";
 import { nightsBetween } from "@/lib/searchFilters";
 import {
     bookingPayable,
@@ -92,7 +91,6 @@ function formatCountdown(ms: number): string {
 
 export default function PaymentView() {
     const { t, language } = useLanguage();
-    const { currency, formatPrice } = useCurrency();
     const searchParams = useSearchParams();
 
     const bookingId = Number(searchParams.get("bookingId")) || null;
@@ -320,13 +318,13 @@ export default function PaymentView() {
                             <BedIcon size={14} weight="light" />
                             <span className={styles.invoiceRoomName}>{room.roomName}</span>
                             <span className={styles.invoiceRoomPrice}>
-                                {formatPrice(room.pricePerNight)} × {nights}
+                                {formatVnd(room.pricePerNight)} × {nights}
                             </span>
                         </div>
                         {room.discounts?.map((d, i) => (
                             <div key={d.discountId ?? i} className={styles.invoiceDiscountRow}>
                                 <span>{t("discount.line", { name: d.name, count: d.nights })}</span>
-                                <span>-{formatPrice(d.amount)}</span>
+                                <span>-{formatVnd(d.amount)}</span>
                             </div>
                         ))}
                     </div>
@@ -365,25 +363,19 @@ export default function PaymentView() {
                 <div className={styles.invoiceDiscountSummary}>
                     <div>
                         <span>{t("discount.subtotal")}</span>
-                        <span>{formatPrice(booking.subtotalAmount ?? grandTotal + discountAmount)}</span>
+                        <span>{formatVnd(booking.subtotalAmount ?? grandTotal + discountAmount)}</span>
                     </div>
                     <div className={styles.invoiceDiscountRow}>
                         <span>{t("discount.totalDiscount")}</span>
-                        <span>-{formatPrice(discountAmount)}</span>
+                        <span>-{formatVnd(discountAmount)}</span>
                     </div>
                 </div>
             )}
 
             <div className={styles.invoiceTotalRow}>
                 <span>{t("wishlist.summaryTotal")}</span>
-                <strong>{formatPrice(grandTotal)}</strong>
+                <strong>{formatVnd(grandTotal)}</strong>
             </div>
-            {/* Giá USD chỉ để tham khảo — Stripe/SePay thu bằng VND. */}
-            {currency === "USD" && (
-                <p className={styles.currencyNote}>
-                    {t("currency.chargedInVnd", { amount: formatVnd(grandTotal), rate: VND_PER_USD.toLocaleString("vi-VN") })}
-                </p>
-            )}
 
             <div className={styles.invoiceCode}>
                 {t("checkoutPayment.bookingCode")}: <strong>MO-{booking.bookingId}</strong>
@@ -560,7 +552,7 @@ export default function PaymentView() {
                                         >
                                             {paying
                                                 ? t("checkout.submitting")
-                                                : t("checkoutPayment.payNowButton", { total: formatPrice(grandTotal) })}
+                                                : t("checkoutPayment.payNowButton", { total: formatVnd(grandTotal) })}
                                         </button>
                                     </>
                                 )}

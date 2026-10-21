@@ -5,7 +5,7 @@ import MapArt from "@/components/home/MapArt/MapArt";
 import Reveal from "@/components/home/Reveal/Reveal";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import type { Hotel } from "@/lib/hotels/types";
-import { useCurrency } from "@/components/currency/CurrencyProvider";
+import { formatCompactVnd } from "@/lib/format";
 import styles from "./MapBanner.module.css";
 
 // Vị trí (% khung) cho các pin giá trang trí nửa phải banner.
@@ -22,7 +22,6 @@ const FALLBACK_PRICES = [850_000, 1_200_000, 1_500_000, 2_700_000, 990_000];
 // Banner CTA toàn chiều ngang: "Tìm khách sạn quanh bạn" → trang bản đồ (tính năng cốt lõi).
 export default function MapBanner({ hotels }: { hotels: Hotel[] }) {
     const { t } = useLanguage();
-    const { formatCompactPrice } = useCurrency();
     const real = hotels.filter((h) => h.averagePrice !== null).map((h) => h.averagePrice as number);
     const prices = real.length >= PINS.length ? real.slice(0, PINS.length) : FALLBACK_PRICES;
 
@@ -43,7 +42,7 @@ export default function MapBanner({ hotels }: { hotels: Hotel[] }) {
                         }
                         aria-hidden
                     >
-                        {formatCompactPrice(prices[i])}
+                        {formatCompactVnd(prices[i])}
                     </span>
                 ))}
                 <span className={styles.me} style={{ left: "86%", top: "40%" }} aria-hidden />
