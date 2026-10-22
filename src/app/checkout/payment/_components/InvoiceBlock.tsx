@@ -17,26 +17,21 @@ import styles from "../payment.module.css";
 
 interface InvoiceBlockProps {
     booking: CreateBookingResult;
-    // Email luôn lấy từ URL vì đó chính là email dùng để tra cứu booking (phải
-    // khớp 100% với BookingService.lookup).
+    // booking.guestEmail, thiếu thì email của phiên (xem PaymentView).
     email: string;
-    // fullName/phone từ URL chỉ là fallback khi response backend thiếu field
-    // (dữ liệu cũ) — ưu tiên dữ liệu backend, đáng tin hơn và sống sót qua refresh.
-    fallbackFullName: string;
-    fallbackPhone: string;
 }
 
 // Hoá đơn dùng chung cho mọi màn của trang thanh toán (chọn phương thức,
 // đang xử lý, thành công, đã huỷ, hoàn tiền).
-export default function InvoiceBlock({ booking, email, fallbackFullName, fallbackPhone }: InvoiceBlockProps) {
+export default function InvoiceBlock({ booking, email }: InvoiceBlockProps) {
     const { t, language } = useLanguage();
     const nights = nightsBetween(booking.checkIn, booking.checkOut);
     // Số tiền thật phải trả do backend chốt (payableAmount, đã trừ khuyến
     // mãi). Chưa có field này thì lùi về totalAmount (đã là tổng cả kỳ ở).
     const grandTotal = bookingPayable(booking);
     const discountAmount = booking.discountAmount ?? 0;
-    const guestFullName = booking.guestFullName || fallbackFullName;
-    const guestPhone = booking.guestPhone || fallbackPhone;
+    const guestFullName = booking.guestFullName;
+    const guestPhone = booking.guestPhone;
 
     return (
         <div className={styles.invoice}>

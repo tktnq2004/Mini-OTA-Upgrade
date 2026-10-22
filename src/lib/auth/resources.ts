@@ -24,6 +24,10 @@ export const sendRegisterOtp = (email: string) =>
 // sau, ở bước nhập OTP (loginWithOtp).
 export const sendLoginOtp = (email: string) => accountPost<OtpSession>("auth/login/send-otp-login", { email });
 
+// Khách vãng lai xác minh email (đặt phòng / tra lịch sử / mở lại trang thanh
+// toán). Email chưa có tài khoản vẫn nhận mã — bước verify tạo user GUEST.
+export const sendGuestOtp = (email: string) => accountPost<OtpSession>("auth/guest/send-otp", { email });
+
 // Quên mật khẩu (CHƯA đăng nhập) — backend luôn trả 200 dù email có tồn tại
 // hay không, không có cách nào biết "gửi thành công" theo nghĩa email đã tới
 // nơi, UI chỉ nên hiện 1 thông báo chung chung.

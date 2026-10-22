@@ -3,7 +3,11 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { AccountApiError } from "@/lib/auth/apiClient";
 import type { CompleteRegisterInput, LoginInput, SessionUser } from "@/lib/auth/types";
-import { sendLoginOtp as apiSendLoginOtp, sendRegisterOtp as apiSendRegisterOtp } from "@/lib/auth/resources";
+import {
+    sendGuestOtp as apiSendGuestOtp,
+    sendLoginOtp as apiSendLoginOtp,
+    sendRegisterOtp as apiSendRegisterOtp,
+} from "@/lib/auth/resources";
 
 interface AuthResult {
     ok: boolean;
@@ -19,9 +23,21 @@ interface SendOtpResult {
     retryAfter?: number;
 }
 
+// Khách vãng lai xác minh OTP — fullName/phone chỉ backend dùng khi email
+// chưa có tài khoản (tạo user GUEST lúc đặt phòng lần đầu).
+export interface GuestVerifyInput {
+    email: string;
+    otp: string;
+    fullName?: string;
+    phone?: string;
+}
+
 interface AccountContextValue {
     user: SessionUser | null;
     ready: boolean; // đã hỏi xong /api/account/session lần đầu chưa
+    // Phiên khách vãng lai (role GUEST): chỉ có booking/lịch sử — không hồ sơ,
+    // không thẻ đã lưu.
+    isGuest: boolean;
     login: (input: LoginInput) => Promise<AuthResult>;
     // Đăng ký giờ gồm 2 bước: sendRegisterOtp (gửi mã) rồi register (kèm mã,
     // tạo tài khoản thật + đăng nhập luôn) — xem SignupPage.
@@ -30,6 +46,9 @@ interface AccountContextValue {
     // Đăng nhập không cần mật khẩu, cũng 2 bước — xem LoginForm.
     sendLoginOtp: (email: string) => Promise<SendOtpResult>;
     loginWithOtp: (email: string, otp: string) => Promise<AuthResult>;
+    // Khách vãng lai, cũng 2 bước — xem GuestOtpForm.
+    sendGuestOtp: (email: string) => Promise<SendOtpResult>;
+    verifyGuest: (input: GuestVerifyInput) => Promise<AuthResult>;
     logout: () => Promise<void>;
     patchUser: (patch: Partial<SessionUser>) => void;
 }
@@ -73,11 +92,10 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         return { ok: true };
     };
 
-    // Bước 1: gửi OTP về email — chưa tạo tài khoản, chỉ sau khi nhập đúng mã
-    // ở register() dưới thì tài khoản mới thật sự được tạo.
-    const requestRegisterOtp = async (email: string): Promise<SendOtpResult> => {
+    // Gửi OTP (đăng ký / đăng nhập / khách vãng lai) — cùng cách đọc lỗi 429.
+    const requestOtp = async (send: () => Promise<unknown>): Promise<SendOtpResult> => {
         try {
-            await apiSendRegisterOtp(email);
+            await send();
             return { ok: true };
         } catch (e) {
             if (e instanceof AccountApiError) {
@@ -86,6 +104,10 @@ export function AccountProvider({ children }: { children: ReactNode }) {
             return { ok: false, message: "Gửi mã thất bại, vui lòng thử lại" };
         }
     };
+
+    // Bước 1: gửi OTP về email — chưa tạo tài khoản, chỉ sau khi nhập đúng mã
+    // ở register() dưới thì tài khoản mới thật sự được tạo.
+    const requestRegisterOtp = (email: string) => requestOtp(() => apiSendRegisterOtp(email));
 
     // Bước 2: kèm mã OTP — backend tự kiểm tra, tạo tài khoản VÀ đăng nhập
     // luôn trong 1 lần gọi (xem app/api/account/auth/register/route.ts).
@@ -103,17 +125,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
 
     // Bước 1: gửi OTP đăng nhập — cố tình trả cùng kết quả cho mọi email (xem
     // sendLoginOtp ở resources.ts), lỗi "không có tài khoản" chỉ lộ ra ở bước 2.
-    const requestLoginOtp = async (email: string): Promise<SendOtpResult> => {
-        try {
-            await apiSendLoginOtp(email);
-            return { ok: true };
-        } catch (e) {
-            if (e instanceof AccountApiError) {
-                return { ok: false, message: e.message, retryAfter: e.retryAfter };
-            }
-            return { ok: false, message: "Gửi mã thất bại, vui lòng thử lại" };
-        }
-    };
+    const requestLoginOtp = (email: string) => requestOtp(() => apiSendLoginOtp(email));
 
     // Bước 2: kèm mã OTP, đăng nhập thẳng không cần mật khẩu.
     const loginWithOtp = async (email: string, otp: string): Promise<AuthResult> => {
@@ -124,6 +136,22 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         });
         const data = await res.json().catch(() => null);
         if (!res.ok) return { ok: false, message: data?.message ?? "Đăng nhập thất bại" };
+        setUser(data.user ?? null);
+        return { ok: true };
+    };
+
+    // Khách vãng lai: bước 1 trả cùng kết quả cho mọi email; bước 2 đúng mã thì
+    // backend cấp phiên (tạo user GUEST nếu email chưa có tài khoản).
+    const requestGuestOtp = (email: string) => requestOtp(() => apiSendGuestOtp(email));
+
+    const verifyGuest = async (input: GuestVerifyInput): Promise<AuthResult> => {
+        const res = await fetch("/api/account/auth/guest/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(input),
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok) return { ok: false, message: data?.message ?? "Xác minh thất bại" };
         setUser(data.user ?? null);
         return { ok: true };
     };
@@ -142,11 +170,14 @@ export function AccountProvider({ children }: { children: ReactNode }) {
             value={{
                 user,
                 ready,
+                isGuest: user?.role === "GUEST",
                 login,
                 sendRegisterOtp: requestRegisterOtp,
                 register,
                 sendLoginOtp: requestLoginOtp,
                 loginWithOtp,
+                sendGuestOtp: requestGuestOtp,
+                verifyGuest,
                 logout,
                 patchUser,
             }}

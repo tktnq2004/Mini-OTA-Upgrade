@@ -123,6 +123,18 @@
     margin-top: 14px;
 }
 
+/* Tra cứu cho khách vãng lai (chưa có phiên) — dòng "Đã có tài khoản? Đăng nhập". */
+.lookupFooter {
+    text-align: center;
+    font-size: 12.5px;
+    color: var(--color-text-muted);
+}
+
+.lookupFooter a {
+    color: var(--color-accent);
+    font-weight: 600;
+}
+
 .bookingCard {
     background: var(--color-panel);
     border: 1px solid var(--color-border);

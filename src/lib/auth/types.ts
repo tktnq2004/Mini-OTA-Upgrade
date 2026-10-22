@@ -4,18 +4,20 @@
 // chung để 1 người vừa đăng nhập /admin vừa đăng nhập trang chính không đá
 // nhau).
 
+import type { LegacyRole } from "@/lib/api/types";
+export type { LegacyRole };
+
 // user object trong JWT chỉ có id/email/name (xem RestLoginDTO.UserLogin ở
-// backend) — không có phone/username/role, nên SessionUser chỉ nên dùng để
-// hiển thị nhanh (header, "Xin chào X"). Muốn đầy đủ hồ sơ (phone, username)
-// phải gọi getMyProfile() (GET /users/me) riêng.
+// backend) — không có phone/username, nên SessionUser chỉ nên dùng để hiển thị
+// nhanh (header, "Xin chào X"). Muốn đầy đủ hồ sơ (phone, username) phải gọi
+// getMyProfile() (GET /users/me) riêng. role lấy từ claim "role" cấp ngoài của
+// JWT (xem decodeAccountJwt) — optional vì token cũ / vài luồng chưa có.
 export interface SessionUser {
   id: number;
   email: string;
   name: string;
+  role?: LegacyRole;
 }
-
-import type { LegacyRole } from "@/lib/api/types";
-export type { LegacyRole };
 
 // Hồ sơ đầy đủ — khớp ResUser bên backend.
 export interface AccountProfile {

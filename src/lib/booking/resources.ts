@@ -1,7 +1,13 @@
 "use client";
 
-import { unwrapResponse } from "@/lib/api/public";
+import { accountFetch, accountGet } from "@/lib/auth/apiClient";
 import type { DiscountUnit } from "@/lib/booking/discount";
+
+// Mọi API booking đều cần phiên (docs/GUEST_BOOKING_API.md): khách đã đăng
+// nhập dùng token tài khoản, khách vãng lai dùng token GUEST cấp sau khi xác
+// minh email bằng OTP. Backend chỉ trả/cho trả tiền booking có
+// user_id = chủ token -> đi qua proxy /api/account (gắn Bearer + tự refresh),
+// lỗi là AccountApiError (401 = chưa có/hết phiên -> hiện GuestOtpForm).
 
 // Tạo booking. QUY TẮC: 1 request = 1 booking = 1 khách sạn + 1 khoảng ngày
 // (check-in/check-out CHUNG) + N phòng. Muốn đặt khách sạn khác thì đặt thêm
@@ -16,8 +22,8 @@ export interface CreateBookingPayload {
   roomIds: number[];
   checkIn: string; // yyyy-mm-dd
   checkOut: string; // yyyy-mm-dd
-  // Backend chỉ đọc 3 field này khi khách CHƯA đăng nhập (đăng nhập rồi thì
-  // booking gắn theo tài khoản, bỏ qua guest*).
+  // Thông tin liên hệ lưu kèm booking (snapshot). Booking luôn gắn theo tài
+  // khoản của token — email ở đây không quyết định ai xem được booking.
   guest: {
     fullName: string;
     email: string;
@@ -61,16 +67,12 @@ export interface CreateBookingResult {
   }[];
   hotelName?: string;
   hotelAddress?: string;
-  // Khách vãng lai: lấy từ Booking.guest*. Đã đăng nhập: backend tự lấy từ
-  // User liên kết (xem BookingService.toDTO) — luôn có giá trị dù đăng nhập
-  // hay không, trừ dữ liệu cũ thiếu sót.
+  // Thông tin liên hệ của booking (Booking.guest*, thiếu thì backend lấy từ
+  // User liên kết — xem BookingService.toDTO). Trang payment hiện ở hoá đơn
+  // và dùng cho billing_details của Stripe.
   guestFullName?: string;
   guestEmail?: string;
   guestPhone?: string;
-  // Chỉ có trong response tạo booking của khách vãng lai — backend chỉ lưu
-  // hash nên không lấy lại được; cần cho header X-Booking-Token khi gọi
-  // POST /payments/{id}/sync (xem rememberBookingToken).
-  guestAccessToken?: string;
 }
 
 // 1 khuyến mãi backend đã áp cho 1 phòng của booking (snapshot lúc tạo).
@@ -141,14 +143,14 @@ function forgetIdempotencyKey(fingerprint: string): void {
   }
 }
 
-// POST /api/v1/bookings (qua proxy /api/public/bookings, tự gắn token nếu đã
-// đăng nhập). Phòng đã bị đặt trong lúc chờ -> 409, message nằm trong
-// PublicApiError để UI hiển thị. Kèm header Idempotency-Key (xem trên).
+// POST /api/v1/bookings — cần phiên (khách vãng lai xác minh OTP trước, xem
+// CheckoutView). Phòng đã bị đặt trong lúc chờ -> 409, message nằm trong
+// AccountApiError để UI hiển thị. Kèm header Idempotency-Key (xem trên).
 export async function createBooking(payload: CreateBookingPayload): Promise<CreateBookingResult> {
   const fingerprint = bookingFingerprint(payload);
-  const res = await fetch("/api/public/bookings", {
+  const result = await accountFetch<CreateBookingResult>("bookings", {
     method: "POST",
-    headers: { "Content-Type": "application/json", "Idempotency-Key": bookingIdempotencyKey(fingerprint) },
+    headers: { "Idempotency-Key": bookingIdempotencyKey(fingerprint) },
     body: JSON.stringify({
       roomIds: payload.roomIds,
       checkIn: payload.checkIn,
@@ -158,21 +160,10 @@ export async function createBooking(payload: CreateBookingPayload): Promise<Crea
       guestPhone: payload.guest.phone,
     }),
   });
-  const result = await unwrapResponse<CreateBookingResult>(res);
   forgetIdempotencyKey(fingerprint);
   return result;
 }
 
-// GET /api/v1/bookings/lookup (qua proxy /api/public, public — không cần
-// đăng nhập) — dùng cho trang success poll trạng thái thanh toán trong lúc
-// chờ webhook Stripe + webhook backend xác nhận (xem checkout/success).
-// email phải khớp guestEmail (khách vãng lai) hoặc email tài khoản (đã đăng
-// nhập) của chính booking đó, không thì backend trả lỗi "not found".
-export async function getBookingStatus(bookingId: number, email: string): Promise<CreateBookingResult> {
-  const params = new URLSearchParams({ id: String(bookingId), email });
-  const res = await fetch(`/api/public/bookings/lookup?${params.toString()}`, {
-    method: "GET",
-    cache: "no-store",
-  });
-  return unwrapResponse<CreateBookingResult>(res);
-}
+// GET /api/v1/bookings/{id} — chi tiết 1 booking của chủ token (trang
+// /checkout/payment). Không phải của mình -> 403/404; chưa có phiên -> 401.
+export const getBooking = (bookingId: number) => accountGet<CreateBookingResult>(`bookings/${bookingId}`);

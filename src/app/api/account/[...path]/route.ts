@@ -5,11 +5,15 @@ import { BACKEND_TIMEOUT_MS, backendUnavailable } from "@/lib/api/backendProxy";
 async function forward(req: NextRequest, path: string[], accessToken: string, bodyText: string | undefined) {
   const url = `${getApiBaseUrl()}/${path.join("/")}${req.nextUrl.search}`;
   const hasBody = bodyText !== undefined && req.method !== "GET" && req.method !== "HEAD";
+  // Idempotency-Key: POST /bookings bắt buộc (chống tạo trùng booking khi bấm
+  // lại/gửi lại) — chuyển tiếp nguyên văn nếu client có gửi.
+  const idempotencyKey = req.headers.get("idempotency-key");
   return fetch(url, {
     method: req.method,
     headers: {
       Authorization: `Bearer ${accessToken}`,
       ...(hasBody ? { "Content-Type": "application/json" } : {}),
+      ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
     },
     body: hasBody ? bodyText : undefined,
     cache: "no-store",

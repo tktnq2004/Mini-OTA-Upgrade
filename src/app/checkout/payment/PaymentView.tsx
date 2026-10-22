@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader/SiteHeader";
+import { useAccount } from "@/components/auth/AccountProvider";
+import GuestOtpForm from "@/components/auth/GuestOtpForm";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { bookingPayable } from "@/lib/booking/resources";
 import controls from "@/styles/controls.module.css";
@@ -16,27 +18,42 @@ import StatusHeader from "./_components/StatusHeader";
 import HoldCountdown from "./_components/HoldCountdown";
 import PaymentMethodSection from "./_components/PaymentMethodSection";
 
-// Trang /checkout/payment?bookingId=&email=: tra booking rồi hiện đúng màn theo
-// trạng thái. Logic trạng thái nằm ở useBookingPayment; file này chỉ chọn màn.
+// Trang /checkout/payment?bookingId=: tải booking bằng phiên hiện tại rồi hiện
+// đúng màn theo trạng thái. URL chỉ mang bookingId — không email/tên/sđt; chưa
+// có phiên thì xác minh email bằng OTP ngay tại đây. Logic trạng thái nằm ở
+// useBookingPayment; file này chỉ chọn màn.
 export default function PaymentView() {
     const { t } = useLanguage();
+    const { user } = useAccount();
     const searchParams = useSearchParams();
 
     const bookingId = Number(searchParams.get("bookingId")) || null;
-    const email = searchParams.get("email") || "";
-    const fullName = searchParams.get("fullName") || "";
-    const phone = searchParams.get("phone") || "";
 
     const [paying, setPaying] = useState(false);
     // Màn thành công có câu chữ riêng cho "thanh toán tại khách sạn".
     const [paidAtHotel, setPaidAtHotel] = useState(false);
 
-    const { booking, state, errorMessage, hasDeadline, remainingMs, holdExpired, startCardSync, markPayAtHotelConfirmed } =
-        useBookingPayment({ bookingId, email, paying });
+    const {
+        booking,
+        state,
+        errorMessage,
+        hasDeadline,
+        remainingMs,
+        holdExpired,
+        startCardSync,
+        markPayAtHotelConfirmed,
+        reloadAfterVerify,
+    } = useBookingPayment({ bookingId, paying });
 
-    const invoice = booking && (
-        <InvoiceBlock booking={booking} email={email} fallbackFullName={fullName} fallbackPhone={phone} />
-    );
+    // Thông tin liên hệ lấy từ booking (backend); email thiếu thì lùi về email
+    // của phiên — booking luôn thuộc chủ phiên.
+    const billing = {
+        name: booking?.guestFullName ?? "",
+        email: booking?.guestEmail || user?.email || "",
+        phone: booking?.guestPhone ?? "",
+    };
+
+    const invoice = booking && <InvoiceBlock booking={booking} email={billing.email} />;
     const backHome = (
         <Link href="/" className={controls.button}>
             {t("checkout.backHome")}
@@ -53,6 +70,14 @@ export default function PaymentView() {
                     aria-label={state === "loading" ? t("checkoutPayment.loading") : undefined}
                 >
                     {state === "loading" && <PaymentSkeleton />}
+
+                    {state === "verify" && (
+                        <GuestOtpForm
+                            title={t("checkoutPayment.verifyTitle")}
+                            hint={t("checkoutPayment.verifyHint")}
+                            onVerified={reloadAfterVerify}
+                        />
+                    )}
 
                     {state === "error" && (
                         <StatusHeader variant="error" title={t("checkoutPayment.errorTitle")} hint={errorMessage}>
@@ -107,7 +132,7 @@ export default function PaymentView() {
                                 <PaymentMethodSection
                                     booking={booking}
                                     grandTotal={bookingPayable(booking)}
-                                    billing={{ name: fullName, email, phone }}
+                                    billing={billing}
                                     paying={paying}
                                     onPayingChange={setPaying}
                                     onCardConfirmed={startCardSync}

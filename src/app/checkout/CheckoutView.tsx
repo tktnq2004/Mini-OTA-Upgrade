@@ -6,12 +6,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeftIcon, CalendarBlankIcon, ShoppingBagIcon } from "@phosphor-icons/react";
 import SiteHeader from "@/components/SiteHeader/SiteHeader";
 import DateRangeField from "@/components/DateRangePicker/DateRangeField";
+import { useAccount } from "@/components/auth/AccountProvider";
+import GuestOtpForm from "@/components/auth/GuestOtpForm";
 import { useWishlist } from "@/components/wishlist/WishlistProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
-import { PublicApiError } from "@/lib/hotels/resources";
+import { AccountApiError } from "@/lib/auth/apiClient";
 import { nightsBetween } from "@/lib/searchFilters";
 import { createBooking } from "@/lib/booking/resources";
-import { rememberBookingToken } from "@/lib/booking/payment";
 import { quoteStay } from "@/lib/booking/discount";
 import { FEATURES } from "@/lib/features";
 import controls from "@/styles/controls.module.css";
@@ -26,10 +27,14 @@ export default function CheckoutView() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { remove: removeFromWishlist } = useWishlist();
+    const { user, ready: accountReady } = useAccount();
 
     const { hotelId, hotel, loadingHotel, rooms, checkIn, checkOut, setDates, availability, loadingDates, guest } =
         useCheckoutData(searchParams);
-    const { fullName, email, phone } = guest;
+    const { fullName, phone } = guest;
+    // Đã có phiên (khách hàng hoặc GUEST còn hạn) thì booking gắn theo tài
+    // khoản đó -> email liên hệ cố định là email của phiên.
+    const email = user ? user.email : guest.email.trim();
 
     const cameFromHotel = searchParams.get("from") === "hotel";
     const backHref = cameFromHotel && hotelId ? `/hotel/${hotelId}` : "/wishlist";
@@ -44,6 +49,11 @@ export default function CheckoutView() {
     const [note, setNote] = useState("");
     const [error, setError] = useState("");
     const [submitting, setSubmitting] = useState(false);
+    // Khách chưa có phiên: bấm đặt -> hiện bước xác minh email (OTP) thay cho
+    // form, đúng mã mới tạo booking (giữ phòng) — thời gian chờ mã không ăn
+    // vào hạn giữ chỗ. Dữ liệu form vẫn ở state trang này, "Sửa thông tin" là
+    // quay lại y nguyên.
+    const [verifying, setVerifying] = useState(false);
 
     // Tối đa số khách = tổng sức chứa các phòng đã chọn (không có phòng thì 30).
     const maxGuests = rooms.reduce((sum, r) => sum + r.capacity, 0) || 30;
@@ -54,7 +64,29 @@ export default function CheckoutView() {
     // Trang này CHỈ tạo booking (giữ chỗ) — chọn phương thức + thanh toán ở
     // /checkout/payment (trang riêng, nhận bookingId qua URL). Tách ra để có 1
     // "điểm nghỉ" thật sau khi tạo booking: đứt mạng/đóng tab giữa chừng thì
-    // vào lại bằng URL vẫn đúng chỗ.
+    // vào lại bằng URL vẫn đúng chỗ. URL chỉ mang bookingId: trang payment tự
+    // tải booking bằng phiên (chỉ chủ booking xem được) — tên/sđt/hạn giữ chỗ
+    // đều lấy từ backend.
+    const submitBooking = async () => {
+        if (!checkIn || !checkOut || !hotelId || rooms.length === 0) return;
+        setSubmitting(true);
+        try {
+            const result = await createBooking({
+                roomIds: rooms.map((r) => r.id),
+                checkIn,
+                checkOut,
+                guest: { fullName: fullName.trim(), email, phone: phone.trim() },
+            });
+            // Đặt xong thì bỏ các phòng vừa đặt khỏi wishlist (nếu có).
+            rooms.forEach((r) => removeFromWishlist(hotelId, r.id));
+            router.push(`/checkout/payment?bookingId=${result.bookingId}`);
+        } catch (err) {
+            setVerifying(false);
+            setError(err instanceof AccountApiError && err.message ? err.message : t("checkout.errorSubmit"));
+            setSubmitting(false);
+        }
+    };
+
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError("");
@@ -63,37 +95,17 @@ export default function CheckoutView() {
             setError(t("checkout.errorDates"));
             return;
         }
-        if (!fullName || !email || !phone) {
+        if (!fullName.trim() || !email || !phone.trim()) {
             setError(t("checkout.errorRequired"));
             return;
         }
         if (!hotelId || rooms.length === 0) return;
 
-        setSubmitting(true);
-        try {
-            const result = await createBooking({
-                roomIds: rooms.map((r) => r.id),
-                checkIn,
-                checkOut,
-                guest: { fullName, email, phone },
-            });
-            rememberBookingToken(result.bookingId, result.guestAccessToken);
-            // Đặt xong thì bỏ các phòng vừa đặt khỏi wishlist (nếu có).
-            rooms.forEach((r) => removeFromWishlist(hotelId, r.id));
-            // fullName/phone truyền kèm vì trang payment cần cho billing_details
-            // của Stripe. Hạn giữ chỗ KHÔNG truyền qua URL — trang payment đọc
-            // expirationTime thật từ backend.
-            const params = new URLSearchParams({
-                bookingId: String(result.bookingId),
-                email,
-                fullName: fullName.trim(),
-                phone,
-            });
-            router.push(`/checkout/payment?${params.toString()}`);
-        } catch (err) {
-            setError(err instanceof PublicApiError && err.message ? err.message : t("checkout.errorSubmit"));
-            setSubmitting(false);
+        if (!user) {
+            setVerifying(true);
+            return;
         }
+        await submitBooking();
     };
 
     if (loadingHotel) {
@@ -126,6 +138,29 @@ export default function CheckoutView() {
         );
     }
 
+    if (verifying) {
+        return (
+            <div className={styles.page}>
+                <SiteHeader />
+                <div className={styles.layout}>
+                    <h1 className={styles.title}>{t("checkout.title")}</h1>
+                    <section className={styles.formSection}>
+                        <GuestOtpForm
+                            title={t("guestOtp.checkoutTitle")}
+                            hint={t("guestOtp.checkoutHint")}
+                            email={email}
+                            details={{ fullName: fullName.trim(), phone: phone.trim() }}
+                            submitLabel={t("guestOtp.checkoutSubmit")}
+                            onVerified={submitBooking}
+                            onCancel={() => setVerifying(false)}
+                            cancelLabel={t("guestOtp.backToForm")}
+                        />
+                    </section>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className={styles.page}>
             <SiteHeader />
@@ -140,8 +175,9 @@ export default function CheckoutView() {
                         <CustomerInfoSection
                             fullName={fullName}
                             onFullNameChange={guest.setFullName}
-                            email={email}
+                            email={user ? user.email : guest.email}
                             onEmailChange={guest.setEmail}
+                            emailLocked={Boolean(user)}
                             phone={phone}
                             onPhoneChange={guest.setPhone}
                             note={note}
@@ -177,10 +213,11 @@ export default function CheckoutView() {
 
                             <OrderSummary hotel={hotel} stay={stay} nights={nights} />
 
+                            {/* Chưa biết có phiên hay chưa thì chưa cho đặt (tránh hỏi OTP thừa). */}
                             <button
                                 type="submit"
                                 className={styles.submitButton}
-                                disabled={submitting && !FEATURES.allowDoubleSubmit}
+                                disabled={!accountReady || (submitting && !FEATURES.allowDoubleSubmit)}
                             >
                                 {submitting ? t("checkout.submitting") : t("checkout.continueToPayment")}
                             </button>

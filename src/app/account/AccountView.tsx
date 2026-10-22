@@ -17,7 +17,7 @@ import styles from "./account.module.css";
 
 export default function AccountView() {
     const { t } = useLanguage();
-    const { user, ready, patchUser, logout } = useAccount();
+    const { user, ready, isGuest, patchUser, logout } = useAccount();
     const router = useRouter();
 
     const [profile, setProfile] = useState<AccountProfile | null>(null);
@@ -69,6 +69,11 @@ export default function AccountView() {
             router.replace("/login");
             return;
         }
+        // Phiên GUEST không có hồ sơ (không mật khẩu để xác thực lại khi sửa).
+        if (isGuest) {
+            router.replace("/account/bookings");
+            return;
+        }
         setLoading(true);
         getMyProfile()
             .then((p) => {
@@ -82,7 +87,7 @@ export default function AccountView() {
             .finally(() => setLoading(false));
     };
 
-    useEffect(loadProfile, [ready, user, router, t]); // eslint-disable-line react-hooks/set-state-in-effect -- tải hồ sơ ban đầu từ API, một external system
+    useEffect(loadProfile, [ready, user, isGuest, router, t]); // eslint-disable-line react-hooks/set-state-in-effect -- tải hồ sơ ban đầu từ API, một external system
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

@@ -8,13 +8,10 @@ import { useLanguage } from "@/components/i18n/LanguageProvider";
 import controls from "@/styles/controls.module.css";
 import styles from "./not-found.module.css";
 
-// Trang lỗi chung cho mọi route (vd. /hotel/[id] khi backend không phản hồi) — thay cho trang
-// mặc định tiếng Anh của Next.js. Cùng bố cục với trang 404.
 export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
     const { t } = useLanguage();
 
     useEffect(() => {
-        // TODO: gửi lên dịch vụ theo dõi lỗi (vd. Sentry) khi có.
         console.error(error);
     }, [error]);
 

@@ -126,7 +126,7 @@ export default function PaymentMethodSection({
             {method === "bankTransfer" && (
                 // Không có nút "xác nhận" nào ở đây — khách tự chuyển khoản,
                 // backend nhận webhook SePay (FE sẽ biết qua SSE sau).
-                <SePayPanel bookingId={booking.bookingId} email={billing.email} />
+                <SePayPanel bookingId={booking.bookingId} />
             )}
 
             {method === "card" && (

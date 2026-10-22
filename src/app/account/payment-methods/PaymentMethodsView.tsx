@@ -21,15 +21,17 @@ import styles from "../account.module.css";
 
 export default function PaymentMethodsView() {
     const { t } = useLanguage();
-    const { user, ready } = useAccount();
+    const { user, ready, isGuest } = useAccount();
     const router = useRouter();
     const available = usePaymentAvailable();
-    const { cards, add, remove, error } = useSavedCards(Boolean(user));
+    const { cards, add, remove, error } = useSavedCards(Boolean(user) && !isGuest);
     const [addOpen, setAddOpen] = useState(false);
 
     useEffect(() => {
         if (ready && !user) router.replace("/login");
-    }, [ready, user, router]);
+        // Phiên GUEST không có thẻ đã lưu.
+        else if (ready && isGuest) router.replace("/account/bookings");
+    }, [ready, user, isGuest, router]);
 
     return (
         <div className={styles.page}>

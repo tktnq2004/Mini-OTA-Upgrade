@@ -9,18 +9,24 @@ export const BACKEND_REFRESH_COOKIE_NAME = "refresh-token-Mini";
 export interface AccountJwtClaims {
   sub: string;
   user: SessionUser;
+  // Backend đặt role ở cấp ngoài (JwtUtils: .claim("role", ...)), không nằm
+  // trong object user.
+  role?: SessionUser["role"];
   iat: number;
   exp: number;
 }
 
 // Chỉ giải mã payload để hiển thị — chữ ký được backend tự verify ở mỗi
 // request thật qua proxy, không cần verify lại ở đây (xem session.ts bên
-// admin, cùng lý do).
+// admin, cùng lý do). Gộp role cấp ngoài vào claims.user để mọi route trả
+// { user } (session, login, OTP khách...) đều mang role.
 export function decodeAccountJwt(token: string): AccountJwtClaims | null {
   try {
     const payload = token.split(".")[1];
     const json = Buffer.from(payload, "base64url").toString("utf8");
-    return JSON.parse(json) as AccountJwtClaims;
+    const claims = JSON.parse(json) as AccountJwtClaims;
+    if (claims.user && claims.role && !claims.user.role) claims.user = { ...claims.user, role: claims.role };
+    return claims;
   } catch {
     return null;
   }

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   ArrowRightIcon,
   BedIcon,
@@ -15,6 +14,7 @@ import {
 import SiteHeader from "@/components/SiteHeader/SiteHeader";
 import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
 import { useAccount } from "@/components/auth/AccountProvider";
+import GuestOtpForm from "@/components/auth/GuestOtpForm";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { AccountApiError } from "@/lib/auth/apiClient";
 import { cancelMyBooking, getMyBookings } from "@/lib/auth/resources";
@@ -62,22 +62,25 @@ const roomHref = (b: MyBooking, roomId?: number) =>
       ? `/hotel/${b.hotel.id}/room/${roomId}`
       : `/room/${roomId}`;
 
-// Trang /checkout/payment tra booking qua lookup (id + email tài khoản), tự
-// hiện đúng màn theo trạng thái: Pending -> chọn phương thức (tiếp tục thanh
-// toán), Completed/PROCESSING/Cancelled/hoàn tiền -> màn trạng thái + hoá đơn.
-const bookingDetailHref = (b: MyBooking, email: string) => {
-  const params = new URLSearchParams({ bookingId: String(b.id), email });
-  return `/checkout/payment?${params.toString()}`;
-};
+// Trang /checkout/payment tự tải booking bằng phiên hiện tại (chỉ chủ booking
+// xem được) và hiện đúng màn theo trạng thái: Pending -> chọn phương thức
+// (tiếp tục thanh toán), Completed/PROCESSING/Cancelled/hoàn tiền -> màn
+// trạng thái + hoá đơn.
+const bookingDetailHref = (b: MyBooking) => `/checkout/payment?bookingId=${b.id}`;
 
 export default function BookingsView() {
   const { t, language } = useLanguage();
   const { user, ready } = useAccount();
-  const router = useRouter();
 
   const [bookings, setBookings] = useState<MyBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  // Phiên hết hạn giữa chừng (401) dù AccountProvider vẫn còn user cũ.
+  const [sessionExpired, setSessionExpired] = useState(false);
+
+  // Khách vãng lai (chưa có phiên): xác minh email bằng OTP ngay tại đây —
+  // đúng mã thì có phiên GUEST, danh sách tải như user đã đăng nhập.
+  const needsVerify = ready && (!user || sessionExpired);
 
   // Booking đang mở thanh theo dõi trạng thái (bấm mã đơn để mở/đóng).
   const [trackedId, setTrackedId] = useState<number | null>(null);
@@ -104,12 +107,9 @@ export default function BookingsView() {
   };
 
   const loadBookings = () => {
-    if (!ready) return;
-    if (!user) {
-      router.replace("/login");
-      return;
-    }
+    if (!ready || !user) return;
     setLoading(true);
+    setLoadError("");
     getMyBookings()
       .then((list) => {
         // Mới nhất lên đầu.
@@ -126,15 +126,45 @@ export default function BookingsView() {
             .catch(() => {});
         });
       })
-      .catch((e) =>
-        setLoadError(
-          e instanceof AccountApiError ? e.message : t("bookings.loadError"),
-        ),
-      )
+      .catch((e) => {
+        if (e instanceof AccountApiError && e.status === 401) {
+          setSessionExpired(true);
+          return;
+        }
+        setLoadError(e instanceof AccountApiError ? e.message : t("bookings.loadError"));
+      })
       .finally(() => setLoading(false));
   };
 
-  useEffect(loadBookings, [ready, user, router, t]); // eslint-disable-line react-hooks/set-state-in-effect -- tải danh sách từ API, một external system
+  useEffect(loadBookings, [ready, user, t]); // eslint-disable-line react-hooks/set-state-in-effect -- tải danh sách từ API, một external system
+
+  if (needsVerify) {
+    return (
+      <div className={styles.page}>
+        <SiteHeader />
+        <div className={styles.layout}>
+          <div className={styles.header}>
+            <span className={styles.avatar}>
+              <SuitcaseRollingIcon size={20} weight="bold" />
+            </span>
+            <div>
+              <h1>{t("bookings.lookupTitle")}</h1>
+              <p>{t("bookings.lookupSubtitle")}</p>
+            </div>
+          </div>
+
+          <div className={styles.card}>
+            {/* verifyGuest đổi user trong AccountProvider -> effect tự tải lại danh sách. */}
+            <GuestOtpForm onVerified={() => setSessionExpired(false)} />
+          </div>
+
+          <p className={styles.lookupFooter}>
+            {t("bookings.haveAccount")} <Link href="/login">{t("nav.login")}</Link>
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.page}>
@@ -305,12 +335,12 @@ export default function BookingsView() {
                           {t("bookings.cancel")}
                         </button>
                       ))}
-                    <Link href={bookingDetailHref(b, user.email)} className={controls.buttonGhost}>
+                    <Link href={bookingDetailHref(b)} className={controls.buttonGhost}>
                       {t("bookings.viewDetails")}
                       <ArrowRightIcon size={14} weight="bold" />
                     </Link>
                     {status === "Pending" && (
-                      <Link href={bookingDetailHref(b, user.email)} className={controls.button}>
+                      <Link href={bookingDetailHref(b)} className={controls.button}>
                         <CreditCardIcon size={15} weight="bold" />
                         {t("bookings.continuePayment")}
                       </Link>

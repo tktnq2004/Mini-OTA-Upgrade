@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { parseServerDateTime } from "@/lib/format";
-import { getBookingStatus, type CreateBookingResult } from "@/lib/booking/resources";
-import { PublicApiError } from "@/lib/api/public";
+import { getBooking, type CreateBookingResult } from "@/lib/booking/resources";
+import { AccountApiError } from "@/lib/auth/apiClient";
 import { syncPayment } from "@/lib/booking/payment";
 import { viewStateOf, type ViewState } from "../_lib/bookingViewState";
 
@@ -33,7 +33,6 @@ const SYNC_MAX_ATTEMPTS = 40;
 
 interface UseBookingPaymentParams {
     bookingId: number | null;
-    email: string;
     // Đang giữa lúc confirm thẻ thì KHÔNG coi là hết hạn: gỡ ô thẻ Stripe giữa
     // chừng làm hỏng lượt confirm; backend cũng hỏi Stripe trước khi huỷ.
     paying: boolean;
@@ -41,13 +40,16 @@ interface UseBookingPaymentParams {
 
 // Toàn bộ vòng đời trạng thái của trang thanh toán: tải booking, đếm ngược giữ
 // chỗ, hỏi lại khi hết hạn, đối soát với backend sau khi confirm thẻ.
-export function useBookingPayment({ bookingId, email, paying }: UseBookingPaymentParams) {
+// Quyền xem do phiên quyết định (backend chỉ trả booking của chủ token).
+export function useBookingPayment({ bookingId, paying }: UseBookingPaymentParams) {
     const { t } = useLanguage();
     const [booking, setBooking] = useState<CreateBookingResult | null>(null);
     const [state, setState] = useState<ViewState>("loading");
     const [errorMessage, setErrorMessage] = useState("");
     // true = đang đối soát với backend (vòng gọi sync ở effect 4).
     const [syncing, setSyncing] = useState(false);
+    // Tăng lên để tải lại booking (sau khi xác minh OTP ở màn "verify").
+    const [loadKey, setLoadKey] = useState(0);
 
     // Lazy initializer — gọi Date.now() thẳng trong thân render bị ESLint
     // react-hooks/purity chặn; effect 2 cập nhật lại mỗi giây.
@@ -59,9 +61,9 @@ export function useBookingPayment({ bookingId, email, paying }: UseBookingPaymen
     const remainingMs = expiresAtMs - now;
     const holdExpired = hasDeadline && remainingMs <= 0 && !paying;
 
-    // 1) Tải booking lần đầu.
+    // 1) Tải booking (lần đầu + sau khi xác minh OTP).
     useEffect(() => {
-        if (!bookingId || !email) {
+        if (!bookingId) {
             // eslint-disable-next-line react-hooks/set-state-in-effect -- searchParams tới từ ngoài React, set state ở đây là cách hợp lý nhất để phản ánh lại
             setState("error");
             setErrorMessage(t("checkoutPayment.errorMissingParams"));
@@ -69,7 +71,7 @@ export function useBookingPayment({ bookingId, email, paying }: UseBookingPaymen
         }
 
         let alive = true;
-        getBookingStatus(bookingId, email)
+        getBooking(bookingId)
             .then((result) => {
                 if (!alive) return;
                 setBooking(result);
@@ -81,16 +83,25 @@ export function useBookingPayment({ bookingId, email, paying }: UseBookingPaymen
             })
             .catch((err) => {
                 if (!alive) return;
+                // Chưa có / hết phiên -> xác minh email bằng OTP ngay trên trang.
+                if (err instanceof AccountApiError && err.status === 401) {
+                    setState("verify");
+                    return;
+                }
                 setState("error");
+                // 403/404 = không phải booking của phiên này -> câu chung, không
+                // lặp lại message thô của backend.
                 setErrorMessage(
-                    err instanceof PublicApiError && err.message ? err.message : t("checkoutPayment.errorNotFound")
+                    err instanceof AccountApiError && err.status !== 403 && err.status !== 404 && err.message
+                        ? err.message
+                        : t("checkoutPayment.errorNotFound")
                 );
             });
         return () => {
             alive = false;
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- bookingId/email đọc 1 lần từ URL lúc mount, không đổi trong vòng đời trang
-    }, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- bookingId đọc 1 lần từ URL lúc mount; chỉ tải lại khi loadKey đổi
+    }, [loadKey]);
 
     // 2) Tick đồng hồ mỗi giây cho đếm ngược — chỉ chạy lúc còn ở màn chọn
     // phương thức (sau đó không còn ý nghĩa hiển thị nữa).
@@ -105,12 +116,12 @@ export function useBookingPayment({ bookingId, email, paying }: UseBookingPaymen
     // được trả (vd. webhook SePay về sát giờ -> màn thành công).
     const expiredWhileSelecting = state === "selecting" && holdExpired;
     useEffect(() => {
-        if (!expiredWhileSelecting || !bookingId || !email) return;
+        if (!expiredWhileSelecting || !bookingId) return;
         let alive = true;
         let attempt = 0;
         const recheck = () => {
             attempt += 1;
-            getBookingStatus(bookingId, email)
+            getBooking(bookingId)
                 .then((result) => {
                     if (!alive) return;
                     setBooking(result);
@@ -133,7 +144,7 @@ export function useBookingPayment({ bookingId, email, paying }: UseBookingPaymen
             alive = false;
             clearInterval(id);
         };
-    }, [expiredWhileSelecting, bookingId, email]);
+    }, [expiredWhileSelecting, bookingId]);
 
     // 3) Ở màn processing quá lâu thì đổi câu chữ sang "slow" (không gọi API).
     useEffect(() => {
@@ -165,9 +176,9 @@ export function useBookingPayment({ bookingId, email, paying }: UseBookingPaymen
                 }
             } catch (err) {
                 if (!alive) return;
-                // 403/404 (vd. khách vãng lai mất token khi mở tab mới): gọi
-                // lại cũng vô ích -> thôi, để webhook/cron backend tự chốt.
-                if (err instanceof PublicApiError && (err.status === 403 || err.status === 404)) {
+                // 401/403/404 (phiên hết giữa chừng, không phải chủ booking):
+                // gọi lại cũng vô ích -> thôi, để webhook/cron backend tự chốt.
+                if (err instanceof AccountApiError && [401, 403, 404].includes(err.status)) {
                     setSyncing(false);
                     return;
                 }
@@ -193,6 +204,12 @@ export function useBookingPayment({ bookingId, email, paying }: UseBookingPaymen
     // Thanh toán tại khách sạn: booking đã Pending sẵn, không có gì để chờ.
     const markPayAtHotelConfirmed = () => setState("success");
 
+    // Xác minh OTP xong (màn "verify") -> đã có phiên, tải lại booking.
+    const reloadAfterVerify = () => {
+        setState("loading");
+        setLoadKey((k) => k + 1);
+    };
+
     // Áp trạng thái booking mới nhận từ backend lên màn hình. Hiện chưa có gì
     // gọi — sẽ nối với SSE (event đổi trạng thái thanh toán) sau. Pending thì
     // giữ nguyên màn hiện tại (đang chọn phương thức / xem QR / processing).
@@ -211,6 +228,7 @@ export function useBookingPayment({ bookingId, email, paying }: UseBookingPaymen
         holdExpired,
         startCardSync,
         markPayAtHotelConfirmed,
+        reloadAfterVerify,
         applyBookingStatus,
     };
 }

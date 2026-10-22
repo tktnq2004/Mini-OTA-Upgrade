@@ -1,6 +1,17 @@
 import type { BookingPaymentStatus } from "@/lib/booking/resources";
 
-export type ViewState = "loading" | "error" | "cancelled" | "refund" | "selecting" | "processing" | "slow" | "success";
+// "verify": chưa có phiên (khách vãng lai mở lại link sau khi phiên hết hạn /
+// trên thiết bị khác) -> xác minh email bằng OTP rồi tải lại booking.
+export type ViewState =
+    | "loading"
+    | "verify"
+    | "error"
+    | "cancelled"
+    | "refund"
+    | "selecting"
+    | "processing"
+    | "slow"
+    | "success";
 
 // Trạng thái booking -> màn hình. undefined = còn Pending, để nơi gọi tự quyết.
 // PROCESSING: thẻ đã giữ tiền (requires_capture), backend sắp capture -> chờ,

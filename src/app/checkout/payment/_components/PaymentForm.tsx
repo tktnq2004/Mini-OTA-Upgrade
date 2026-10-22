@@ -51,10 +51,12 @@ const NEW_CARD = "new";
 // Đã đăng nhập: "Thẻ của bạn" (chọn 1 thẻ đã lưu hoặc "Dùng thẻ mới" = nhập
 // thẻ ngay trong <PaymentForm>, tick "Lưu thẻ" thì backend lưu luôn) + nút
 // "Thêm thẻ" (thẻ thêm vào được lưu luôn vào tài khoản qua SetupIntent, xem
-// AddCardForm). Khách vãng lai: chỉ có <PaymentForm>, thẻ dùng cho lần này.
+// AddCardForm). Khách vãng lai (kể cả đã có phiên GUEST sau OTP): chỉ có
+// <PaymentForm>, thẻ dùng cho lần này — GUEST không có thẻ đã lưu.
 function CardChooser({ ref }: { ref?: Ref<PaymentFormHandle> }) {
     const { t } = useLanguage();
-    const { user } = useAccount();
+    const { user: sessionUser, isGuest } = useAccount();
+    const user = isGuest ? null : sessionUser;
 
     const { cards, add, remove, error: removeError } = useSavedCards(Boolean(user));
     const [picked, setPicked] = useState<string | null>(null);

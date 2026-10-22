@@ -25,8 +25,9 @@ export interface Paginated<T> {
 }
 
 // role ở đây chỉ còn ý nghĩa hiển thị — quyền thật do bảng Role/Permission
-// quyết định, JWT không mang role/permission nào.
-export type LegacyRole = "ADMIN" | "CUSTOMER";
+// quyết định. GUEST: khách vãng lai đã xác minh email bằng OTP
+// (docs/GUEST_BOOKING_API.md) — FE dùng để ẩn hồ sơ/thẻ đã lưu.
+export type LegacyRole = "ADMIN" | "CUSTOMER" | "GUEST";
 
 // id là mã hành chính VN thật (string, vd. "01"/"00070"), khớp
 // src/data/vn-provinces-wards.json — cùng 1 nguồn id cho cả FE lẫn BE.

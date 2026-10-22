@@ -1,0 +1,33 @@
+.wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto;
+}
+
+.title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.hint {
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+}
+
+.hint strong {
+    color: var(--color-text);
+    font-weight: 600;
+    word-break: break-all;
+}
+
+.actions {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+}

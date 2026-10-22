@@ -28,7 +28,7 @@ export default function SiteHeader() {
     const { theme, toggleTheme } = useTheme();
     const { language, toggleLanguage, t } = useLanguage();
     const { count: wishlistCount } = useWishlist();
-    const { user, ready, logout } = useAccount();
+    const { user, ready, isGuest, logout } = useAccount();
     const router = useRouter();
     const pathname = usePathname();
 
@@ -95,6 +95,12 @@ export default function SiteHeader() {
                     <Link href="/hotels" className={styles.navLink}>
                         {t("nav.hotelsList")}
                     </Link>
+                    {/* Khách vãng lai tra lịch sử đặt phòng bằng email + OTP (cùng trang /account/bookings). */}
+                    {ready && !user && (
+                        <Link href="/account/bookings" className={styles.navLink}>
+                            {t("nav.findBooking")}
+                        </Link>
+                    )}
                 </nav>
 
                 <div className={styles.actions}>
@@ -149,15 +155,18 @@ export default function SiteHeader() {
                                 </button>
                                 {menuOpen && (
                                     <div className={styles.dropdown} role="menu">
-                                        <Link
-                                            href="/account"
-                                            role="menuitem"
-                                            className={styles.dropdownItem}
-                                            onClick={() => setMenuOpen(false)}
-                                        >
-                                            <UserIcon size={15} />
-                                            {t("nav.profile")}
-                                        </Link>
+                                        {/* Phiên GUEST chỉ có lịch sử đặt phòng — không hồ sơ/thẻ đã lưu. */}
+                                        {!isGuest && (
+                                            <Link
+                                                href="/account"
+                                                role="menuitem"
+                                                className={styles.dropdownItem}
+                                                onClick={() => setMenuOpen(false)}
+                                            >
+                                                <UserIcon size={15} />
+                                                {t("nav.profile")}
+                                            </Link>
+                                        )}
                                         <Link
                                             href="/account/bookings"
                                             role="menuitem"
@@ -167,15 +176,17 @@ export default function SiteHeader() {
                                             <SuitcaseRollingIcon size={15} />
                                             {t("nav.myBookings")}
                                         </Link>
-                                        <Link
-                                            href="/account/payment-methods"
-                                            role="menuitem"
-                                            className={styles.dropdownItem}
-                                            onClick={() => setMenuOpen(false)}
-                                        >
-                                            <CreditCardIcon size={15} />
-                                            {t("nav.paymentMethods")}
-                                        </Link>
+                                        {!isGuest && (
+                                            <Link
+                                                href="/account/payment-methods"
+                                                role="menuitem"
+                                                className={styles.dropdownItem}
+                                                onClick={() => setMenuOpen(false)}
+                                            >
+                                                <CreditCardIcon size={15} />
+                                                {t("nav.paymentMethods")}
+                                            </Link>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -225,21 +236,32 @@ export default function SiteHeader() {
                             {wishlistCount > 0 && <span className={styles.mobileCount}>{wishlistCount}</span>}
                         </Link>
 
+                        {ready && !user && (
+                            <Link href="/account/bookings" className={styles.mobileLink}>
+                                <SuitcaseRollingIcon size={18} />
+                                {t("nav.findBooking")}
+                            </Link>
+                        )}
+
                         {ready && user && (
                             <>
                                 <span className={styles.mobileHeading}>{user.name}</span>
-                                <Link href="/account" className={styles.mobileLink}>
-                                    <UserIcon size={18} />
-                                    {t("nav.profile")}
-                                </Link>
+                                {!isGuest && (
+                                    <Link href="/account" className={styles.mobileLink}>
+                                        <UserIcon size={18} />
+                                        {t("nav.profile")}
+                                    </Link>
+                                )}
                                 <Link href="/account/bookings" className={styles.mobileLink}>
                                     <SuitcaseRollingIcon size={18} />
                                     {t("nav.myBookings")}
                                 </Link>
-                                <Link href="/account/payment-methods" className={styles.mobileLink}>
-                                    <CreditCardIcon size={18} />
-                                    {t("nav.paymentMethods")}
-                                </Link>
+                                {!isGuest && (
+                                    <Link href="/account/payment-methods" className={styles.mobileLink}>
+                                        <CreditCardIcon size={18} />
+                                        {t("nav.paymentMethods")}
+                                    </Link>
+                                )}
                             </>
                         )}
 

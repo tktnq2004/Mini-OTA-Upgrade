@@ -11,17 +11,15 @@ import styles from "../../checkout.module.css";
 const COPIED_RESET_MS = 2000;
 
 interface SePayPanelProps {
+    // Quyền tạo QR do phiên quyết định (chỉ chủ booking) — xem createSePayInfo.
     bookingId: number;
-    // Email đã đặt booking — backend bắt buộc khi khách KHÔNG đăng nhập (khớp
-    // id + email, giống GET /bookings/lookup).
-    email: string;
 }
 
 // Hiện QR + thông tin chuyển khoản cho 1 booking — không gọi SDK nào, chỉ gọi
 // đúng 1 lần POST /payment/create-payment-intent (provider=SEPAY) để backend
 // dựng URL ảnh QR VietQR. Xác nhận đã trả tới qua webhook SePay ở phía
 // backend, không phải hành động nào tại đây.
-export default function SePayPanel({ bookingId, email }: SePayPanelProps) {
+export default function SePayPanel({ bookingId }: SePayPanelProps) {
     const { t } = useLanguage();
     const [info, setInfo] = useState<SePayInfo | null>(null);
     const [error, setError] = useState("");
@@ -29,7 +27,7 @@ export default function SePayPanel({ bookingId, email }: SePayPanelProps) {
 
     useEffect(() => {
         let alive = true;
-        createSePayInfo(bookingId, email)
+        createSePayInfo(bookingId)
             .then((result) => {
                 if (!alive) return;
                 setInfo(result);

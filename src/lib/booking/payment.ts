@@ -7,9 +7,8 @@ import {
   type Stripe,
   type StripeCardNumberElement,
 } from "@stripe/stripe-js";
-import { PublicApiError, unwrapResponse } from "@/lib/api/public";
 import type { BookingPaymentStatus } from "@/lib/booking/resources";
-import { AccountApiError, accountFetch } from "@/lib/auth/apiClient";
+import { AccountApiError, accountFetch, accountPost } from "@/lib/auth/apiClient";
 
 // Cổng thanh toán thẻ. Khoá công khai thiếu -> null, ô thẻ hiện thông báo
 // "chưa hỗ trợ" thay vì lỗi.
@@ -38,22 +37,17 @@ export interface SePayInfo {
 
 // POST /api/v1/payment/create-payment-intent với provider="SEPAY" (cùng
 // endpoint với Stripe — StripeController tự chọn gateway theo field này).
-// email: bắt buộc với khách vãng lai (backend khớp id + email đã đặt, giống
-// GET /bookings/lookup); đã đăng nhập thì backend bỏ qua, tin JWT.
-export async function createSePayInfo(bookingId: number, email: string): Promise<SePayInfo> {
-  const res = await fetch("/api/public/payment/create-payment-intent", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ bookingId, provider: "SEPAY", email }),
-  });
+// Qua proxy /api/account: backend chỉ cho trả booking của chủ token (khách
+// vãng lai cũng có token GUEST — docs/GUEST_BOOKING_API.md), không còn email.
+export async function createSePayInfo(bookingId: number): Promise<SePayInfo> {
   try {
-    const data = await unwrapResponse<{
+    const data = await accountPost<{
       qrImageUrl?: string;
       transferContent?: string;
       bankAccountNumber?: string;
       bankName?: string;
       amount?: number;
-    }>(res);
+    }>("payment/create-payment-intent", { bookingId, provider: "SEPAY" });
     if (!data.qrImageUrl || !data.transferContent) throw new SePayError("");
     return {
       qrImageUrl: data.qrImageUrl,
@@ -63,7 +57,7 @@ export async function createSePayInfo(bookingId: number, email: string): Promise
       amount: data.amount ?? 0,
     };
   } catch (err) {
-    if (err instanceof PublicApiError) throw new SePayError(err.message);
+    if (err instanceof AccountApiError) throw new SePayError(err.message);
     throw err;
   }
 }
@@ -79,29 +73,20 @@ function pickClientSecret(data: unknown): string | null {
   return null;
 }
 
-// POST /api/v1/payment/create-payment-intent (qua proxy /api/public, tự gắn
-// token nếu đã đăng nhập). Body khớp ReqCreatePaymentIntentDTO
-// { bookingId, paymentMethodId, saveCard, email }; backend tự tính số tiền theo booking.
+// POST /api/v1/payment/create-payment-intent (qua proxy /api/account, xem
+// createSePayInfo). Body khớp ReqCreatePaymentIntentDTO
+// { bookingId, paymentMethodId, saveCard }; backend tự tính số tiền theo booking.
 // paymentMethodId = null: thẻ mới nhập, trình duyệt tự confirm với ô thẻ;
-// saveCard = true: backend đặt setup_future_usage để lưu thẻ sau khi trả;
-// email: xem createSePayInfo.
-async function createPaymentIntent(
-  bookingId: number,
-  paymentMethodId: string | null,
-  saveCard: boolean,
-  email: string,
-): Promise<string> {
-  const res = await fetch("/api/public/payment/create-payment-intent", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ bookingId, paymentMethodId, saveCard, email }),
-  });
+// saveCard = true: backend đặt setup_future_usage để lưu thẻ sau khi trả.
+async function createPaymentIntent(bookingId: number, paymentMethodId: string | null, saveCard: boolean): Promise<string> {
   try {
-    const secret = pickClientSecret(await unwrapResponse<unknown>(res));
+    const secret = pickClientSecret(
+      await accountPost<unknown>("payment/create-payment-intent", { bookingId, paymentMethodId, saveCard }),
+    );
     if (!secret) throw new CardPaymentError("");
     return secret;
   } catch (err) {
-    if (err instanceof PublicApiError) throw new CardPaymentError(err.message);
+    if (err instanceof AccountApiError) throw new CardPaymentError(err.message);
     throw err;
   }
 }
@@ -182,13 +167,13 @@ const asConfirmed = (pi: PaymentIntent | undefined): ConfirmedIntent | null =>
 
 export async function payByCard({ stripe, method, bookingId, billing }: PayByCardArgs): Promise<ConfirmedIntent> {
   if ("savedCardId" in method) {
-    const clientSecret = await createPaymentIntent(bookingId, method.savedCardId, false, billing.email);
+    const clientSecret = await createPaymentIntent(bookingId, method.savedCardId, false);
     const current = asConfirmed((await stripe.retrievePaymentIntent(clientSecret)).paymentIntent);
     if (current) return current;
     return confirm(stripe, clientSecret, { payment_method: method.savedCardId });
   }
 
-  const clientSecret = await createPaymentIntent(bookingId, null, Boolean(method.save), billing.email);
+  const clientSecret = await createPaymentIntent(bookingId, null, Boolean(method.save));
   return confirm(stripe, clientSecret, { payment_method: { card: method.card, billing_details: billing } });
 }
 
@@ -198,29 +183,6 @@ async function confirm(stripe: Stripe, clientSecret: string, data: ConfirmCardPa
   const confirmed = asConfirmed(paymentIntent);
   if (!confirmed) throw new CardPaymentError("");
   return confirmed;
-}
-
-// Token khách vãng lai (guestAccessToken lúc tạo booking) — giữ trong
-// sessionStorage theo bookingId để trang payment gửi kèm khi sync. Không đưa
-// lên URL (lọt vào lịch sử/log). Đóng tab là mất: khi đó sync trả 403, trang
-// vẫn đứng ở "đang xử lý" và webhook/cron backend tự chốt.
-const bookingTokenKey = (bookingId: number) => `MiniOTA-booking-token-${bookingId}`;
-
-export function rememberBookingToken(bookingId: number, token: string | undefined): void {
-  if (!token) return;
-  try {
-    sessionStorage.setItem(bookingTokenKey(bookingId), token);
-  } catch {
-    // Trình duyệt chặn storage -> chỉ mất khả năng sync cho khách vãng lai.
-  }
-}
-
-function readBookingToken(bookingId: number): string | null {
-  try {
-    return sessionStorage.getItem(bookingTokenKey(bookingId));
-  } catch {
-    return null;
-  }
 }
 
 // Response POST /payments/{id}/sync (ResPaymentSyncDTO) — trạng thái booking
@@ -233,15 +195,9 @@ export interface PaymentSyncResult {
   stripeStatus: string | null;
 }
 
-// POST /api/v1/payments/{bookingId}/sync (qua proxy /api/public) — nhờ
+// POST /api/v1/payments/{bookingId}/sync (qua proxy /api/account) — nhờ
 // backend đối soát PaymentIntent với Stripe ngay sau khi confirm, khỏi đợi
 // webhook/cron. Backend tự retrieve intent, không nhận status từ FE. Quyền:
-// Bearer (đã đăng nhập, proxy tự gắn) hoặc X-Booking-Token (khách vãng lai).
-export async function syncPayment(bookingId: number): Promise<PaymentSyncResult> {
-  const token = readBookingToken(bookingId);
-  const res = await fetch(`/api/public/payments/${bookingId}/sync`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...(token ? { "X-Booking-Token": token } : {}) },
-  });
-  return unwrapResponse<PaymentSyncResult>(res);
-}
+// chủ booking theo token (khách vãng lai cũng có token GUEST — không còn
+// X-Booking-Token, mở tab mới / thiết bị khác vẫn sync được).
+export const syncPayment = (bookingId: number) => accountPost<PaymentSyncResult>(`payments/${bookingId}/sync`, {});

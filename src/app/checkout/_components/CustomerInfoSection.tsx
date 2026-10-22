@@ -10,6 +10,9 @@ interface CustomerInfoSectionProps {
     onFullNameChange: (v: string) => void;
     email: string;
     onEmailChange: (v: string) => void;
+    // Đã có phiên: booking gắn theo tài khoản đó -> email cố định là email của
+    // phiên (đổi email = phiên khác, phải đăng xuất).
+    emailLocked?: boolean;
     phone: string;
     onPhoneChange: (v: string) => void;
     note: string;
@@ -25,6 +28,7 @@ export default function CustomerInfoSection({
     onFullNameChange,
     email,
     onEmailChange,
+    emailLocked,
     phone,
     onPhoneChange,
     note,
@@ -69,6 +73,7 @@ export default function CustomerInfoSection({
                         placeholder="you@example.com"
                         value={email}
                         onChange={(e) => onEmailChange(e.target.value)}
+                        readOnly={emailLocked}
                     />
                 </div>
                 <div className={controls.field}>
