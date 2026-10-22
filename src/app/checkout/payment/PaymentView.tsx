@@ -9,12 +9,12 @@ import { bookingPayable } from "@/lib/booking/resources";
 import controls from "@/styles/controls.module.css";
 import checkoutStyles from "../checkout.module.css";
 import styles from "./payment.module.css";
-import PaymentSkeleton from "./PaymentSkeleton";
-import { useBookingPayment } from "./useBookingPayment";
-import InvoiceBlock from "./InvoiceBlock";
-import StatusHeader from "./StatusHeader";
-import HoldCountdown from "./HoldCountdown";
-import PaymentMethodSection from "./PaymentMethodSection";
+import PaymentSkeleton from "./_components/PaymentSkeleton";
+import { useBookingPayment } from "./_hooks/useBookingPayment";
+import InvoiceBlock from "./_components/InvoiceBlock";
+import StatusHeader from "./_components/StatusHeader";
+import HoldCountdown from "./_components/HoldCountdown";
+import PaymentMethodSection from "./_components/PaymentMethodSection";
 
 // Trang /checkout/payment?bookingId=&email=: tra booking rồi hiện đúng màn theo
 // trạng thái. Logic trạng thái nằm ở useBookingPayment; file này chỉ chọn màn.

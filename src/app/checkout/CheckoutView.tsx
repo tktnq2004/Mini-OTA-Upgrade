@@ -16,10 +16,10 @@ import { quoteStay } from "@/lib/booking/discount";
 import { FEATURES } from "@/lib/features";
 import controls from "@/styles/controls.module.css";
 import styles from "./checkout.module.css";
-import CheckoutSkeleton from "./CheckoutSkeleton";
-import { useCheckoutData } from "./useCheckoutData";
-import CustomerInfoSection from "./CustomerInfoSection";
-import OrderSummary from "./OrderSummary";
+import CheckoutSkeleton from "./_components/CheckoutSkeleton";
+import { useCheckoutData } from "./_hooks/useCheckoutData";
+import CustomerInfoSection from "./_components/CustomerInfoSection";
+import OrderSummary from "./_components/OrderSummary";
 
 export default function CheckoutView() {
     const { t } = useLanguage();

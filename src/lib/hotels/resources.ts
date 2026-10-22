@@ -1,6 +1,6 @@
 "use client";
 
-import { publicGet } from "./apiClient";
+import { publicGet } from "@/lib/api/public";
 import type { Amenity, Hotel, Paginated, Review, Room, RoomType, View } from "./types";
 
 export interface ListHotelsParams {

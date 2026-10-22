@@ -20,3 +20,9 @@ export async function unwrapResponse<T>(res: Response): Promise<T> {
 
   return unwrapEnvelope<T>(payload);
 }
+
+// GET qua proxy /api/public (trình duyệt -> Next -> backend), không cache.
+export async function publicGet<T>(path: string): Promise<T> {
+  const res = await fetch(`/api/public/${path}`, { cache: "no-store" });
+  return unwrapResponse<T>(res);
+}

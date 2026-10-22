@@ -31,7 +31,7 @@ import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { useWishlist } from "@/components/wishlist/WishlistProvider";
 import { getPanoramaTourForHotel } from "@/components/panorama/panoramaTours.data";
 import PanoramaViewerModal from "@/components/panorama/PanoramaViewerModal";
-import RoomCard from "../../RoomCard";
+import RoomCard from "../../_components/RoomCard";
 import controls from "@/styles/controls.module.css";
 import styles from "./RoomDetail.module.css";
 

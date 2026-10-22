@@ -7,9 +7,9 @@ import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { useHotelFilters } from "@/hooks/useHotelFilters";
 import LoadError from "@/components/LoadError/LoadError";
 import { useGeolocation } from "@/hooks/useGeolocation";
-import { useMapInstance } from "./hooks/useMapInstance";
-import MapOverlay from "./components/MapOverlay";
-import { PROVINCE_ZOOM, VIETNAM_CENTER, VIETNAM_ZOOM, WARD_ZOOM } from "./mapConstants";
+import { useMapInstance } from "./_hooks/useMapInstance";
+import MapOverlay from "./_components/MapOverlay";
+import { PROVINCE_ZOOM, VIETNAM_CENTER, VIETNAM_ZOOM, WARD_ZOOM } from "./_lib/mapConstants";
 import styles from "./Map.module.css";
 
 export default function MapView() {
@@ -35,7 +35,7 @@ export default function MapView() {
     const [searchQuery, setSearchQuery] = useState("");
 
     // Đo mép dưới của lớp overlay (thanh tìm kiếm) để popup marker biết chỗ
-    // nào đang bị che mà tránh mở lên đó — xem components/popupAnchor.ts.
+    // nào đang bị che mà tránh mở lên đó — xem _components/popupAnchor.ts.
     const overlayRef = useRef<HTMLDivElement | null>(null);
 
     const { mapContainerRef, flyTo } = useMapInstance({

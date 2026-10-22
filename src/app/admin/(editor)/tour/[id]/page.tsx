@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import TourEditor from "@/components/admin/tour/TourEditor";
+import TourEditor from "./TourEditor";
 
 export const metadata: Metadata = {
     title: "Tour 360° — Admin",

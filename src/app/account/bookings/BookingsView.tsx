@@ -24,8 +24,8 @@ import { formatDateVn, formatVnd, parseServerDateTime } from "@/lib/format";
 import { nightsBetween } from "@/lib/searchFilters";
 import controls from "@/styles/controls.module.css";
 import styles from "../account.module.css";
-import BookingCardSkeleton from "./BookingCardSkeleton";
-import BookingTracker from "./BookingTracker";
+import BookingCardSkeleton from "./_components/BookingCardSkeleton";
+import BookingTracker from "./_components/BookingTracker";
 
 const SKELETON_CARDS = 3;
 

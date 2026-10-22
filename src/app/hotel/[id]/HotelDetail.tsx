@@ -29,7 +29,7 @@ import Pagination from "@/components/Pagination/Pagination";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { getPanoramaTourForHotel } from "@/components/panorama/panoramaTours.data";
 import PanoramaViewerModal from "@/components/panorama/PanoramaViewerModal";
-import RoomCard from "./RoomCard";
+import RoomCard from "./_components/RoomCard";
 import controls from "@/styles/controls.module.css";
 import styles from "./HotelDetail.module.css";
 

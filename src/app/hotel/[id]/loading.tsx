@@ -4,7 +4,7 @@ import SiteHeader from "@/components/SiteHeader/SiteHeader";
 import Skeleton from "@/components/Skeleton/Skeleton";
 import FieldSkeleton from "@/components/Skeleton/FieldSkeleton";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
-import RoomCardSkeleton from "./RoomCardSkeleton";
+import RoomCardSkeleton from "./_components/RoomCardSkeleton";
 import styles from "./HotelDetail.module.css";
 
 // Hiện ngay khi bấm vào 1 khách sạn, trong lúc server chờ backend (khách sạn + ảnh R2) —

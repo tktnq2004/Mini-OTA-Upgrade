@@ -15,9 +15,9 @@ import {
 } from "@/lib/admin/resources";
 import type { Discount, DiscountInput, Hotel, Room } from "@/lib/admin/types";
 import { todayIso } from "@/lib/searchFilters";
-import { EMPTY_FORM, toInput, validate } from "./discountRules";
-import DiscountForm from "./DiscountForm";
-import DiscountTable from "./DiscountTable";
+import { EMPTY_FORM, toInput, validate } from "./_lib/discountRules";
+import DiscountForm from "./_components/DiscountForm";
+import DiscountTable from "./_components/DiscountTable";
 import page from "./discounts.module.css";
 
 export default function DiscountsPage() {
