@@ -1,0 +1,488 @@
+/* Kiểu dùng chung cho các trang của cổng /partner. */
+
+.header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.eyebrow {
+    margin: 0 0 4px;
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.title {
+    margin: 0 0 4px;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.subtitle {
+    margin: 0;
+    font-size: 13.5px;
+    color: var(--color-text-muted);
+}
+
+.stack {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.card {
+    background: var(--color-panel);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.cardFlush {
+    background: var(--color-panel);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.cardHead {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.cardHeadPadded {
+    composes: cardHead;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--color-border-soft);
+}
+
+.cardTitle {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.muted {
+    margin: 0;
+    font-size: 13px;
+    color: var(--color-text-muted);
+    line-height: 1.55;
+}
+
+.link {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--color-accent);
+    text-decoration: none;
+}
+
+/* Bố cục danh sách + khung chi tiết bên phải; xuống dòng ở màn hẹp. */
+.split {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    align-items: flex-start;
+}
+
+.splitMain {
+    flex: 3 1 460px;
+    min-width: 0;
+}
+
+.splitSide {
+    flex: 2 1 320px;
+    min-width: 0;
+    position: sticky;
+    top: 20px;
+}
+
+/* ----- Thẻ số liệu (Tổng quan) ----- */
+.stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.stat {
+    background: var(--color-panel);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.statLabel {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+}
+
+.statValue {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.statHint {
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+/* ----- Bảng ----- */
+.tableWrap {
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    min-width: 600px;
+}
+
+.table th {
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    background: var(--color-inset);
+}
+
+.table td {
+    padding: 12px 16px;
+    border-top: 1px solid var(--color-border-soft);
+    color: var(--color-text);
+    vertical-align: middle;
+}
+
+.table .num {
+    text-align: right;
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+.rowButton {
+    cursor: pointer;
+}
+
+.rowButton:hover td {
+    background: var(--color-inset);
+}
+
+.rowActive td {
+    background: var(--color-accent-soft);
+}
+
+/* Nút chọn đơn trong ô đầu của hàng — trông như chữ thường, chỉ để có Tab/Enter. */
+.rowSelect {
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.cellMain {
+    display: block;
+    font-weight: 600;
+}
+
+.cellSub {
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+.tableFoot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border-top: 1px solid var(--color-border-soft);
+    font-size: 12.5px;
+    color: var(--color-text-muted);
+}
+
+/* ----- Nhãn trạng thái ----- */
+.badge {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: var(--radius-pill);
+    font-size: 11.5px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.toneSuccess {
+    background: var(--color-success-soft);
+    color: var(--color-success);
+}
+
+.toneWarning {
+    background: rgba(234, 88, 12, 0.12);
+    color: #b45309;
+}
+
+.toneNeutral {
+    background: var(--color-inset);
+    color: var(--color-text-muted);
+}
+
+.toneDanger {
+    background: var(--color-error-soft);
+    color: var(--color-error);
+}
+
+.toneInfo {
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+}
+
+:global([data-theme="dark"]) .toneWarning {
+    background: rgba(251, 146, 60, 0.16);
+    color: #fdba74;
+}
+
+/* ----- Bộ lọc dạng tab ----- */
+.toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.tab,
+.tabActive {
+    height: 34px;
+    padding: 0 14px;
+    border-radius: var(--radius-pill);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.tab {
+    border: 1px solid var(--color-border);
+    background: var(--color-panel);
+    color: var(--color-text);
+}
+
+.tabActive {
+    border: 1px solid var(--color-accent);
+    background: var(--color-accent);
+    color: var(--color-accent-ink);
+}
+
+.toolbarRight {
+    margin-left: auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.compactInput {
+    height: 36px;
+    width: auto;
+    min-width: 0;
+}
+
+.empty {
+    padding: 40px 20px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+/* ----- Khung chi tiết / form bên phải ----- */
+.panel {
+    background: var(--color-panel);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.panelHead {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.panelTitle {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.closeButton {
+    width: 32px;
+    height: 32px;
+    flex: none;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    background: var(--color-panel);
+    color: var(--color-text);
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.sectionLabel {
+    margin: 0;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+}
+
+.dateChips {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.dateChip {
+    background: var(--color-inset);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.lines {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--color-text);
+}
+
+.lineRow {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.totalRow {
+    composes: lineRow;
+    padding-top: 8px;
+    border-top: 1px solid var(--color-border-soft);
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.notice {
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 12.5px;
+    background: rgba(234, 88, 12, 0.1);
+    color: #b45309;
+}
+
+:global([data-theme="dark"]) .notice {
+    background: rgba(251, 146, 60, 0.14);
+    color: #fdba74;
+}
+
+.dangerButton {
+    height: 40px;
+    padding: 0 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-error);
+    background: transparent;
+    color: var(--color-error);
+    font: inherit;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.dangerButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.formGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.formFull {
+    grid-column: 1 / -1;
+}
+
+.fieldset {
+    border: none;
+    margin: 0;
+    padding: 0;
+}
+
+.checkRow {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 13px;
+    color: var(--color-text);
+}
+
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid var(--color-border-soft);
+}
+
+.actionsEnd {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+@media (max-width: 860px) {
+    .splitSide {
+        position: static;
+    }
+}
+
+@media (max-width: 560px) {
+    .formGrid {
+        grid-template-columns: 1fr;
+    }
+}

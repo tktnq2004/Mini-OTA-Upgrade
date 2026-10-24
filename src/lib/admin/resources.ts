@@ -71,7 +71,7 @@ export const listWardsByProvinceId = (provinceId: string) =>
 
 export const createRoom = (input: RoomInput) => {
   const { roomTypeId, ...rest } = input;
-  return adminPost<Room>("rooms", { ...rest, roomType: { id: roomTypeId }, discount_id: [] });
+  return adminPost<Room>("rooms", { ...rest, roomType: { id: roomTypeId } });
 };
 export const getRoom = (id: number) => adminGet<Room>(`rooms/${id}`);
 export const updateRoom = (input: RoomUpdateInput) => adminPut<Room>("rooms", input);
@@ -79,16 +79,14 @@ export const updateRoom = (input: RoomUpdateInput) => adminPut<Room>("rooms", in
 // nếu panorama của phòng đang được hotspot Ở NGOÀI phòng (thường ở hành lang) trỏ tới
 // thì BE trả 409 kèm danh sách hotspot; cascade = true: xoá luôn, các hotspot đó biến mất theo.
 export const deleteRoom = (id: number, cascade = false) => adminDelete<void>(`rooms/${id}${cascade ? "?cascade=true" : ""}`);
-export const removeRoomAmenity = (roomId: number, amenityId: number) =>
+// Gỡ nhiều tiện nghi/hướng nhìn khỏi 1 phòng trong 1 lần gọi (thêm thì qua updateRoom).
+export const removeRoomRelations = (roomId: number, amenityIds: number[], viewIds: number[]) =>
   adminFetch<Room>("relationships", {
     method: "DELETE",
-    body: JSON.stringify({ room_id: roomId, amenities_id: [amenityId], viewIds: [] }),
+    body: JSON.stringify({ room_id: roomId, amenities_id: amenityIds, viewIds }),
   });
-export const removeRoomView = (roomId: number, viewId: number) =>
-  adminFetch<Room>("relationships", {
-    method: "DELETE",
-    body: JSON.stringify({ room_id: roomId, amenities_id: [], viewIds: [viewId] }),
-  });
+export const removeRoomAmenity = (roomId: number, amenityId: number) => removeRoomRelations(roomId, [amenityId], []);
+export const removeRoomView = (roomId: number, viewId: number) => removeRoomRelations(roomId, [], [viewId]);
 
 // ---- Room types (không có endpoint list-all, chỉ tra theo id) ----
 export const getRoomType = (id: number) => adminGet<RoomType>(`roomtype/${id}`);

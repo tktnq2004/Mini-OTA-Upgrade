@@ -1,4 +1,4 @@
-import type { Amenity, HotelBase, LegacyRole, RoomBase, RoomImage } from "@/lib/api/types";
+import type { Amenity, HotelBase, LegacyRole, RoomBase, RoomImage, View } from "@/lib/api/types";
 
 // Kiểu dùng chung với phía khách — khai báo ở lib/api/types.ts.
 export type {
@@ -48,6 +48,8 @@ export interface Room extends RoomBase {
   updatedAt?: string;
   images?: RoomImage[];
   amenities?: Amenity[];
+  // Hướng nhìn đang gắn — backend mới trả field này (trước đây @JsonIgnore).
+  views?: View[];
 }
 
 export interface RoomInput {

@@ -1,0 +1,255 @@
+.shell {
+    min-height: 100vh;
+    display: flex;
+    background: var(--color-bg-alt);
+}
+
+.sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    width: 248px;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 18px 14px;
+    background: var(--color-panel);
+    border-right: 1px solid var(--color-border);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 6px;
+    font-size: 19px;
+    color: var(--color-text);
+}
+
+.badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+    background: var(--color-accent-soft);
+    border-radius: var(--radius-pill);
+    padding: 2px 7px;
+}
+
+.hotelCard {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.hotelThumb {
+    width: 40px;
+    height: 40px;
+    flex: none;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+    background: var(--color-inset);
+}
+
+.hotelText {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.hotelName {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--color-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hotelRole {
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+.nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.navLink,
+.navLinkActive,
+.navSoon {
+    display: flex;
+    align-items: center;
+    height: 38px;
+    padding: 0 12px;
+    border-radius: var(--radius-sm);
+    font-size: 13.5px;
+    text-decoration: none;
+}
+
+.navLink {
+    color: var(--color-text);
+    font-weight: 500;
+}
+
+.navLink:hover {
+    background: var(--color-inset);
+}
+
+.navLinkActive {
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+    font-weight: 600;
+}
+
+.navSoon {
+    color: var(--color-text-muted);
+}
+
+.soonTag {
+    margin-left: auto;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    background: var(--color-inset);
+    border-radius: var(--radius-pill);
+    padding: 1px 7px;
+}
+
+.footer {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 6px 0;
+    border-top: 1px solid var(--color-border);
+}
+
+.user {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.userName {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.userEmail {
+    font-size: 11.5px;
+    color: var(--color-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.footerActions {
+    display: flex;
+    gap: 8px;
+}
+
+.iconButton,
+.logoutButton {
+    height: 32px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    background: var(--color-panel);
+    color: var(--color-text);
+    font: inherit;
+    font-size: 12.5px;
+    cursor: pointer;
+}
+
+.iconButton {
+    width: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.logoutButton {
+    flex: 1;
+    padding: 0 10px;
+}
+
+.iconButton:hover,
+.logoutButton:hover {
+    background: var(--color-inset);
+}
+
+.content {
+    flex: 1;
+    min-width: 0;
+    padding: 28px 32px 48px;
+    box-sizing: border-box;
+}
+
+.forbidden {
+    max-width: 520px;
+    margin: 60px auto;
+    padding: 28px;
+    text-align: center;
+    background: var(--color-panel);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.forbidden h1 {
+    margin: 0 0 8px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.forbidden p {
+    margin: 0 0 16px;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--color-text-muted);
+}
+
+.forbidden a {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--color-accent);
+}
+
+/* Màn hẹp: sidebar thành thanh ngang ở trên, menu cuộn ngang. */
+@media (max-width: 860px) {
+    .shell {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        position: static;
+        height: auto;
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .nav {
+        flex-direction: row;
+        overflow-x: auto;
+    }
+
+    .navLink,
+    .navLinkActive,
+    .navSoon {
+        flex: none;
+    }
+
+    .content {
+        padding: 20px 16px 40px;
+    }
+}

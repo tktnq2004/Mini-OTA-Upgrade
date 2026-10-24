@@ -2,24 +2,20 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import AdminShell from "@/components/admin/AdminShell";
 import { AdminAccessProvider } from "@/components/admin/AdminAccessProvider";
-import { ACCESS_COOKIE, decodeAdminJwt, isJwtExpired } from "@/lib/admin/session";
+import { ACCESS_COOKIE, ADMIN_HOME, currentPortal, decodeAdminJwt } from "@/lib/admin/session";
 
-// Không kiểm tra "role" ở đây nữa — JWT không còn mang thông tin quyền nào
-// đáng tin (xem session.ts). Việc "tài khoản này có đủ quyền admin không"
-// đã được xác nhận 1 lần bằng cách gọi thật API (probeAdminAccess) lúc đăng
-// nhập ở route /api/admin/auth/login. Ở đây chỉ cần biết: có đang đăng nhập
-// không (có cookie, chưa hết hạn) — mọi hành động CRUD thật sự vẫn được
-// chính backend chặn/cho phép theo đúng quyền của tài khoản (@PreAuthorize),
-// nên guard này giờ chỉ còn là UX, không phải lớp bảo mật duy nhất nữa.
+// Cổng /admin chỉ dành cho admin hệ thống (hotelId = 0); owner/staff có cổng
+// riêng /partner. Hỏi /auth/me để biết đúng cổng (JWT không mang hotel/role).
+// Đây chỉ là định tuyến/UX — mọi hành động CRUD thật vẫn do backend chặn
+// theo quyền của tài khoản (@PreAuthorize + kiểm tra hotel trong service).
 export default async function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
-    const cookieStore = await cookies();
-    const token = cookieStore.get(ACCESS_COOKIE)?.value;
-    const claims = token ? decodeAdminJwt(token) : null;
+    const token = (await cookies()).get(ACCESS_COOKIE)?.value;
+    const portal = await currentPortal(token);
 
-    if (!claims || isJwtExpired(claims)) {
-        redirect("/admin/login");
-    }
+    if (!portal) redirect("/admin/login");
+    if (portal !== ADMIN_HOME) redirect(portal);
 
+    const claims = decodeAdminJwt(token!)!;
     return (
         <AdminAccessProvider>
             <AdminShell user={{ name: claims.user.name, email: claims.user.email }}>{children}</AdminShell>

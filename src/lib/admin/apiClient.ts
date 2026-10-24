@@ -30,7 +30,8 @@ export async function adminFetch<T>(path: string, init?: RequestInit): Promise<T
 
   if (!res.ok) {
     if (res.status === 401 && typeof window !== "undefined") {
-      window.location.href = "/admin/login";
+      // Cùng 1 phiên/proxy cho cả 2 cổng — hết phiên thì về đúng trang đăng nhập của cổng đang dùng.
+      window.location.href = window.location.pathname.startsWith("/partner") ? "/partner/login" : "/admin/login";
     }
     throw new AdminApiError(errorMessageFrom(payload, res.statusText), res.status, payload);
   }

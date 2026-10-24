@@ -6,8 +6,8 @@ import styles from "@/components/admin/adminPage.module.css";
 import type { DiscountInput, DiscountUnit, Hotel, Room } from "@/lib/admin/types";
 import { nightReduction } from "@/lib/booking/discount";
 import { formatVnd } from "@/lib/format";
-import { NAME_MAX } from "../_lib/discountRules";
-import page from "../discounts.module.css";
+import { NAME_MAX } from "./discountRules";
+import page from "./discounts.module.css";
 
 interface DiscountFormProps {
     form: DiscountInput;

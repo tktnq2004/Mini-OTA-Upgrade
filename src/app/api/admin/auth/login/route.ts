@@ -4,8 +4,9 @@ import {
   REFRESH_COOKIE,
   decodeAdminJwt,
   extractBackendRefreshCookie,
+  fetchMe,
   getAdminApiBaseUrl,
-  probeAdminAccess,
+  portalHome,
 } from "@/lib/admin/session";
 
 export async function POST(req: NextRequest) {
@@ -36,12 +37,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: "Token trả về không hợp lệ" }, { status: 500 });
   }
 
-  // JWT không còn mang role/permission — phải thử gọi thật 1 endpoint chỉ
-  // admin mới có quyền để biết tài khoản này có được vào /admin hay không.
-  const isAdmin = await probeAdminAccess(accessToken);
-  if (!isAdmin) {
+  // JWT không mang hotel/role — hỏi /auth/me để biết tài khoản vào cổng nào
+  // (/admin hay /partner). Dùng chung cho cả 2 trang đăng nhập: trang nào cũng
+  // chuyển về đúng cổng của tài khoản, kể cả khi đăng nhập nhầm trang.
+  const me = await fetchMe(accessToken);
+  const home = me ? portalHome(me.hotelId) : null;
+  if (!home) {
     return NextResponse.json(
-      { message: "Tài khoản này không có quyền quản trị (thiếu role/permission phù hợp)" },
+      { message: "Tài khoản này không có quyền vào trang quản lý" },
       { status: 403 }
     );
   }
@@ -51,6 +54,7 @@ export async function POST(req: NextRequest) {
 
   const res = NextResponse.json({
     user: { id: claims.user.id, email: claims.user.email, name: claims.user.name },
+    home,
   });
   res.cookies.set(ACCESS_COOKIE, accessToken, {
     httpOnly: true,

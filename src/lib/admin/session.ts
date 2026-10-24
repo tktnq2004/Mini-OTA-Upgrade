@@ -112,8 +112,8 @@ export async function refreshBackendSession(refreshToken: string): Promise<Refre
 // GET /auth/me — danh tính + role/permission THẬT của chính user đang đăng
 // nhập (đã có thật ở backend — trả thêm hotelId + role kèm permission, test
 // qua curl với cả tài khoản admin lẫn customer thường). Dùng cho
-// AdminAccessProvider (ẩn/hiện nav + nút theo quyền thật) VÀ cho
-// probeAdminAccess bên dưới (gác cổng đăng nhập /admin). Trả null nếu
+// AdminAccessProvider (ẩn/hiện nav + nút theo quyền thật) VÀ cho việc chọn
+// cổng (portalHome bên dưới) lúc đăng nhập + ở layout từng cổng. Trả null nếu
 // request lỗi/hết hạn — AdminAccessProvider tự fail-open trong lúc chờ tải.
 export async function fetchMe(accessToken: string): Promise<CurrentAdmin | null> {
   const res = await fetch(`${getAdminApiBaseUrl()}/auth/me`, {
@@ -133,15 +133,28 @@ export async function fetchMe(accessToken: string): Promise<CurrentAdmin | null>
   return data;
 }
 
-// Cổng đăng nhập /admin — dựa vào hotelId thật lấy từ /auth/me thay vì thăm
-// dò bằng cách gọi GET /roles (cơ chế cũ, chỉ ROLE_ADMIN mới qua được vì cần
-// authority ROLE_READ — chặn nhầm cả Manager/Staff/Owner hợp lệ không có
-// quyền đó). hotelId = 0 (admin toàn hệ thống) hoặc khác null (owner/staff
-// của 1 hotel cụ thể) đều được vào /admin; hotelId = null (customer, không
-// gán hotel lúc tạo tài khoản) thì không — 3 trạng thái này được gán THẲNG ở
-// backend (StartupRunner cho admin, tạo tài khoản nhân viên cho owner/staff,
-// đăng ký công khai cho customer), không phải suy luận từ permission.
-export async function probeAdminAccess(accessToken: string): Promise<boolean> {
-  const me = await fetchMe(accessToken);
-  return me !== null && me.hotelId !== null && me.hotelId !== undefined;
+// Cổng quản lý của 1 tài khoản, theo hotelId thật lấy từ /auth/me (gán THẲNG ở
+// backend: StartupRunner cho admin, tạo tài khoản nhân viên cho owner/staff,
+// đăng ký công khai cho customer — không suy luận từ permission):
+// - hotelId = 0: admin toàn hệ thống -> /admin
+// - hotelId khác null: owner/staff của 1 hotel -> /partner
+// - hotelId = null: customer -> không được vào cổng quản lý nào.
+// Chỉ là định tuyến/UX: quyền thật vẫn do backend chặn ở từng API.
+export type PortalHome = "/admin" | "/partner";
+export const ADMIN_HOME: PortalHome = "/admin";
+export const PARTNER_HOME: PortalHome = "/partner";
+
+export function portalHome(hotelId: number | null | undefined): PortalHome | null {
+  if (hotelId === null || hotelId === undefined) return null;
+  return hotelId === 0 ? ADMIN_HOME : PARTNER_HOME;
+}
+
+// Dùng ở layout (server) của từng cổng: đọc cookie phiên admin, gọi /auth/me
+// và trả về cổng đúng của tài khoản, hoặc null nếu chưa đăng nhập/hết hạn/
+// không có quyền vào cổng nào.
+export async function currentPortal(accessToken: string | undefined): Promise<PortalHome | null> {
+  const claims = accessToken ? decodeAdminJwt(accessToken) : null;
+  if (!accessToken || !claims || isJwtExpired(claims)) return null;
+  const me = await fetchMe(accessToken).catch(() => null);
+  return me ? portalHome(me.hotelId) : null;
 }

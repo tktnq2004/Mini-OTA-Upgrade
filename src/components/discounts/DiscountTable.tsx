@@ -5,8 +5,8 @@ import styles from "@/components/admin/adminPage.module.css";
 import DiscountTag from "@/components/DiscountTag/DiscountTag";
 import type { Discount } from "@/lib/admin/types";
 import { formatDateVn } from "@/lib/format";
-import { STATUS_LABEL, statusOf, type DiscountStatus } from "../_lib/discountRules";
-import page from "../discounts.module.css";
+import { STATUS_LABEL, statusOf, type DiscountStatus } from "./discountRules";
+import page from "./discounts.module.css";
 
 const STATUS_CLASS: Record<DiscountStatus, string> = {
     running: page.statusRunning,
