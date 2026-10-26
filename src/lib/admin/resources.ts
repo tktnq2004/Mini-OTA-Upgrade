@@ -1,4 +1,4 @@
-import { adminDelete, adminFetch, adminGet, adminPost, adminPut } from "./apiClient";
+import { adminDelete, adminGet, adminPost, adminPut } from "./apiClient";
 import type {
   Amenity,
   AppUser,
@@ -14,6 +14,7 @@ import type {
   Room,
   RoomInput,
   RoomType,
+  RoomTypeInput,
   RoomUpdateInput,
   UserInput,
   View,
@@ -69,34 +70,24 @@ export const listProvinces = () => adminGet<{ id: string; name: string }[]>("pro
 export const listWardsByProvinceId = (provinceId: string) =>
   adminGet<{ id: string; name: string }[]>(`wards/provinces/${encodeURIComponent(provinceId)}`);
 
-export const createRoom = (input: RoomInput) => {
-  const { roomTypeId, ...rest } = input;
-  return adminPost<Room>("rooms", { ...rest, roomType: { id: roomTypeId } });
-};
+export const createRoom = (input: RoomInput) => adminPost<Room>("rooms", input);
 export const getRoom = (id: number) => adminGet<Room>(`rooms/${id}`);
 export const updateRoom = (input: RoomUpdateInput) => adminPut<Room>("rooms", input);
 // Xoá phòng kéo theo toàn bộ ảnh (thumbnail + panorama) của phòng. cascade = false:
 // nếu panorama của phòng đang được hotspot Ở NGOÀI phòng (thường ở hành lang) trỏ tới
 // thì BE trả 409 kèm danh sách hotspot; cascade = true: xoá luôn, các hotspot đó biến mất theo.
 export const deleteRoom = (id: number, cascade = false) => adminDelete<void>(`rooms/${id}${cascade ? "?cascade=true" : ""}`);
-// Gỡ nhiều tiện nghi/hướng nhìn khỏi 1 phòng trong 1 lần gọi (thêm thì qua updateRoom).
-export const removeRoomRelations = (roomId: number, amenityIds: number[], viewIds: number[]) =>
-  adminFetch<Room>("relationships", {
-    method: "DELETE",
-    body: JSON.stringify({ room_id: roomId, amenities_id: amenityIds, viewIds }),
-  });
-export const removeRoomAmenity = (roomId: number, amenityId: number) => removeRoomRelations(roomId, [amenityId], []);
-export const removeRoomView = (roomId: number, viewId: number) => removeRoomRelations(roomId, [], [viewId]);
-
-// ---- Room types (không có endpoint list-all, chỉ tra theo id) ----
-export const getRoomType = (id: number) => adminGet<RoomType>(`roomtype/${id}`);
-export const createRoomType = (roomTypeName: string) => adminPost<RoomType>("roomtype", { roomTypeName });
-export const updateRoomType = (id: number, roomTypeName: string) =>
-  adminPut<RoomType>("roomtype", { roomTypeId: id, roomTypeName });
-export const deleteRoomType = (id: number) => adminDelete<void>(`roomtype/${id}`);
+// ---- Room types (theo từng khách sạn — docs/ROOM_TYPE_API.md) ----
+// Owner/staff chỉ thao tác được loại phòng của hotel mình (BE trả 403 nếu khác).
+// Xoá loại còn phòng -> 409, phải chuyển/xoá các phòng đó trước.
+export const listRoomTypes = (hotelId: number) => adminGet<RoomType[]>(`hotels/${hotelId}/room-types`);
+export const createRoomType = (hotelId: number, input: RoomTypeInput) =>
+  adminPost<RoomType>(`hotels/${hotelId}/room-types`, input);
+export const updateRoomType = (id: number, input: RoomTypeInput) => adminPut<RoomType>(`room-types/${id}`, input);
+export const deleteRoomType = (id: number) => adminDelete<void>(`room-types/${id}`);
 
 // ---- Amenities ----
-// Xoá amenity trả về List<Room> (các phòng bị ảnh hưởng) chứ không phải
+// Xoá amenity trả về List<RoomType> (các loại phòng bị ảnh hưởng) chứ không phải
 // void — bỏ qua nội dung trả về, chỉ cần biết đã xoá xong.
 export const listAmenities = () => adminGet<Amenity[]>("amenity");
 export const createAmenity = (name: string, icon: string) => adminPost<Amenity>("amenity", { name, icon });

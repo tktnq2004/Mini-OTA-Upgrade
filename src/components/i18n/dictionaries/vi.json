@@ -585,7 +585,6 @@
     "admin.nav.users": "Người dùng",
     "admin.nav.roles": "Phân quyền",
     "admin.nav.hotels": "Khách sạn",
-    "admin.nav.roomTypes": "Loại phòng",
     "admin.nav.amenities": "Tiện nghi",
     "admin.nav.views": "Hướng nhìn",
     "admin.nav.discounts": "Khuyến mãi",
@@ -594,7 +593,6 @@
     "admin.overview.hotelsDesc": "Tạo, sửa, xoá khách sạn và quản lý phòng của từng khách sạn.",
     "admin.overview.usersDesc": "Danh sách tài khoản, phân trang, gán role thật cho user.",
     "admin.overview.rolesDesc": "Tạo role, gán quyền cho role — quyết định quyền thật của tài khoản.",
-    "admin.overview.roomTypesDesc": "Backend chưa có API liệt kê — tra cứu/sửa/xoá theo ID.",
     "admin.overview.amenitiesDesc": "Danh sách tiện nghi gán cho phòng (wifi, hồ bơi...).",
     "admin.overview.viewsDesc": "Danh sách hướng nhìn gán cho phòng (biển, thành phố...).",
     "admin.overview.discountsDesc": "Tạo khuyến mãi (%/số tiền) và gán vào từng phòng kèm khung ngày."

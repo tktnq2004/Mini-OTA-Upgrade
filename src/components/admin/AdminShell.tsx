@@ -14,7 +14,6 @@ const NAV_ITEMS = [
     { href: "/admin/users", labelKey: "admin.nav.users", module: "USER" },
     { href: "/admin/roles", labelKey: "admin.nav.roles", module: "ROLE" },
     { href: "/admin/hotels", labelKey: "admin.nav.hotels", module: "HOTEL" },
-    { href: "/admin/roomtypes", labelKey: "admin.nav.roomTypes", module: "ROOM_TYPE" },
     { href: "/admin/amenities", labelKey: "admin.nav.amenities", module: "AMENITY" },
     { href: "/admin/views", labelKey: "admin.nav.views", module: "VIEW" },
     { href: "/admin/discounts", labelKey: "admin.nav.discounts", module: "DISCOUNT" },

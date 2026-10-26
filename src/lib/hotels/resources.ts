@@ -46,7 +46,7 @@ export const getHotel = (id: number) => publicGet<Hotel>(`hotels/${id}`);
 export const getRoom = (id: number) => publicGet<Room>(`rooms/${id}`);
 export const listAmenities = () => publicGet<Amenity[]>("amenity");
 export const listViews = () => publicGet<View[]>("view");
-export const getRoomType = (id: number) => publicGet<RoomType>(`roomtype/${id}`);
+export const listRoomTypes = (hotelId: number) => publicGet<RoomType[]>(`hotels/${hotelId}/room-types`);
 export const listHotelReviews = (hotelId: number) => publicGet<Review[]>(`hotels/${hotelId}/reviews`);
 export const listRoomReviews = (roomId: number) => publicGet<Review[]>(`rooms/${roomId}/reviews`);
 

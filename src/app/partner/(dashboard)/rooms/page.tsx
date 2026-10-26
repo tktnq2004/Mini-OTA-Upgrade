@@ -8,6 +8,7 @@ import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback"
 import { useAdminAccess } from "@/components/admin/AdminAccessProvider";
 import type { Room } from "@/lib/admin/types";
 import { formatVnd } from "@/lib/format";
+import { roomAmenities, roomCapacity } from "@/lib/hotels/roomType";
 import { discountsForRoom } from "@/lib/partner/roomDiscounts";
 import { todayIso } from "@/lib/searchFilters";
 import { usePartnerHotel } from "../../_components/PartnerHotelProvider";
@@ -102,7 +103,7 @@ export default function PartnerRoomsPage() {
                                 <tr>
                                     <th>Phòng</th>
                                     <th className={styles.num}>Giá / đêm</th>
-                                    <th>Sức chứa</th>
+                                    <th>Loại phòng</th>
                                     <th>Tiện nghi</th>
                                     <th>Ảnh</th>
                                     {canSeeDiscounts && <th>Giảm giá</th>}
@@ -111,7 +112,7 @@ export default function PartnerRoomsPage() {
                             </thead>
                             <tbody>
                                 {rooms.map((room) => {
-                                    const amenities = room.amenities ?? [];
+                                    const amenities = roomAmenities(room);
                                     const extra = amenities.length - AMENITIES_SHOWN;
                                     const active = roomDiscounts(room);
                                     return (
@@ -132,13 +133,22 @@ export default function PartnerRoomsPage() {
                                                     <span>
                                                         <span className={styles.cellMain}>{room.name}</span>
                                                         <span className={styles.cellSub}>
-                                                            {room.cancellationPolicy ? "Huỷ miễn phí" : "Không hoàn huỷ"}
+                                                            {room.roomType?.cancellationPolicy ? "Huỷ miễn phí" : "Không hoàn huỷ"}
                                                         </span>
                                                     </span>
                                                 </Link>
                                             </td>
                                             <td className={styles.num}>{formatVnd(room.price)}</td>
-                                            <td className={page.nowrap}>Tối đa {room.capacity} khách</td>
+                                            <td>
+                                                {room.roomType ? (
+                                                    <span>
+                                                        <span className={styles.cellMain}>{room.roomType.roomTypeName}</span>
+                                                        <span className={styles.cellSub}>Tối đa {roomCapacity(room)} khách</span>
+                                                    </span>
+                                                ) : (
+                                                    <span className={`${styles.badge} ${styles.toneWarning}`}>Chưa gán loại</span>
+                                                )}
+                                            </td>
                                             <td className={page.muted}>
                                                 {amenities.length === 0
                                                     ? "—"

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { BedIcon, UsersIcon, CheckIcon } from "@phosphor-icons/react";
 import type { Room } from "@/lib/hotels/types";
 import { formatVnd } from "@/lib/format";
+import { roomAmenities, roomCapacity } from "@/lib/hotels/roomType";
 import { nightReduction, quoteRoom } from "@/lib/booking/discount";
 import DiscountTag from "@/components/DiscountTag/DiscountTag";
 import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
@@ -31,8 +32,8 @@ export default function RoomCard({ hotelId, room, coverImage, nights, checkin, c
     const router = useRouter();
     const { isSaved, add, remove } = useWishlist();
     const selected = isSaved(hotelId, room.id);
-    const visibleAmenities = room.amenities.slice(0, VISIBLE_AMENITIES);
-    const extraCount = room.amenities.length - visibleAmenities.length;
+    const visibleAmenities = roomAmenities(room).slice(0, VISIBLE_AMENITIES);
+    const extraCount = roomAmenities(room).length - visibleAmenities.length;
     // Giá xem trước sau khuyến mãi cho đúng kỳ ở đang chọn — số thật do
     // backend chốt lúc tạo booking (xem lib/booking/discount.ts).
     const quote = quoteRoom(room, checkin, checkout);
@@ -90,7 +91,7 @@ export default function RoomCard({ hotelId, room, coverImage, nights, checkin, c
 
                 <div className={styles.metaRow}>
                     <span className={styles.metaItem}>
-                        <UsersIcon size={14} /> {t("room.maxGuests", { count: room.capacity })}
+                        <UsersIcon size={14} /> {t("room.maxGuests", { count: roomCapacity(room) })}
                     </span>
                 </div>
 

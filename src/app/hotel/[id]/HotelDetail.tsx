@@ -14,6 +14,7 @@ import {
 } from "@phosphor-icons/react";
 import type { Hotel } from "@/lib/hotels/types";
 import { formatDateVn, formatVnd } from "@/lib/format";
+import { roomCapacity } from "@/lib/hotels/roomType";
 import { rememberHotelView } from "@/lib/recentlyViewed";
 import {
     addDaysIso,
@@ -101,7 +102,7 @@ export default function HotelDetail({ hotel, coverImage, roomThumbnails }: Hotel
         return rooms.filter((room) => {
             if (roomType !== "all" && room.roomType?.roomTypeName !== roomType) return false;
             if (maxPrice < PRICE_CEILING && room.price > maxPrice) return false;
-            if (room.capacity < guests) return false;
+            if (roomCapacity(room) < guests) return false;
             return true;
         });
     }, [rooms, roomType, maxPrice, guests]);

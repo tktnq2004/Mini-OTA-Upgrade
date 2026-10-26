@@ -100,7 +100,7 @@ Không đổi cấu trúc so với bản đầu (`AdminShell`, `adminPage.module
 | Route | Ghi chú thay đổi |
 |---|---|
 | `/admin/hotels`, `/admin/hotels/new`, `/admin/hotels/[id]` | `provinceId` → **`wardId`**; địa chỉ nhập vào chỉ là "số nhà, tên đường", backend tự nối thêm tên phường + tỉnh. |
-| `/admin/roomtypes` | Không đổi (vẫn tra theo ID, không có list-all). |
+| ~~`/admin/roomtypes`~~ | **Đã bỏ (2026-10-25)** — loại phòng giờ thuộc từng khách sạn, quản lý ở mục "Loại phòng" trong `/admin/hotels/[id]` và `/partner/room-types` (xem `docs/ROOM_TYPE_API.md`). |
 | `/admin/amenities`, `/admin/views` | Không đổi. |
 | `/admin/users` | Bỏ hẳn dropdown "Vai trò" cũ (CUSTOMER/ADMIN, cosmetic không cấp quyền) — field "Vai trò" giờ là danh sách role thật (checkbox, lấy từ `listRoles()`), gán qua `POST /users/{id}/roles`, cùng cơ chế với trang Phân quyền. Xem mục 6 về bug `id: null`. |
 | `/admin/roles` | **Trang mới** — 1 form dùng chung cho cả Tạo role và Sửa quyền (bấm "Sửa quyền" ở 1 role trong bảng sẽ nạp dữ liệu role đó vào form phía trên, cuộn lên tự động, disable field tên/level/mô tả vì không sửa được). Danh sách quyền lấy gián tiếp từ các role đang có (vì `GET /permissions` là stub luôn trả `null`). Gán role cho user thực hiện ở trang Người dùng. |
@@ -147,8 +147,8 @@ Backend seed qua API (dùng 1 tài khoản admin) không khả thi cho việc n�
 |---|---|---|
 | `GET /provinces` chỉ trả **tên** tỉnh (string[]), không có id | Không dùng được để làm dropdown | Chỉ hiện làm text tham khảo trên form tạo khách sạn |
 | `GET /wards/provinces/{id}` cũng chỉ trả tên, và `{id}` đó lại là province id (thứ không có sẵn id) | Không thể chain 2 API này để lấy ward id | Không dùng — Ward ID phải nhập tay, tra theo cột "Phường/xã" ở bảng khách sạn đã có (field đó *có* id thật vì nằm lồng trong response khách sạn) |
-| Không có `GET /roomtype` (list toàn bộ) | Không thể hiện danh sách loại phòng để chọn | Trang riêng: tạo mới + tra theo ID; lúc tạo phòng phải tự gõ Room type ID |
-| `PUT /rooms` (update) chỉ **cộng thêm** amenities/views, không thay thế | Gửi mảng rỗng không xoá cái đã có (an toàn) nhưng không "ghi đè" được | Gỡ tiện nghi/hướng nhìn dùng riêng `DELETE /relationships` |
+| ~~Không có `GET /roomtype` (list toàn bộ)~~ | **Hết (2026-10-25)** — có `GET /hotels/{id}/room-types` | Form phòng chọn loại từ dropdown (`docs/ROOM_TYPE_API.md`) |
+| ~~`PUT /rooms` (update) chỉ **cộng thêm** amenities/views~~ | **Hết (2026-10-25)** — tiện nghi/hướng nhìn chuyển lên loại phòng, `PUT /room-types/{id}` thay thế cả danh sách; `DELETE /relationships` đã bỏ | — |
 
 ---
 

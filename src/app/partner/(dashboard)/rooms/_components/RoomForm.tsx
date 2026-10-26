@@ -8,65 +8,48 @@ import DiscountTag from "@/components/DiscountTag/DiscountTag";
 import MediaGallery from "@/components/media/MediaGallery";
 import ThumbnailUploader from "@/components/media/ThumbnailUploader";
 import { AdminApiError, conflictLines } from "@/lib/admin/apiClient";
-import { createRoom, deleteRoom, removeRoomRelations, updateRoom } from "@/lib/admin/resources";
-import type { Amenity, Discount, Room, View } from "@/lib/admin/types";
+import { createRoom, deleteRoom, updateRoom } from "@/lib/admin/resources";
+import type { Discount, Room, RoomType } from "@/lib/admin/types";
 import { formatDateVn } from "@/lib/format";
+import { roomTypePolicyLabels } from "@/lib/hotels/roomType";
+import form from "../../../_components/EditForm.module.css";
 import { usePartnerHotel } from "../../../_components/PartnerHotelProvider";
 import styles from "../../../partner.module.css";
-import form from "./RoomForm.module.css";
 
 interface RoomFormProps {
     hotelId: number;
     // null = thêm phòng mới.
     room: Room | null;
-    amenities: Amenity[];
-    views: View[];
+    // Loại phòng của hotel; null = đang tải.
+    roomTypes: RoomType[] | null;
     // Khuyến mãi đang áp cho phòng này (chỉ hiển thị; sửa ở trang Giảm giá).
     discounts: Discount[];
     canEdit: boolean;
     canDelete: boolean;
 }
 
+// Sức chứa, chính sách, tiện nghi, hướng nhìn thuộc loại phòng (sửa ở /partner/room-types);
+// phòng chỉ còn tên, loại, mô tả, giá, ảnh.
 interface RoomValues {
     name: string;
     description: string;
     price: number;
-    capacity: number;
-    cancellationPolicy: boolean;
-    allowPets: boolean;
-    allowSmoking: boolean;
-    amenityIds: number[];
-    viewIds: number[];
+    // 0 = chưa chọn.
+    roomTypeId: number;
 }
-
-const MAX_CAPACITY = 20;
 
 const toValues = (room: Room | null): RoomValues => ({
     name: room?.name ?? "",
     description: room?.description ?? "",
     price: room?.price ?? 0,
-    capacity: room?.capacity ?? 2,
-    cancellationPolicy: room?.cancellationPolicy ?? true,
-    allowPets: room?.allowPets ?? false,
-    allowSmoking: room?.allowSmoking ?? false,
-    amenityIds: (room?.amenities ?? []).map((a) => a.id).sort((a, b) => a - b),
-    viewIds: (room?.views ?? []).map((v) => v.id).sort((a, b) => a - b),
+    roomTypeId: room?.roomType?.id ?? 0,
 });
 
-const toggle = (ids: number[], id: number) =>
-    (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]).sort((a, b) => a - b);
-const minus = (a: number[], b: number[]) => a.filter((id) => !b.includes(id));
 const sameValues = (a: RoomValues, b: RoomValues) => JSON.stringify(a) === JSON.stringify(b);
 
-const POLICIES: { key: "cancellationPolicy" | "allowPets" | "allowSmoking"; label: string; hint: string }[] = [
-    { key: "cancellationPolicy", label: "Huỷ miễn phí", hint: "Khách huỷ đặt phòng không mất phí" },
-    { key: "allowPets", label: "Cho mang thú cưng", hint: "Hiện nhãn trên trang phòng" },
-    { key: "allowSmoking", label: "Cho hút thuốc", hint: "Hiện nhãn trên trang phòng" },
-];
-
 // Trang thêm/sửa 1 phòng (/partner/rooms/new và /partner/rooms/{id}): cột chính là thông
-// tin + giá + tiện nghi, cột phụ là ảnh + chính sách + khuyến mãi; thanh lưu dính đáy trang.
-export default function RoomForm({ hotelId, room, amenities, views, discounts, canEdit, canDelete }: RoomFormProps) {
+// tin + giá, cột phụ là ảnh + tóm tắt loại phòng + khuyến mãi; thanh lưu dính đáy trang.
+export default function RoomForm({ hotelId, room, roomTypes, discounts, canEdit, canDelete }: RoomFormProps) {
     const router = useRouter();
     const { reload } = usePartnerHotel();
     const [initial, setInitial] = useState<RoomValues>(() => toValues(room));
@@ -75,6 +58,7 @@ export default function RoomForm({ hotelId, room, amenities, views, discounts, c
     const [saving, setSaving] = useState(false);
     const dirty = !sameValues(values, initial);
     const set = (patch: Partial<RoomValues>) => setValues((v) => ({ ...v, ...patch }));
+    const selectedType = roomTypes?.find((t) => t.id === values.roomTypeId) ?? null;
 
     // Rời trang khi còn thay đổi chưa lưu -> trình duyệt hỏi lại.
     useEffect(() => {
@@ -88,45 +72,22 @@ export default function RoomForm({ hotelId, room, amenities, views, discounts, c
         e.preventDefault();
         if (!values.name.trim()) return setError("Nhập tên phòng");
         if (!(values.price > 0)) return setError("Giá mỗi đêm phải lớn hơn 0");
-        if (!(values.capacity >= 1)) return setError("Số khách tối đa ít nhất là 1");
+        if (!values.roomTypeId) return setError("Chọn loại phòng");
         setError("");
         setSaving(true);
         const fields = {
             name: values.name.trim(),
             description: values.description,
             price: values.price,
-            capacity: values.capacity,
-            cancellationPolicy: values.cancellationPolicy,
-            allowPets: values.allowPets,
-            allowSmoking: values.allowSmoking,
+            roomTypeId: values.roomTypeId,
         };
         try {
             if (room) {
-                // API phòng: thêm quan hệ qua PUT /rooms, gỡ qua DELETE /relationships.
-                await updateRoom({
-                    roomId: room.id,
-                    thumbnail: room.thumbnail ?? "",
-                    ...fields,
-                    amenities_id: minus(values.amenityIds, initial.amenityIds),
-                    viewIds: minus(values.viewIds, initial.viewIds),
-                });
-                const removedAmenities = minus(initial.amenityIds, values.amenityIds);
-                const removedViews = minus(initial.viewIds, values.viewIds);
-                if (removedAmenities.length || removedViews.length) {
-                    await removeRoomRelations(room.id, removedAmenities, removedViews);
-                }
+                await updateRoom({ roomId: room.id, ...fields });
                 await reload();
                 setInitial(values);
             } else {
-                // Loại phòng: backend hiện bỏ qua khi tạo phòng (luôn để trống) nên không hỏi.
-                const created = await createRoom({
-                    hotelId,
-                    thumbnail: "",
-                    roomTypeId: 0,
-                    ...fields,
-                    amenities_id: values.amenityIds,
-                    viewIds: values.viewIds,
-                });
+                const created = await createRoom({ hotelId, thumbnail: "", ...fields });
                 await reload();
                 // Mở ngay trang sửa của phòng mới để tải ảnh (cần id phòng).
                 setInitial(values);
@@ -224,6 +185,35 @@ export default function RoomForm({ hotelId, room, amenities, views, discounts, c
                             />
                         </div>
                         <div className={controls.field}>
+                            <label className={controls.label} htmlFor="room-type">
+                                Loại phòng
+                            </label>
+                            <select
+                                id="room-type"
+                                className={controls.select}
+                                value={values.roomTypeId || ""}
+                                onChange={(e) => set({ roomTypeId: Number(e.target.value) })}
+                            >
+                                <option value="">{roomTypes === null ? "Đang tải..." : "— Chọn loại phòng —"}</option>
+                                {(roomTypes ?? []).map((t) => (
+                                    <option key={t.id} value={t.id}>
+                                        {t.roomTypeName} · tối đa {t.capacity} khách
+                                    </option>
+                                ))}
+                            </select>
+                            {roomTypes?.length === 0 ? (
+                                <span className={form.hint}>
+                                    Khách sạn chưa có loại phòng nào —{" "}
+                                    <Link href="/partner/room-types/new" className={styles.link}>
+                                        tạo loại phòng
+                                    </Link>{" "}
+                                    trước.
+                                </span>
+                            ) : (
+                                <span className={form.hint}>Sức chứa, chính sách, tiện nghi, hướng nhìn lấy theo loại phòng.</span>
+                            )}
+                        </div>
+                        <div className={controls.field}>
                             <label className={controls.label} htmlFor="room-description">
                                 Mô tả
                             </label>
@@ -239,70 +229,24 @@ export default function RoomForm({ hotelId, room, amenities, views, discounts, c
                     </section>
 
                     <section className={styles.card}>
-                        <h2 className={styles.cardTitle}>Giá &amp; sức chứa</h2>
-                        <div className={styles.formGrid}>
-                            <div className={controls.field}>
-                                <label className={controls.label} htmlFor="room-price">
-                                    Giá mỗi đêm
-                                </label>
-                                <div className={form.priceField}>
-                                    <input
-                                        id="room-price"
-                                        type="number"
-                                        min={0}
-                                        step={1000}
-                                        value={values.price || ""}
-                                        onChange={(e) => set({ price: Number(e.target.value) })}
-                                    />
-                                    <span>₫ / đêm</span>
-                                </div>
-                            </div>
-                            <div className={controls.field}>
-                                <label className={controls.label} htmlFor="room-capacity">
-                                    Số khách tối đa
-                                </label>
-                                <div className={form.stepper}>
-                                    <button
-                                        type="button"
-                                        aria-label="Giảm số khách"
-                                        onClick={() => set({ capacity: Math.max(1, values.capacity - 1) })}
-                                        disabled={values.capacity <= 1}
-                                    >
-                                        −
-                                    </button>
-                                    <input
-                                        id="room-capacity"
-                                        type="number"
-                                        min={1}
-                                        max={MAX_CAPACITY}
-                                        value={values.capacity || ""}
-                                        onChange={(e) => set({ capacity: Number(e.target.value) })}
-                                    />
-                                    <button
-                                        type="button"
-                                        aria-label="Tăng số khách"
-                                        onClick={() => set({ capacity: Math.min(MAX_CAPACITY, values.capacity + 1) })}
-                                        disabled={values.capacity >= MAX_CAPACITY}
-                                    >
-                                        +
-                                    </button>
-                                </div>
+                        <h2 className={styles.cardTitle}>Giá</h2>
+                        <div className={controls.field}>
+                            <label className={controls.label} htmlFor="room-price">
+                                Giá mỗi đêm
+                            </label>
+                            <div className={form.priceField}>
+                                <input
+                                    id="room-price"
+                                    type="number"
+                                    min={0}
+                                    step={1000}
+                                    value={values.price || ""}
+                                    onChange={(e) => set({ price: Number(e.target.value) })}
+                                />
+                                <span>₫ / đêm</span>
                             </div>
                         </div>
                     </section>
-
-                    <CheckTiles
-                        title="Tiện nghi"
-                        items={amenities}
-                        selected={values.amenityIds}
-                        onToggle={(id) => set({ amenityIds: toggle(values.amenityIds, id) })}
-                    />
-                    <CheckTiles
-                        title="Hướng nhìn"
-                        items={views}
-                        selected={values.viewIds}
-                        onToggle={(id) => set({ viewIds: toggle(values.viewIds, id) })}
-                    />
                 </fieldset>
 
                 <div className={form.side}>
@@ -336,26 +280,28 @@ export default function RoomForm({ hotelId, room, amenities, views, discounts, c
                     </section>
 
                     <section className={styles.card}>
-                        <h2 className={styles.cardTitle} id="room-policies">
-                            Chính sách
-                        </h2>
-                        <fieldset className={styles.fieldset} disabled={!canEdit} aria-labelledby="room-policies">
-                        {POLICIES.map((p) => (
-                            <label key={p.key} className={form.switchRow}>
-                                <span>
-                                    <span className={form.switchLabel}>{p.label}</span>
-                                    <span className={form.hint}>{p.hint}</span>
-                                </span>
-                                <input
-                                    type="checkbox"
-                                    role="switch"
-                                    className={form.switch}
-                                    checked={values[p.key]}
-                                    onChange={(e) => set({ [p.key]: e.target.checked })}
-                                />
-                            </label>
-                        ))}
-                        </fieldset>
+                        <div className={styles.cardHead}>
+                            <h2 className={styles.cardTitle}>Theo loại phòng</h2>
+                            {selectedType && (
+                                <Link href={`/partner/room-types/${selectedType.id}`} className={styles.link}>
+                                    Sửa loại →
+                                </Link>
+                            )}
+                        </div>
+                        {selectedType ? (
+                            <dl className={form.summary}>
+                                <dt>Sức chứa</dt>
+                                <dd>Tối đa {selectedType.capacity} khách</dd>
+                                <dt>Chính sách</dt>
+                                <dd>{roomTypePolicyLabels(selectedType).join(" · ")}</dd>
+                                <dt>Tiện nghi</dt>
+                                <dd>{selectedType.amenities.map((a) => a.name).join(", ") || "—"}</dd>
+                                <dt>Hướng nhìn</dt>
+                                <dd>{selectedType.views.map((v) => v.name).join(", ") || "—"}</dd>
+                            </dl>
+                        ) : (
+                            <p className={styles.muted}>Chọn loại phòng để xem sức chứa, chính sách, tiện nghi.</p>
+                        )}
                     </section>
 
                     {room && discounts.length > 0 && (
@@ -401,41 +347,5 @@ export default function RoomForm({ hotelId, room, amenities, views, discounts, c
                 </div>
             )}
         </form>
-    );
-}
-
-interface CheckTilesProps {
-    title: string;
-    items: { id: number; name: string }[];
-    selected: number[];
-    onToggle: (id: number) => void;
-}
-
-// Lưới ô tick to, dễ bấm — dùng cho tiện nghi và hướng nhìn.
-function CheckTiles({ title, items, selected, onToggle }: CheckTilesProps) {
-    return (
-        <section className={styles.card}>
-            <div className={styles.cardHead}>
-                <h2 className={styles.cardTitle}>{title}</h2>
-                <span className={form.hint}>
-                    {selected.length} / {items.length} đã chọn
-                </span>
-            </div>
-            {items.length === 0 ? (
-                <p className={styles.muted}>Đang tải danh sách...</p>
-            ) : (
-                <div className={form.tiles}>
-                    {items.map((item) => {
-                        const checked = selected.includes(item.id);
-                        return (
-                            <label key={item.id} className={checked ? form.tileOn : form.tile}>
-                                <input type="checkbox" checked={checked} onChange={() => onToggle(item.id)} />
-                                {item.name}
-                            </label>
-                        );
-                    })}
-                </div>
-            )}
-        </section>
     );
 }

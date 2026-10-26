@@ -12,6 +12,7 @@ import { useWishlist } from "@/components/wishlist/WishlistProvider";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { AccountApiError } from "@/lib/auth/apiClient";
 import { nightsBetween } from "@/lib/searchFilters";
+import { roomCapacity } from "@/lib/hotels/roomType";
 import { createBooking } from "@/lib/booking/resources";
 import { quoteStay } from "@/lib/booking/discount";
 import { FEATURES } from "@/lib/features";
@@ -56,7 +57,7 @@ export default function CheckoutView() {
     const [verifying, setVerifying] = useState(false);
 
     // Tối đa số khách = tổng sức chứa các phòng đã chọn (không có phòng thì 30).
-    const maxGuests = rooms.reduce((sum, r) => sum + r.capacity, 0) || 30;
+    const maxGuests = rooms.reduce((sum, r) => sum + roomCapacity(r), 0) || 30;
     const nights = checkIn && checkOut ? nightsBetween(checkIn, checkOut) : 0;
     // Giá xem trước sau khuyến mãi của cả đơn cho kỳ ở đang chọn.
     const stay = quoteStay(rooms, checkIn, checkOut);

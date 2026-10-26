@@ -15,6 +15,7 @@ import styles from "./PartnerShell.module.css";
 const NAV_ITEMS = [
     { href: "/partner", label: "Tổng quan", permission: undefined },
     { href: "/partner/rooms", label: "Phòng", permission: "ROOM_READ" },
+    { href: "/partner/room-types", label: "Loại phòng", permission: "ROOM_TYPE_READ" },
     { href: "/partner/hotel", label: "Khách sạn", permission: "HOTEL_READ" },
     { href: "/partner/discounts", label: "Giảm giá", permission: "DISCOUNT_READ" },
     { href: "/partner/bookings", label: "Đơn đặt phòng", permission: "BOOKING_READ_HOTEL" },

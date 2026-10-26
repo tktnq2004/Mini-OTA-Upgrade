@@ -8,7 +8,6 @@ const SECTIONS = [
     { href: "/admin/hotels", titleKey: "admin.nav.hotels", descKey: "admin.overview.hotelsDesc" },
     { href: "/admin/users", titleKey: "admin.nav.users", descKey: "admin.overview.usersDesc" },
     { href: "/admin/roles", titleKey: "admin.nav.roles", descKey: "admin.overview.rolesDesc" },
-    { href: "/admin/roomtypes", titleKey: "admin.nav.roomTypes", descKey: "admin.overview.roomTypesDesc" },
     { href: "/admin/amenities", titleKey: "admin.nav.amenities", descKey: "admin.overview.amenitiesDesc" },
     { href: "/admin/views", titleKey: "admin.nav.views", descKey: "admin.overview.viewsDesc" },
     { href: "/admin/discounts", titleKey: "admin.nav.discounts", descKey: "admin.overview.discountsDesc" },

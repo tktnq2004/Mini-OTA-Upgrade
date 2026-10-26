@@ -54,9 +54,19 @@ export interface View {
   icon: string;
 }
 
+// Loại phòng của 1 khách sạn (mỗi hotel tự định nghĩa — docs/ROOM_TYPE_API.md).
+// Giữ mọi thứ chung của các phòng cùng loại: sức chứa, chính sách, tiện nghi,
+// hướng nhìn. Phòng chỉ còn tên/số phòng, giá, mô tả, ảnh.
 export interface RoomType {
   id: number;
+  hotelId: number;
   roomTypeName: string;
+  capacity: number;
+  allowSmoking: boolean;
+  allowPets: boolean;
+  cancellationPolicy: boolean;
+  amenities: Amenity[];
+  views: View[];
 }
 
 export interface RoomImage {
@@ -64,18 +74,17 @@ export interface RoomImage {
   image: string;
 }
 
-// Phần chung của Room ở mọi response. Room KHÔNG bao giờ chứa `hotel` hay
-// `views` (@JsonIgnore bên Java) — id khách sạn phải lấy từ context gọi.
+// Phần chung của Room ở mọi response. Room không chứa `hotel` (@JsonIgnore bên
+// Java) — id khách sạn lấy từ context gọi hoặc roomType.hotelId. Sức chứa,
+// chính sách, tiện nghi, hướng nhìn nằm trong roomType.
 export interface RoomBase {
   id: number;
   name: string;
   price: number;
   thumbnail: string;
-  capacity: number;
-  allowSmoking: boolean;
-  allowPets: boolean;
-  cancellationPolicy: boolean;
   description: string;
+  // null chỉ với dữ liệu cũ chưa gán loại — phòng tạo mới bắt buộc có loại.
+  roomType: RoomType | null;
 }
 
 // Phần chung của Hotel ở mọi response.

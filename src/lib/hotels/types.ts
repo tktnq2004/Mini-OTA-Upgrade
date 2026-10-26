@@ -3,16 +3,13 @@
 // nằm ở lib/api/types.ts.
 
 import type { RoomDiscount } from "@/lib/booking/discount";
-import type { Amenity, HotelBase, RoomBase, RoomImage, RoomType } from "@/lib/api/types";
+import type { HotelBase, RoomBase, RoomImage } from "@/lib/api/types";
 
 // Kiểu dùng chung với phía admin — khai báo ở lib/api/types.ts.
 export type { Amenity, Meta, Paginated, Province, RoomImage, RoomType, View, Ward } from "@/lib/api/types";
 
-// Room không có field diện tích (sizeSqm) hay "view" — backend không có cột
-// tương ứng / @JsonIgnore field views (xem ADMIN.md mục Giới hạn UX).
+// Room không có field diện tích (sizeSqm) — backend không có cột tương ứng.
 export interface Room extends RoomBase {
-  amenities: Amenity[];
-  roomType: RoomType | null;
   images: RoomImage[];
   // Chỉ có ở GET /rooms/{id} (backend tính lại mỗi lần gọi): cửa sổ đặt phòng
   // [minDate, maxDate] và các khoảng đã có booking trong cửa sổ đó. endDate là

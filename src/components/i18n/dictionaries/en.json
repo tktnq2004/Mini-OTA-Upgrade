@@ -585,7 +585,6 @@
     "admin.nav.users": "Users",
     "admin.nav.roles": "Roles",
     "admin.nav.hotels": "Hotels",
-    "admin.nav.roomTypes": "Room types",
     "admin.nav.amenities": "Amenities",
     "admin.nav.views": "Views",
     "admin.nav.discounts": "Discounts",
@@ -594,7 +593,6 @@
     "admin.overview.hotelsDesc": "Create, edit and delete hotels, and manage each hotel's rooms.",
     "admin.overview.usersDesc": "Paginated account list; assign real roles to users.",
     "admin.overview.rolesDesc": "Create roles and grant permissions — these decide what each account can actually do.",
-    "admin.overview.roomTypesDesc": "No list API on the backend yet — look up, edit or delete by ID.",
     "admin.overview.amenitiesDesc": "Amenities assigned to rooms (wifi, pool...).",
     "admin.overview.viewsDesc": "Views assigned to rooms (sea, city...).",
     "admin.overview.discountsDesc": "Create discounts (% or fixed amount) and assign them to rooms for a date range."

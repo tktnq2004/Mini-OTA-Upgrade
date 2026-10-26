@@ -8,7 +8,7 @@ import { discountsForRoom } from "@/lib/partner/roomDiscounts";
 import { todayIso } from "@/lib/searchFilters";
 import { usePartnerHotel } from "../../../_components/PartnerHotelProvider";
 import { useHotelDiscounts } from "../../../_lib/useHotelDiscounts";
-import { useRoomCatalog } from "../../../_lib/useRoomCatalog";
+import { useRoomTypes } from "../../../_lib/useRoomTypes";
 import styles from "../../../partner.module.css";
 import RoomForm from "../_components/RoomForm";
 
@@ -17,7 +17,7 @@ export default function PartnerRoomPage({ params }: { params: Promise<{ id: stri
     const roomId = Number(id);
     const { hasPermission } = useAdminAccess();
     const { hotel, error } = usePartnerHotel();
-    const { amenities, views } = useRoomCatalog();
+    const { roomTypes } = useRoomTypes(hotel?.id);
     const { discounts } = useHotelDiscounts();
     const [today] = useState(todayIso);
 
@@ -43,8 +43,7 @@ export default function PartnerRoomPage({ params }: { params: Promise<{ id: stri
             key={`${room.id}-${room.updatedAt ?? ""}`}
             hotelId={hotel.id}
             room={room}
-            amenities={amenities}
-            views={views}
+            roomTypes={roomTypes}
             discounts={discountsForRoom(discounts, room.id, today)}
             canEdit={hasPermission("ROOM_UPDATE_OWN")}
             canDelete={hasPermission("ROOM_DELETE_OWN")}

@@ -5,27 +5,29 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import controls from "@/styles/controls.module.css";
 import styles from "@/components/admin/adminPage.module.css";
-import RoomCard from "@/components/admin/RoomCard";
-import ChipPicker from "@/components/admin/ChipPicker";
 import ProvinceWardSelect from "@/components/admin/ProvinceWardSelect";
 import MediaGallery from "@/components/media/MediaGallery";
 import ThumbnailUploader from "@/components/media/ThumbnailUploader";
 import { AdminApiError } from "@/lib/admin/apiClient";
-import { createRoom, deleteHotel, getHotel, listAmenities, listViews, updateHotel } from "@/lib/admin/resources";
-import type { Amenity, Hotel, HotelInput, RoomInput, View } from "@/lib/admin/types";
+import {
+    createRoom,
+    deleteHotel,
+    getHotel,
+    listAmenities,
+    listRoomTypes,
+    listViews,
+    updateHotel,
+} from "@/lib/admin/resources";
+import type { Amenity, Hotel, HotelInput, RoomInput, RoomType, View } from "@/lib/admin/types";
+import RoomCard from "./_components/RoomCard";
+import RoomTypesSection from "./_components/RoomTypesSection";
 
 const EMPTY_ROOM: Omit<RoomInput, "hotelId"> = {
     name: "",
     price: 0,
-    capacity: 2,
-    allowSmoking: false,
-    allowPets: false,
-    cancellationPolicy: false,
     thumbnail: "",
     description: "",
     roomTypeId: 0,
-    amenities_id: [],
-    viewIds: [],
 };
 
 export default function HotelDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -34,6 +36,7 @@ export default function HotelDetailPage({ params }: { params: Promise<{ id: stri
     const router = useRouter();
 
     const [hotel, setHotel] = useState<Hotel | null>(null);
+    const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
     const [amenities, setAmenities] = useState<Amenity[]>([]);
     const [views, setViews] = useState<View[]>([]);
     const [loading, setLoading] = useState(true);
@@ -51,9 +54,10 @@ export default function HotelDetailPage({ params }: { params: Promise<{ id: stri
     const load = () => {
         setLoading(true);
         setLoadError("");
-        Promise.all([getHotel(hotelId), listAmenities(), listViews()])
-            .then(([h, a, v]) => {
+        Promise.all([getHotel(hotelId), listAmenities(), listViews(), listRoomTypes(hotelId)])
+            .then(([h, a, v, rt]) => {
                 setHotel(h);
+                setRoomTypes(rt);
                 setAmenities(a);
                 setViews(v);
                 setForm({
@@ -103,7 +107,7 @@ export default function HotelDetailPage({ params }: { params: Promise<{ id: stri
     const handleAddRoom = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!roomForm.name || !roomForm.price || !roomForm.thumbnail || !roomForm.description || !roomForm.roomTypeId) {
-            setRoomError("Vui lòng nhập đủ thông tin, kể cả room type ID");
+            setRoomError("Vui lòng nhập đủ thông tin và chọn loại phòng");
             return;
         }
         setRoomError("");
@@ -199,6 +203,15 @@ export default function HotelDetailPage({ params }: { params: Promise<{ id: stri
                     </Link>
                 </div>
 
+                <RoomTypesSection
+                    hotelId={hotelId}
+                    roomTypes={roomTypes}
+                    rooms={hotel.rooms ?? []}
+                    amenities={amenities}
+                    views={views}
+                    onChanged={load}
+                />
+
                 <div>
                     <div className={styles.pageHeader}>
                         <h2 className={styles.cardTitle} style={{ margin: 0 }}>
@@ -231,22 +244,19 @@ export default function HotelDetailPage({ params }: { params: Promise<{ id: stri
                                     />
                                 </div>
                                 <div className={controls.field}>
-                                    <label className={controls.label}>Sức chứa</label>
-                                    <input
-                                        className={controls.input}
-                                        type="number"
-                                        value={roomForm.capacity}
-                                        onChange={(e) => setRoomForm({ ...roomForm, capacity: Number(e.target.value) })}
-                                    />
-                                </div>
-                                <div className={controls.field}>
-                                    <label className={controls.label}>Room type ID</label>
-                                    <input
-                                        className={controls.input}
-                                        type="number"
+                                    <label className={controls.label}>Loại phòng</label>
+                                    <select
+                                        className={controls.select}
                                         value={roomForm.roomTypeId || ""}
                                         onChange={(e) => setRoomForm({ ...roomForm, roomTypeId: Number(e.target.value) })}
-                                    />
+                                    >
+                                        <option value="">{roomTypes.length ? "— Chọn loại phòng —" : "Chưa có loại phòng — tạo ở mục trên"}</option>
+                                        {roomTypes.map((t) => (
+                                            <option key={t.id} value={t.id}>
+                                                {t.roomTypeName} · tối đa {t.capacity} khách
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <div className={`${controls.field} ${styles.formGridFull}`}>
                                     <label className={controls.label}>URL ảnh thumbnail</label>
@@ -264,60 +274,6 @@ export default function HotelDetailPage({ params }: { params: Promise<{ id: stri
                                         onChange={(e) => setRoomForm({ ...roomForm, description: e.target.value })}
                                     />
                                 </div>
-                                <label className={styles.checkRow}>
-                                    <input
-                                        type="checkbox"
-                                        checked={roomForm.allowSmoking}
-                                        onChange={(e) => setRoomForm({ ...roomForm, allowSmoking: e.target.checked })}
-                                    />
-                                    Cho phép hút thuốc
-                                </label>
-                                <label className={styles.checkRow}>
-                                    <input
-                                        type="checkbox"
-                                        checked={roomForm.allowPets}
-                                        onChange={(e) => setRoomForm({ ...roomForm, allowPets: e.target.checked })}
-                                    />
-                                    Cho phép thú cưng
-                                </label>
-                                <label className={styles.checkRow}>
-                                    <input
-                                        type="checkbox"
-                                        checked={roomForm.cancellationPolicy}
-                                        onChange={(e) => setRoomForm({ ...roomForm, cancellationPolicy: e.target.checked })}
-                                    />
-                                    Có chính sách huỷ phòng
-                                </label>
-                                <div className={`${controls.field} ${styles.formGridFull}`}>
-                                    <label className={controls.label}>Tiện nghi</label>
-                                    <ChipPicker
-                                        items={amenities}
-                                        selectedIds={roomForm.amenities_id}
-                                        onToggle={(id) =>
-                                            setRoomForm({
-                                                ...roomForm,
-                                                amenities_id: roomForm.amenities_id.includes(id)
-                                                    ? roomForm.amenities_id.filter((x) => x !== id)
-                                                    : [...roomForm.amenities_id, id],
-                                            })
-                                        }
-                                    />
-                                </div>
-                                <div className={`${controls.field} ${styles.formGridFull}`}>
-                                    <label className={controls.label}>Hướng nhìn</label>
-                                    <ChipPicker
-                                        items={views}
-                                        selectedIds={roomForm.viewIds}
-                                        onToggle={(id) =>
-                                            setRoomForm({
-                                                ...roomForm,
-                                                viewIds: roomForm.viewIds.includes(id)
-                                                    ? roomForm.viewIds.filter((x) => x !== id)
-                                                    : [...roomForm.viewIds, id],
-                                            })
-                                        }
-                                    />
-                                </div>
                             </div>
                             {roomError && <p className={controls.error}>{roomError}</p>}
                             <div className={styles.formActions}>
@@ -330,7 +286,7 @@ export default function HotelDetailPage({ params }: { params: Promise<{ id: stri
 
                     <div className={styles.stack}>
                         {(hotel.rooms ?? []).map((room) => (
-                            <RoomCard key={room.id} room={room} allAmenities={amenities} allViews={views} onChanged={load} />
+                            <RoomCard key={room.id} room={room} roomTypes={roomTypes} onChanged={load} />
                         ))}
                         {(hotel.rooms?.length ?? 0) === 0 && <p className={styles.emptyState}>Chưa có phòng nào</p>}
                     </div>

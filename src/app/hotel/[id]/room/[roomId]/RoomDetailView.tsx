@@ -19,6 +19,7 @@ import {
 import type { Hotel, Room } from "@/lib/hotels/types";
 import type { MediaAsset } from "@/lib/media/types";
 import { formatVnd } from "@/lib/format";
+import { roomAmenities, roomCapacity } from "@/lib/hotels/roomType";
 import { addDaysIso, nightsBetween, parseFilters, todayIso } from "@/lib/searchFilters";
 import { nightReduction, quoteRoom } from "@/lib/booking/discount";
 import DiscountTag from "@/components/DiscountTag/DiscountTag";
@@ -69,7 +70,7 @@ export default function RoomDetailView({ hotel, room, thumbnail, panorama, roomT
     const [checkout, setCheckout] = useState<string | null>(() =>
         isRangeBookable(initial.checkin, initial.checkout, availability) ? initial.checkout : null
     );
-    const [guests, setGuests] = useState(() => Math.min(initial.guests, room.capacity));
+    const [guests, setGuests] = useState(() => Math.min(initial.guests, roomCapacity(room)));
     const [activePhoto, setActivePhoto] = useState(0);
     const [showPanorama, setShowPanorama] = useState(false);
 
@@ -193,7 +194,7 @@ export default function RoomDetailView({ hotel, room, thumbnail, panorama, roomT
                         </p>
                         <div className={styles.metaRow}>
                             <span className={styles.metaItem}>
-                                <UsersIcon size={15} /> {t("room.maxGuests", { count: room.capacity })}
+                                <UsersIcon size={15} /> {t("room.maxGuests", { count: roomCapacity(room) })}
                             </span>
                         </div>
                     </div>
@@ -206,7 +207,7 @@ export default function RoomDetailView({ hotel, room, thumbnail, panorama, roomT
                     <section className={styles.section}>
                         <h2>{t("room.detail.amenitiesTitle")}</h2>
                         <div className={styles.amenitiesGrid}>
-                            {room.amenities.map((a) => (
+                            {roomAmenities(room).map((a) => (
                                 <span key={a.id} className={styles.amenityItem}>
                                     <CheckIcon size={13} weight="bold" />
                                     {a.name}
@@ -280,7 +281,7 @@ export default function RoomDetailView({ hotel, room, thumbnail, panorama, roomT
                                 maxDate={availability.maxDate}
                             />
                         </div>
-                        <GuestsField value={guests} onChange={setGuests} max={room.capacity} />
+                        <GuestsField value={guests} onChange={setGuests} max={roomCapacity(room)} />
 
                         {canBook && quote.discountAmount > 0 && (
                             <div className={styles.discountLines}>

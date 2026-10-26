@@ -1,4 +1,4 @@
-import type { Amenity, HotelBase, LegacyRole, RoomBase, RoomImage, View } from "@/lib/api/types";
+import type { HotelBase, LegacyRole, RoomBase, RoomImage } from "@/lib/api/types";
 
 // Kiểu dùng chung với phía khách — khai báo ở lib/api/types.ts.
 export type {
@@ -40,44 +40,43 @@ export interface HotelInput {
   wardId: string;
 }
 
-// Room trả về từ API admin KHÔNG chứa hotel/roomType/views (@JsonIgnore bên
-// Java) — dù 3 field đó là bắt buộc lúc tạo. Không có cách nào đọc lại từ
-// API, phải tự nhớ hoặc tra qua hotel.rooms.
+// Room trả về từ API admin không chứa hotel (@JsonIgnore bên Java) — id
+// khách sạn lấy từ context gọi hoặc roomType.hotelId.
 export interface Room extends RoomBase {
   createdAt?: string;
   updatedAt?: string;
   images?: RoomImage[];
-  amenities?: Amenity[];
-  // Hướng nhìn đang gắn — backend mới trả field này (trước đây @JsonIgnore).
-  views?: View[];
 }
 
+// Body POST /rooms. roomTypeId phải là loại phòng của chính hotelId (BE trả 400 nếu khác).
 export interface RoomInput {
   hotelId: number;
+  roomTypeId: number;
   name: string;
   price: number;
-  capacity: number;
-  allowSmoking: boolean;
-  allowPets: boolean;
-  cancellationPolicy: boolean;
   thumbnail: string;
   description: string;
-  roomTypeId: number;
-  amenities_id: number[];
-  viewIds: number[];
 }
 
+// Body PUT /rooms. roomTypeId bỏ trống = giữ loại hiện tại; thumbnail bỏ trống = giữ ảnh cũ.
 export interface RoomUpdateInput {
   roomId: number;
+  roomTypeId?: number;
   name: string;
   price: number;
+  thumbnail?: string;
+  description: string;
+}
+
+// Body POST /hotels/{hotelId}/room-types và PUT /room-types/{id}.
+// amenityIds/viewIds là danh sách ĐẦY ĐỦ (BE thay thế, không cộng dồn).
+export interface RoomTypeInput {
+  roomTypeName: string;
   capacity: number;
-  thumbnail: string;
   allowSmoking: boolean;
   allowPets: boolean;
   cancellationPolicy: boolean;
-  description: string;
-  amenities_id: number[];
+  amenityIds: number[];
   viewIds: number[];
 }
 

@@ -4,7 +4,7 @@ import { useLanguage } from "@/components/i18n/LanguageProvider";
 import styles from "./Faq.module.css";
 
 // Nội dung bám đúng tính năng đang có: thanh toán thẻ qua Stripe, chính sách huỷ theo từng phòng
-// (Room.cancellationPolicy), đăng nhập OTP, "Đặt phòng của tôi", tour 360°, danh sách yêu thích.
+// (RoomType.cancellationPolicy), đăng nhập OTP, "Đặt phòng của tôi", tour 360°, danh sách yêu thích.
 const QUESTIONS = ["payment", "cancel", "bookings", "otp", "tour", "wishlist"] as const;
 
 // Câu hỏi thường gặp — accordion bằng <details> gốc của trình duyệt (bàn phím/đọc màn hình sẵn).

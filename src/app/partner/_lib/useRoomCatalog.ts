@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { listAmenities, listViews } from "@/lib/admin/resources";
 import type { Amenity, View } from "@/lib/admin/types";
 
-// Danh mục tiện nghi + hướng nhìn dùng chung mọi hotel (admin quản lý) — để chọn cho phòng.
+// Danh mục tiện nghi + hướng nhìn dùng chung mọi hotel (admin quản lý) — để chọn cho loại phòng.
 export function useRoomCatalog() {
     const [amenities, setAmenities] = useState<Amenity[]>([]);
     const [views, setViews] = useState<View[]>([]);

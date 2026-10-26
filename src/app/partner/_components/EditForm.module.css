@@ -13,7 +13,9 @@
     gap: 8px;
 }
 
-/* 2 cột: chính (thông tin, giá, tiện nghi) rộng gấp đôi cột phụ (ảnh, chính sách). */
+/* Layout chung của trang sửa phòng / loại phòng: 2 cột (chính rộng gấp đôi cột phụ), thanh lưu dính đáy. */
+
+/* 2 cột: chính rộng gấp đôi cột phụ. */
 .columns {
     display: flex;
     flex-wrap: wrap;
@@ -153,6 +155,24 @@
 .tile input,
 .tileOn input {
     accent-color: var(--color-accent);
+}
+
+/* Tóm tắt chỉ đọc (vd. thông tin loại phòng ở trang sửa phòng): nhãn trái, giá trị phải. */
+.summary {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px 14px;
+    margin: 0;
+    font-size: 13px;
+}
+
+.summary dt {
+    color: var(--color-text-muted);
+}
+
+.summary dd {
+    margin: 0;
+    color: var(--color-text);
 }
 
 /* Hàng chính sách: chữ bên trái, công tắc bên phải. */
