@@ -8,11 +8,9 @@ export const bookingCode = (b: Pick<PartnerBooking, "bookingId">) => `MO-${b.boo
 export const bookingNights = (b: Pick<PartnerBooking, "checkIn" | "checkOut">) =>
   Math.max(1, nightsBetween(b.checkIn, b.checkOut));
 
-// Backend lưu giá 1 đêm của cả đơn (chưa nhân số đêm) — tổng = Σ giá/đêm từng phòng × số đêm.
-export function bookingTotal(b: Pick<PartnerBooking, "checkIn" | "checkOut" | "rooms" | "totalAmount">): number {
-  const perNight = b.rooms.length > 0 ? b.rooms.reduce((sum, r) => sum + r.pricePerNight, 0) : b.totalAmount;
-  return perNight * bookingNights(b);
-}
+// Backend đã lưu tổng tiền CẢ kỳ ở (đã nhân số đêm) — dùng thẳng, không tự tính
+// lại từ giá/đêm để luôn khớp đúng số khách phải trả.
+export const bookingTotal = (b: Pick<PartnerBooking, "totalAmount">) => b.totalAmount;
 
 const CANCELLED: BookingPaymentStatus[] = ["Cancelled", "REFUND_PENDING", "REFUNDED"];
 export const isCancelled = (b: Pick<PartnerBooking, "paymentStatus">) => CANCELLED.includes(b.paymentStatus);

@@ -10,7 +10,7 @@ const base: PartnerBooking = {
     paymentProvider: "STRIPE",
     expirationTime: null,
     bookingDate: "2026-10-20T10:00:00",
-    totalAmount: 1_500_000,
+    totalAmount: 4_500_000,
     rooms: [
         { roomId: 1, roomName: "Deluxe", pricePerNight: 1_000_000 },
         { roomId: 2, roomName: "Twin", pricePerNight: 500_000 },
@@ -21,9 +21,12 @@ const base: PartnerBooking = {
 };
 
 describe("bookingTotal", () => {
-    it("cộng giá/đêm các phòng rồi nhân số đêm", () => expect(bookingTotal(base)).toBe(4_500_000));
-    it("không có danh sách phòng -> lùi về totalAmount × số đêm", () =>
-        expect(bookingTotal({ ...base, rooms: [] })).toBe(4_500_000));
+    it("dùng thẳng totalAmount backend trả, không nhân số đêm lần nữa", () =>
+        expect(bookingTotal(base)).toBe(4_500_000));
+    it("không tự cộng lại giá/đêm các phòng (backend có thể đã trừ khuyến mãi)", () => {
+        const discounted: PartnerBooking = { ...base, totalAmount: 4_000_000 };
+        expect(bookingTotal(discounted)).toBe(4_000_000);
+    });
 });
 
 describe("stageOf", () => {

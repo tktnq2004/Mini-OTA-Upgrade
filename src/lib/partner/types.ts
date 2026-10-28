@@ -16,7 +16,7 @@ export interface PartnerBooking {
   // Hạn giữ chỗ khi chưa thanh toán (LocalDateTime, không có múi giờ).
   expirationTime: string | null;
   bookingDate: string | null;
-  // Giá 1 đêm của cả đơn (backend chưa nhân số đêm) — dùng bookingTotal() để có tổng.
+  // Tổng tiền CẢ kỳ ở (backend đã nhân số đêm).
   totalAmount: number;
   rooms: PartnerBookingRoom[];
   guestFullName: string | null;
