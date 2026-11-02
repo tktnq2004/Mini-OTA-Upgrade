@@ -30,8 +30,6 @@ export const getHotelThumbnailServer = async (hotelId: number): Promise<string |
 export const getRoomThumbnailServer = async (roomId: number): Promise<string | undefined> =>
   (await listMediaServer("ROOM", roomId, "THUMBNAIL"))[0]?.url;
 
-export const listRoomPanoramaServer = (roomId: number) => listMediaServer("ROOM", roomId, "PANORAMA");
-
 // Lấy ảnh thumbnail cho NHIỀU room cùng lúc — trang chi tiết hotel liệt kê
 // nhiều RoomCard, trang chi tiết room có mục "phòng khác", đều chỉ cần 1 ảnh
 // đại diện mỗi room (không cần panorama). Chạy song song, lỗi ở 1 room

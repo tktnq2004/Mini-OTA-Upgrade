@@ -68,12 +68,24 @@ function HotspotMarker({ hotspot }: { hotspot: ProjectedHotspot }) {
         >
             {isPeeking && canPeek && (
                 <div className={styles.peekCard}>
+                    {/* Viewer mở mọi cảnh ở yaw 0 = mép ảnh equirect: ghép 2 mép ảnh để thẻ
+                        xem trước đúng hướng khách sẽ thấy khi vào cảnh đó. crossOrigin: bấm
+                        hotspot thì three.js nạp lại đúng ảnh này bằng CORS (xem ImageWithFallback). */}
                     <ImageWithFallback
                         src={hotspot.previewImageUrl as string}
                         alt={hotspot.previewLabel ?? hotspot.name}
-                        className={styles.peekImage}
+                        className={styles.peekImageEnd}
+                        crossOrigin="anonymous"
                         fallbackClassName={styles.peekImageFallback}
                         fallback={<ArrowRightIcon size={16} weight="light" />}
+                    />
+                    <ImageWithFallback
+                        src={hotspot.previewImageUrl as string}
+                        alt=""
+                        className={styles.peekImageStart}
+                        crossOrigin="anonymous"
+                        fallbackClassName={styles.peekImageFallback}
+                        fallback={null}
                     />
                 </div>
             )}

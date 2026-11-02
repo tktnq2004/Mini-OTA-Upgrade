@@ -2,7 +2,8 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getHotelServer, getRoomServer } from "@/lib/hotels/server";
-import { getRoomThumbnailServer, getRoomThumbnailsByIds, listRoomPanoramaServer } from "@/lib/media/server";
+import { getRoomThumbnailServer, getRoomThumbnailsByIds } from "@/lib/media/server";
+import { getTourServer } from "@/lib/tour/server";
 import RoomDetailView from "./RoomDetailView";
 
 interface RoomPageProps {
@@ -30,9 +31,9 @@ export default async function RoomPage({ params }: RoomPageProps) {
     // Ảnh thật (admin upload qua R2) ưu tiên hơn room.thumbnail/images cũ —
     // rỗng thì RoomDetailView tự rơi về gallery cũ.
     const otherRoomIds = (hotel.rooms ?? []).filter((r) => r.id !== room.id).map((r) => r.id);
-    const [thumbnail, panorama, otherRoomThumbnails] = await Promise.all([
+    const [thumbnail, tour, otherRoomThumbnails] = await Promise.all([
         getRoomThumbnailServer(room.id),
-        listRoomPanoramaServer(room.id),
+        getTourServer(hotel.id, room.id),
         getRoomThumbnailsByIds(otherRoomIds),
     ]);
 
@@ -42,7 +43,7 @@ export default async function RoomPage({ params }: RoomPageProps) {
                 hotel={hotel}
                 room={room}
                 thumbnail={thumbnail}
-                panorama={panorama}
+                tour={tour}
                 roomThumbnails={otherRoomThumbnails}
             />
         </Suspense>

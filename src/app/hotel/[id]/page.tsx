@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getHotelServer } from "@/lib/hotels/server";
 import { getHotelThumbnailServer, getRoomThumbnailsByIds } from "@/lib/media/server";
+import { getTourServer } from "@/lib/tour/server";
 import HotelDetail from "./HotelDetail";
 
 interface HotelPageProps {
@@ -39,14 +40,15 @@ export default async function HotelPage({ params }: HotelPageProps) {
     // xem HotelDetail/RoomCard: rơi về ảnh cũ nếu hotel/room này chưa có ảnh
     // nào trong media_assets.
     const roomIds = (hotel.rooms ?? []).map((r) => r.id);
-    const [coverImage, roomThumbnails] = await Promise.all([
+    const [coverImage, roomThumbnails, tour] = await Promise.all([
         getHotelThumbnailServer(hotel.id),
         getRoomThumbnailsByIds(roomIds),
+        getTourServer(hotel.id),
     ]);
 
     return (
         <Suspense fallback={<div style={{ minHeight: "100vh", background: "var(--color-bg)" }} />}>
-            <HotelDetail hotel={hotel} coverImage={coverImage} roomThumbnails={roomThumbnails} />
+            <HotelDetail hotel={hotel} coverImage={coverImage} roomThumbnails={roomThumbnails} tour={tour} />
         </Suspense>
     );
 }

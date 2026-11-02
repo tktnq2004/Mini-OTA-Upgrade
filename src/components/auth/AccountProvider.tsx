@@ -60,12 +60,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     const [ready, setReady] = useState(false);
 
     useEffect(() => {
-        // Access token là cookie httpOnly (JS không đọc được) — phải hỏi
-        // ngược server đang đăng nhập là ai qua route riêng, giống cách
-        // ThemeProvider/WishlistProvider tự hydrate từ 1 nguồn ngoài React.
-        // Chưa đăng nhập thì thử nhận phiên Google login (backend để lại
-        // cookie refresh-token-Mini rồi redirect về đây) — xem
-        // app/api/v1/account/oauth-session/route.ts.
+        
         const loadUser = async (): Promise<SessionUser | null> => {
             const data = await fetch("/api/account/session").then((res) => res.json());
             if (data?.user) return data.user;

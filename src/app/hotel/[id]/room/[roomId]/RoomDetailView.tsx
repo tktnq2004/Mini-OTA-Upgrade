@@ -17,7 +17,7 @@ import {
     ArrowsClockwiseIcon,
 } from "@phosphor-icons/react";
 import type { Hotel, Room } from "@/lib/hotels/types";
-import type { MediaAsset } from "@/lib/media/types";
+import type { Tour } from "@/lib/tour/types";
 import { formatVnd } from "@/lib/format";
 import { roomAmenities, roomCapacity } from "@/lib/hotels/roomType";
 import { addDaysIso, nightsBetween, parseFilters, todayIso } from "@/lib/searchFilters";
@@ -30,7 +30,7 @@ import GuestsField from "@/components/GuestsField/GuestsField";
 import DateRangeField from "@/components/DateRangePicker/DateRangeField";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { useWishlist } from "@/components/wishlist/WishlistProvider";
-import { getPanoramaTourForHotel } from "@/components/panorama/panoramaTours.data";
+import { usePanoramaTour } from "@/components/panorama/usePanoramaTour";
 import PanoramaViewerModal from "@/components/panorama/PanoramaViewerModal";
 import RoomCard from "../../_components/RoomCard";
 import controls from "@/styles/controls.module.css";
@@ -39,16 +39,17 @@ import styles from "./RoomDetail.module.css";
 interface RoomDetailViewProps {
     hotel: Hotel;
     room: Room;
-    // Ảnh thumbnail + panorama THẬT của CHÍNH room này từ module media (R2)
-    // — cả 2 đều undefined/rỗng thì rơi về room.thumbnail/images cũ (xem
-    // gallery bên dưới).
+    // Ảnh thumbnail THẬT của CHÍNH room này từ module media (R2) — undefined
+    // thì rơi về room.thumbnail/images cũ (xem gallery bên dưới).
     thumbnail?: string;
-    panorama: MediaAsset[];
+    // Tour 360° thật của khách sạn, mở ở scene đầu của phòng này; null = chưa có
+    // (xem usePanoramaTour).
+    tour: Tour | null;
     // Ảnh thumbnail của các room khác (mục "phòng khác"), keyed theo room id.
     roomThumbnails: Record<number, string | undefined>;
 }
 
-export default function RoomDetailView({ hotel, room, thumbnail, panorama, roomThumbnails }: RoomDetailViewProps) {
+export default function RoomDetailView({ hotel, room, thumbnail, tour, roomThumbnails }: RoomDetailViewProps) {
     const { t } = useLanguage();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -74,19 +75,17 @@ export default function RoomDetailView({ hotel, room, thumbnail, panorama, roomT
     const [activePhoto, setActivePhoto] = useState(0);
     const [showPanorama, setShowPanorama] = useState(false);
 
-    // Chỉ 2 khách sạn demo có ảnh 360° thật (không thể sinh hàng loạt như ảnh
-    // 2D mock khác) nên nút "Xem Panorama 360°" chỉ hiện đúng ở đó.
-    const panoramaTour = getPanoramaTourForHotel(hotel.id);
+    // Nút "Xem Panorama 360°" chỉ hiện khi khách sạn có tour — giống HotelDetail.
+    const { panoramaTour, initialSceneId } = usePanoramaTour(hotel.id, tour);
 
-    // Ưu tiên ảnh thật từ module media (R2, do admin upload): thumbnail trước
-    // rồi tới các ảnh panorama (panorama vẫn xem được như ảnh thường trong
-    // gallery 2D này — xem 360° tương tác là tính năng riêng, xem
-    // panoramaTour bên dưới). Chỉ rơi về room.thumbnail/images cũ khi room
-    // này CHƯA có thumbnail nào trong media_assets.
+    // Ưu tiên thumbnail thật từ module media (R2, do admin upload). Ảnh panorama
+    // không đưa vào gallery 2D: ảnh equirect xem phẳng bị méo, chỉ xem qua viewer
+    // 360° ở trên. Chỉ rơi về room.thumbnail/images cũ khi room này CHƯA có
+    // thumbnail nào trong media_assets.
     const gallery = useMemo(() => {
-        if (thumbnail) return [thumbnail, ...panorama.map((p) => p.url)];
+        if (thumbnail) return [thumbnail];
         return room.images.length > 0 ? [room.thumbnail, ...room.images.map((img) => img.image)] : [room.thumbnail];
-    }, [thumbnail, panorama, room]);
+    }, [thumbnail, room]);
     const otherRooms = useMemo(
         () => (hotel.rooms ?? []).filter((r) => r.id !== room.id).slice(0, 4),
         [hotel.rooms, room.id]
@@ -323,6 +322,7 @@ export default function RoomDetailView({ hotel, room, thumbnail, panorama, roomT
                 <PanoramaViewerModal
                     tour={panoramaTour}
                     hotelName={hotel.name}
+                    initialSceneId={initialSceneId}
                     onClose={() => setShowPanorama(false)}
                 />
             )}

@@ -127,6 +127,7 @@
 }
 
 .peekCard {
+    display: flex;
     position: absolute;
     bottom: calc(100% + 18px);
     width: 100px;
@@ -138,11 +139,20 @@
     pointer-events: none;
 }
 
-.peekImage {
-    width: 100%;
+.peekImageEnd,
+.peekImageStart {
+    width: 50%;
     height: 100%;
     object-fit: cover;
     display: block;
+}
+
+.peekImageEnd {
+    object-position: right center;
+}
+
+.peekImageStart {
+    object-position: left center;
 }
 
 .peekImageFallback {
