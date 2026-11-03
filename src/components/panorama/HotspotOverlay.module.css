@@ -126,6 +126,18 @@
     text-overflow: ellipsis;
 }
 
+/* Đích sau lưng: chỉ hiện vòng tròn cho đỡ rối, nhãn hiện khi trỏ vào. Giữ chỗ trong bố cục
+   để vòng tròn không nhảy khi đi qua ngưỡng này. */
+.labelChipRear {
+    composes: labelChip;
+    visibility: hidden;
+}
+
+.markerButton:hover .labelChipRear,
+.markerButton:focus-visible .labelChipRear {
+    visibility: visible;
+}
+
 .peekCard {
     display: flex;
     position: absolute;

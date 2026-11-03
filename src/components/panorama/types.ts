@@ -7,6 +7,8 @@
 // Room (phòng khách sạn để đặt) đã có sẵn ở src/data/rooms.data.ts — hai khái
 // niệm hoàn toàn khác nhau dù trùng chữ ở bản gốc.
 
+import type { PlacedNavArrow } from "@/lib/tour/navArrow";
+
 export interface PanoramaHotspot {
     id: string;
     type: "INFO" | "NAVIGATION";
@@ -21,6 +23,8 @@ export interface PanoramaScene {
     id: string;
     name: string;
     imageUrl: string;
+    /** Phương vị thật (độ, 0 = Bắc) của yaw 0 trong ảnh này — để giữ hướng nhìn khi đổi cảnh. */
+    heading?: number;
     hotspots: PanoramaHotspot[];
 }
 
@@ -44,8 +48,18 @@ export interface HotspotItem {
     previewLabel?: string;
 }
 
+/** Góc nhìn camera (độ). */
+export interface PanoramaView {
+    yaw: number;
+    pitch: number;
+    fov: number;
+}
+
+
 export interface ProjectedHotspot extends HotspotItem {
     screenX: number;
     screenY: number;
     visible: boolean;
+    /** Chỉ có ở hotspot chuyển cảnh của viewer: vòng tròn chạy quanh vành, mũi tên chỉ về đích. */
+    arrow?: PlacedNavArrow;
 }

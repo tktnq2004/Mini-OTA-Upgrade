@@ -17,6 +17,7 @@ export function toPanoramaTour(tour: Tour, language: Language): PanoramaTour {
       id: scene.id,
       name: localized(language, scene.nameVi, scene.nameEn),
       imageUrl: scene.imageUrl,
+      heading: scene.heading ?? undefined,
       hotspots: scene.hotspots.map((hs) => ({
         id: hs.id,
         type: hs.type,

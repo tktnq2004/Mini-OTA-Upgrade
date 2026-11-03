@@ -6,7 +6,7 @@ import { normalizeYaw, pickToYawPitch } from "@/lib/tour/geometry";
 import { usePanoramaScene } from "./usePanoramaScene";
 import { DEFAULT_FOV, MAX_FOV, MIN_FOV } from "./usePanoramaControls";
 import HotspotOverlay from "./HotspotOverlay";
-import type { HotspotItem } from "./types";
+import type { HotspotItem, PanoramaView } from "./types";
 import styles from "./PanoramaCanvas.module.css";
 
 // Kéo quá ngưỡng này (px) giữa pointerdown và pointerup thì coi là xoay góc
@@ -18,7 +18,7 @@ export interface PanoramaViewHandle {
     /** Cộng `deltaFov` độ vào FOV (âm = phóng to). Tự chặn trong khoảng cho phép. */
     zoom: (deltaFov: number) => void;
     reset: () => void;
-    getView: () => { yaw: number; pitch: number; fov: number };
+    getView: () => PanoramaView;
 }
 
 export interface PanoramaPoint {
@@ -30,6 +30,10 @@ interface PanoramaCanvasProps {
     imageUrl: string;
     hotspots: HotspotItem[];
     onReady?: () => void;
+    /** Góc nhìn lúc mở ảnh (viewer giữ hướng khi đổi cảnh); bỏ trống = yaw 0. */
+    initialView?: PanoramaView;
+    /** Viewer: vòng tròn chuyển cảnh chạy quanh vành, mũi tên xoay về đích. Editor cần marker đúng điểm để kéo. */
+    navArrows?: boolean;
     /** Editor: bấm (không kéo) lên ảnh -> trả yaw/pitch của điểm đó trên mặt cầu. */
     onPick?: (yaw: number, pitch: number) => void;
     /** Editor: xoay camera tới góc này; đổi `key` để xoay lại đúng cùng góc lần nữa. */
@@ -54,6 +58,8 @@ export default function PanoramaCanvas({
     imageUrl,
     hotspots,
     onReady,
+    initialView,
+    navArrows,
     onPick,
     lookAt,
     crosshair,
@@ -64,6 +70,8 @@ export default function PanoramaCanvas({
     const { containerRef, projectedHotspots, loadError, isReady, lonRef, latRef, fovRef } = usePanoramaScene({
         imageUrl,
         hotspots,
+        initialView,
+        navArrows,
     });
 
     useImperativeHandle(
@@ -229,7 +237,7 @@ export default function PanoramaCanvas({
             style={crosshair ? { cursor: "crosshair" } : undefined}
             data-editing={onMoveHotspot ? "" : undefined}
         >
-            <HotspotOverlay hotspots={projectedHotspots} />
+            <HotspotOverlay hotspots={projectedHotspots} navArrows={navArrows} />
 
             {loadError && (
                 <div className={styles.errorOverlay}>

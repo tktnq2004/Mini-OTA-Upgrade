@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import type { PanoramaView } from "./types";
 
 const LOOK_SENSITIVITY = 0.25;
 const MAX_LATITUDE = 85;
@@ -28,10 +29,10 @@ function distance(a: PointerPos, b: PointerPos): number {
 // Dùng ref (không phải state) cho lon/lat/fov vì các giá trị này được đọc lại
 // mỗi frame trong vòng lặp render của usePanoramaScene — nếu để state sẽ gây
 // re-render 60 lần/giây không cần thiết.
-export function usePanoramaControls(containerRef: React.RefObject<HTMLElement | null>) {
-    const lonRef = useRef(0);
-    const latRef = useRef(0);
-    const fovRef = useRef(DEFAULT_FOV);
+export function usePanoramaControls(containerRef: React.RefObject<HTMLElement | null>, initialView?: PanoramaView) {
+    const lonRef = useRef(initialView?.yaw ?? 0);
+    const latRef = useRef(initialView?.pitch ?? 0);
+    const fovRef = useRef(initialView?.fov ?? DEFAULT_FOV);
 
     const pointersRef = useRef(new Map<number, PointerPos>());
     const pinchRef = useRef<{ startDistance: number; startFov: number } | null>(null);

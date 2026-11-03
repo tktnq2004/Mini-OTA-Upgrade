@@ -3,17 +3,18 @@
 import { useEffect, useState } from "react";
 import controls from "@/styles/controls.module.css";
 import styles from "@/components/admin/adminPage.module.css";
+import HotelPicker from "@/components/admin/HotelPicker";
 import { AdminApiError } from "@/lib/admin/apiClient";
 import {
     createUser,
     deleteUser,
-    listHotels,
+    listHotelsByIds,
     listRoles,
     listUsers,
     sendUserPasswordResetLink,
     updateUser,
 } from "@/lib/admin/resources";
-import type { AppUser, Hotel, Role, UserInput } from "@/lib/admin/types";
+import type { AppUser, Role, UserInput } from "@/lib/admin/types";
 
 const EMPTY_FORM: UserInput = { fullName: "", username: "", email: "", password: "", phone: "", hotelId: null, roleId: null };
 
@@ -36,11 +37,9 @@ export default function UsersPage() {
     const [saving, setSaving] = useState(false);
 
     const [roles, setRoles] = useState<Role[]>([]);
-    // Danh sách khách sạn cho dropdown "Khách sạn phụ trách" — lấy 1 trang
-    // lớn (size:100) vì listHotels vốn phân trang mà dropdown cần thấy hết;
-    // đủ dùng cho quy mô demo hiện tại, cần đổi cách lấy nếu số khách sạn
-    // vượt quá 100.
-    const [hotels, setHotels] = useState<Hotel[]>([]);
+    // Tên khách sạn theo id, chỉ cho những user đang hiện ở bảng. Ô chọn khách sạn của
+    // form tự tìm + tải dần (HotelPicker), không dùng chung danh sách này.
+    const [hotelNames, setHotelNames] = useState<Record<number, string>>({});
 
     // Quyền thứ 2 để reset mật khẩu (bên cạnh gõ thẳng mật khẩu mới vào field
     // password ở form) — gửi link đổi mật khẩu tới đúng email đang sửa, user
@@ -53,9 +52,6 @@ export default function UsersPage() {
         listRoles()
             .then(setRoles)
             .catch(() => setRoles([]));
-        listHotels({ size: 100 })
-            .then((res) => setHotels(res.result))
-            .catch(() => setHotels([]));
     }, []);
 
     const load = () => {
@@ -70,6 +66,20 @@ export default function UsersPage() {
     };
 
     useEffect(load, [page]); // eslint-disable-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps -- tải dữ liệu từ API (external system); query chỉ áp khi bấm Tìm (handleSearchSubmit), không tải lại mỗi lần gõ
+
+    // Tra tên khách sạn của các dòng đang hiện, chỉ những id chưa biết.
+    useEffect(() => {
+        const missing = [...new Set(users.map((u) => u.hotelId))].filter(
+            (id): id is number => Boolean(id) && !(id! in hotelNames)
+        );
+        if (missing.length === 0) return;
+        listHotelsByIds(missing)
+            .then((res) =>
+                setHotelNames((prev) => ({ ...prev, ...Object.fromEntries(res.result.map((h) => [h.id, h.name])) }))
+            )
+            .catch(() => undefined);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ chạy khi danh sách user đổi
+    }, [users]);
 
     const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -178,7 +188,11 @@ export default function UsersPage() {
     };
 
     const hotelName = (hotelId?: number | null) =>
-        hotelId ? (hotels.find((h) => h.id === hotelId)?.name ?? `#${hotelId}`) : "—";
+        hotelId ? (hotelNames[hotelId] ?? `#${hotelId}`) : "—";
+
+    // Hotel hiện tại của user đang sửa, để ô chọn nói rõ "giữ nguyên" là giữ hotel nào.
+    const editingHotelId = users.find((u) => u.id === editingId)?.hotelId;
+    const keepHotelLabel = editingHotelId ? `— Giữ nguyên: ${hotelName(editingHotelId)} —` : "— Giữ nguyên —";
 
     const handleSendResetLink = async () => {
         setResetLinkStatus("sending");
@@ -288,25 +302,20 @@ export default function UsersPage() {
                             )}
                         </div>
                         <div className={controls.field}>
-                            <label className={controls.label}>Khách sạn phụ trách</label>
+                            <label className={controls.label} htmlFor="user-hotel">
+                                Khách sạn phụ trách
+                            </label>
                             {/* hotelId = null -> customer (mặc định). hotelId = 0 (hotel "Hệ
                                 thống" — sentinel chỉ dành cho admin gốc do StartupRunner sinh ra)
                                 không xuất hiện ở đây vì backend đã lọc khỏi danh sách `hotels`
-                                lẫn chặn gán qua API này. Lúc SỬA, để nguyên "— Giữ nguyên —"
-                                nghĩa là GIỮ NGUYÊN hotel hiện tại (chưa hỗ trợ bỏ gán về customer
-                                qua form này). */}
-                            <select
-                                className={controls.select}
-                                value={form.hotelId ?? ""}
-                                onChange={(e) => setForm({ ...form, hotelId: e.target.value ? Number(e.target.value) : null })}
-                            >
-                                <option value="">{isEditingUser ? "— Giữ nguyên —" : "— Không gán khách sạn (customer) —"}</option>
-                                {hotels.map((h) => (
-                                    <option key={h.id} value={h.id}>
-                                        {h.name}
-                                    </option>
-                                ))}
-                            </select>
+                                lẫn chặn gán qua API này. Lúc SỬA, để nguyên "Giữ nguyên" nghĩa là
+                                GIỮ NGUYÊN hotel hiện tại (chưa hỗ trợ bỏ gán về customer qua form này). */}
+                            <HotelPicker
+                                id="user-hotel"
+                                value={form.hotelId}
+                                onChange={(hotelId) => setForm({ ...form, hotelId })}
+                                emptyLabel={isEditingUser ? keepHotelLabel : "— Không gán khách sạn (customer) —"}
+                            />
                         </div>
                         <div className={controls.field}>
                             <label className={controls.label}>Vai trò</label>

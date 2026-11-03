@@ -23,6 +23,14 @@ export function normalizeYaw(yaw: number): number {
   return y === -180 ? 180 : y;
 }
 
+// Yaw ở cảnh mới để khách vẫn nhìn đúng hướng thật đang nhìn ở cảnh cũ. heading = phương
+// vị thật của yaw 0 trong từng ảnh (mỗi ảnh có gốc yaw riêng). Thiếu 1 trong 2 thì không
+// quy đổi được, giữ nguyên con số yaw.
+export function carryYaw(yaw: number, fromHeading?: number, toHeading?: number): number {
+  if (fromHeading === undefined || toHeading === undefined) return yaw;
+  return normalizeYaw(yaw + fromHeading - toHeading);
+}
+
 export interface PickParams {
   /** Góc nhìn hiện tại của camera (độ) — chính là lonRef/latRef của usePanoramaControls. */
   lon: number;

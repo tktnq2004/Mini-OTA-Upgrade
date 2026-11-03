@@ -1,3 +1,4 @@
+import { escapeFilterValue } from "@/lib/api/filter";
 import { adminDelete, adminGet, adminPost, adminPut } from "./apiClient";
 import type {
   Amenity,
@@ -30,7 +31,7 @@ function buildListQuery({ page = 1, size = 10, query }: ListParams, searchField:
   const params = new URLSearchParams();
   params.set("page", String(page));
   params.set("size", String(size));
-  if (query?.trim()) params.set("filter", `${searchField}~'*${query.trim()}*'`);
+  if (query?.trim()) params.set("filter", `${searchField}~'*${escapeFilterValue(query)}*'`);
   return params.toString();
 }
 
@@ -46,10 +47,12 @@ export interface HotelListParams extends ListParams {
   // string vì id giờ là mã hành chính VN thật, không còn số tự tăng.
   provinceId?: string | null;
   wardId?: string | null;
+  // Vd. "name,asc" — phân trang dần thì cần thứ tự ổn định giữa các trang.
+  sort?: string;
 }
-export const listHotels = ({ page = 1, size = 10, query, provinceId, wardId }: HotelListParams = {}) => {
+export const listHotels = ({ page = 1, size = 10, query, provinceId, wardId, sort }: HotelListParams = {}) => {
   const clauses: string[] = [];
-  if (query?.trim()) clauses.push(`name~'*${query.trim()}*'`);
+  if (query?.trim()) clauses.push(`name~'*${escapeFilterValue(query)}*'`);
   // id giờ là string — phải bọc nháy đơn trong cú pháp filter (turkraft coi
   // giá trị không nháy là số/enum, id dạng "00070" sẽ lỗi parse nếu không bọc).
   if (wardId) clauses.push(`ward.id : '${wardId}'`);
@@ -58,6 +61,14 @@ export const listHotels = ({ page = 1, size = 10, query, provinceId, wardId }: H
   params.set("page", String(page));
   params.set("size", String(size));
   if (clauses.length) params.set("filter", clauses.join(" and "));
+  if (sort) params.set("sort", sort);
+  return adminGet<Paginated<Hotel>>(`hotels?${params.toString()}`);
+};
+// Tra nhiều hotel theo id trong 1 lần gọi (vd. tên hotel cho các dòng đang hiện ở bảng user).
+export const listHotelsByIds = (ids: number[]) => {
+  const params = new URLSearchParams();
+  params.set("size", String(ids.length));
+  params.set("filter", `id in [${ids.join(",")}]`);
   return adminGet<Paginated<Hotel>>(`hotels?${params.toString()}`);
 };
 export const getHotel = (id: number) => adminGet<Hotel>(`hotels/${id}`);

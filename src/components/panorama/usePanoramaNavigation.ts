@@ -46,6 +46,7 @@ export function usePanoramaNavigation({ tour, initialSceneId }: UsePanoramaNavig
     const currentSceneId = stack[stack.length - 1];
     const currentScene = sceneMap.get(currentSceneId) ?? tour.scenes[0];
     const canGoBack = stack.length > 1;
+    const previousSceneId = stack[stack.length - 2];
 
     const handleHotspotPress = (hs: PanoramaHotspot) => {
         if (hs.type === "NAVIGATION" && hs.targetSceneId) {
@@ -70,6 +71,7 @@ export function usePanoramaNavigation({ tour, initialSceneId }: UsePanoramaNavig
         handleHotspotPress,
         getSceneById,
         canGoBack,
+        previousSceneId,
         goBack,
     };
 }

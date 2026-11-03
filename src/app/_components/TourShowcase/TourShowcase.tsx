@@ -14,6 +14,7 @@ import styles from "./TourShowcase.module.css";
 const PanoramaCanvas = dynamic(() => import("@/components/panorama/PanoramaCanvas"), { ssr: false });
 
 const PREVIEW_SCENE_ID = "main_room_101";
+const LINK_HOTEL_IDS = [907, 908]; // 2 khách sạn Wengg có tour 360° thật
 
 // Section giới thiệu tour 360° — điểm khác biệt của Trạm OTA so với OTA thường.
 export default function TourShowcase({ hotels }: { hotels: Hotel[] }) {
@@ -34,9 +35,9 @@ export default function TourShowcase({ hotels }: { hotels: Hotel[] }) {
         return () => el.removeEventListener("wheel", stop, { capture: true });
     }, [interactive]);
 
-    const tourHotels = PANORAMA_TOURS.map((tour) => ({
-        id: tour.hotelId,
-        name: hotels.find((h) => h.id === tour.hotelId)?.name,
+    const tourHotels = LINK_HOTEL_IDS.map((id) => ({
+        id,
+        name: hotels.find((h) => h.id === id)?.name,
     }));
 
     return (

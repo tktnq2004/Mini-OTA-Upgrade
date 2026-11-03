@@ -25,6 +25,8 @@ export interface TourScene {
   /** Scene mở đầu của phạm vi chứa nó (1 cho hotel, 1 cho mỗi room). */
   entry: boolean;
   sortOrder: number;
+  /** Phương vị thật (độ, 0 = Bắc) của yaw 0 trong ảnh này; null = chưa biết. */
+  heading: number | null;
   hotspots: TourHotspot[];
 }
 

@@ -4,13 +4,18 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { usePanoramaControls } from "./usePanoramaControls";
 import { projectHotspots } from "./projectHotspot";
-import type { HotspotItem, ProjectedHotspot } from "./types";
+import { layoutNavArrows, type NavArrowSlot } from "@/lib/tour/navArrow";
+import type { HotspotItem, PanoramaView, ProjectedHotspot } from "./types";
 
 const SPHERE_RADIUS = 500;
 
 interface UsePanoramaSceneParams {
     imageUrl: string;
     hotspots: HotspotItem[];
+    /** Góc nhìn lúc mở ảnh (giữ hướng khi đổi cảnh); bỏ trống = yaw 0. */
+    initialView?: PanoramaView;
+    /** Vòng tròn chuyển cảnh chạy quanh vành dưới chân người xem, mũi tên xoay về đích. */
+    navArrows?: boolean;
 }
 
 // Port của usePanoramaScene.ts (bản React Native, dùng expo-gl + expo-three)
@@ -22,9 +27,9 @@ interface UsePanoramaSceneParams {
 // Toàn bộ scene được dựng lại từ đầu mỗi khi imageUrl đổi (thay vì chỉ đổi
 // texture) — giữ đúng chiến lược "remount sạch" của bản gốc, tránh các lỗi
 // tinh vi khi hoán texture trên renderer đang chạy.
-export function usePanoramaScene({ imageUrl, hotspots }: UsePanoramaSceneParams) {
+export function usePanoramaScene({ imageUrl, hotspots, initialView, navArrows }: UsePanoramaSceneParams) {
     const containerRef = useRef<HTMLDivElement | null>(null);
-    const { lonRef, latRef, fovRef } = usePanoramaControls(containerRef);
+    const { lonRef, latRef, fovRef } = usePanoramaControls(containerRef, initialView);
 
     const [projectedHotspots, setProjectedHotspots] = useState<ProjectedHotspot[]>([]);
     const [loadError, setLoadError] = useState<string | null>(null);
@@ -35,9 +40,13 @@ export function usePanoramaScene({ imageUrl, hotspots }: UsePanoramaSceneParams)
     // khi đổi ẢNH (remount scene), không phải mỗi khi mảng hotspots đổi
     // reference (vd. do component cha re-render vì lý do khác).
     const hotspotsRef = useRef(hotspots);
+    const arrowsRef = useRef<Map<string, NavArrowSlot> | null>(null);
     useEffect(() => {
         hotspotsRef.current = hotspots;
-    }, [hotspots]);
+        arrowsRef.current = navArrows
+            ? layoutNavArrows(hotspots.filter((hs) => hs.type === "NAVIGATION"))
+            : null;
+    }, [hotspots, navArrows]);
 
     useEffect(() => {
         const container = containerRef.current;
@@ -136,7 +145,13 @@ export function usePanoramaScene({ imageUrl, hotspots }: UsePanoramaSceneParams)
 
             if (hotspotsRef.current.length > 0) {
                 setProjectedHotspots(
-                    projectHotspots(camera, hotspotsRef.current, container.clientWidth, container.clientHeight)
+                    projectHotspots(
+                        camera,
+                        hotspotsRef.current,
+                        container.clientWidth,
+                        container.clientHeight,
+                        arrowsRef.current
+                    )
                 );
             }
 

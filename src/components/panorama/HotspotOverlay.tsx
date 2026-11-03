@@ -1,16 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { ArrowRightIcon, InfoIcon } from "@phosphor-icons/react";
-import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
+import { PeekCard, usePeek } from "./HotspotPeek";
 import { useReducedMotion } from "./useReducedMotion";
 import type { ProjectedHotspot } from "./types";
 import styles from "./HotspotOverlay.module.css";
 
-const HOLD_THRESHOLD_MS = 500;
-
 interface HotspotOverlayProps {
     hotspots: ProjectedHotspot[];
+    /** Vòng tròn chuyển cảnh chạy quanh vành (hs.arrow) thay vì nằm tại điểm đích. */
+    navArrows?: boolean;
 }
 
 // Port của HotspotOverlay.tsx (bản React Native, dùng BlurView + Reanimated)
@@ -18,12 +17,13 @@ interface HotspotOverlayProps {
 // @keyframes) thay cho thư viện animation riêng. Marker/nhãn cố định màu
 // (không theo token theme sáng/tối) vì luôn đè lên ảnh panorama bất kỳ, giống
 // quy ước đã dùng cho badge trên RoomCard/HotelCard.
-export default function HotspotOverlay({ hotspots }: HotspotOverlayProps) {
+export default function HotspotOverlay({ hotspots, navArrows }: HotspotOverlayProps) {
     return (
         <>
-            {hotspots.map((hs) =>
-                hs.visible ? <HotspotMarker key={hs.id} hotspot={hs} /> : null
-            )}
+            {hotspots.map((hs) => {
+                const show = navArrows && hs.type === "NAVIGATION" ? Boolean(hs.arrow) : hs.visible;
+                return show ? <HotspotMarker key={hs.id} hotspot={hs} /> : null;
+            })}
         </>
     );
 }
@@ -31,85 +31,40 @@ export default function HotspotOverlay({ hotspots }: HotspotOverlayProps) {
 function HotspotMarker({ hotspot }: { hotspot: ProjectedHotspot }) {
     const reducedMotion = useReducedMotion();
     const isInfo = hotspot.type === "INFO";
-    const canPeek = !isInfo && Boolean(hotspot.previewImageUrl);
-
-    const [isPeeking, setIsPeeking] = useState(false);
-    const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    useEffect(() => {
-        return () => {
-            if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
-        };
-    }, []);
-
-    const startPeekTimer = () => {
-        if (!canPeek) return;
-        holdTimerRef.current = setTimeout(() => setIsPeeking(true), HOLD_THRESHOLD_MS);
-    };
-
-    const clearPeek = () => {
-        if (holdTimerRef.current) {
-            clearTimeout(holdTimerRef.current);
-            holdTimerRef.current = null;
-        }
-        setIsPeeking(false);
-    };
-
-    // Chuột: hiện xem trước ngay khi hover, không cần giữ. Chạm: giữ ngón tay
-    // (long-press ~500ms) mới hiện, khớp quy ước long-press chuẩn của di động.
-    const handlePointerDown = (e: React.PointerEvent) => {
-        if (e.pointerType === "touch" || e.pointerType === "pen") startPeekTimer();
-    };
+    const { isPeeking, peekHandlers } = usePeek(hotspot);
 
     return (
         <div
             className={hotspot.selected ? styles.wrapperSelected : styles.wrapper}
-            style={{ left: hotspot.screenX, top: hotspot.screenY }}
+            style={{ left: hotspot.arrow?.x ?? hotspot.screenX, top: hotspot.arrow?.y ?? hotspot.screenY }}
         >
-            {isPeeking && canPeek && (
-                <div className={styles.peekCard}>
-                    {/* Viewer mở mọi cảnh ở yaw 0 = mép ảnh equirect: ghép 2 mép ảnh để thẻ
-                        xem trước đúng hướng khách sẽ thấy khi vào cảnh đó. crossOrigin: bấm
-                        hotspot thì three.js nạp lại đúng ảnh này bằng CORS (xem ImageWithFallback). */}
-                    <ImageWithFallback
-                        src={hotspot.previewImageUrl as string}
-                        alt={hotspot.previewLabel ?? hotspot.name}
-                        className={styles.peekImageEnd}
-                        crossOrigin="anonymous"
-                        fallbackClassName={styles.peekImageFallback}
-                        fallback={<ArrowRightIcon size={16} weight="light" />}
-                    />
-                    <ImageWithFallback
-                        src={hotspot.previewImageUrl as string}
-                        alt=""
-                        className={styles.peekImageStart}
-                        crossOrigin="anonymous"
-                        fallbackClassName={styles.peekImageFallback}
-                        fallback={null}
-                    />
-                </div>
-            )}
+            {isPeeking && <PeekCard hotspot={hotspot} />}
 
             <button
                 type="button"
                 className={styles.markerButton}
                 data-hotspot-id={hotspot.id}
                 onClick={hotspot.onPress}
-                onMouseEnter={() => canPeek && setIsPeeking(true)}
-                onMouseLeave={clearPeek}
-                onPointerDown={handlePointerDown}
-                onPointerUp={clearPeek}
-                onPointerCancel={clearPeek}
+                {...peekHandlers}
             >
                 <span className={styles.markerAnchor}>
                     {!reducedMotion && (
                         <span className={isInfo ? styles.pulseRingInfo : styles.pulseRingNav} />
                     )}
                     <span className={isInfo ? styles.markerInfo : styles.markerNav}>
-                        {isInfo ? <InfoIcon size={17} weight="bold" /> : <ArrowRightIcon size={17} weight="bold" />}
+                        {isInfo ? (
+                            <InfoIcon size={17} weight="bold" />
+                        ) : (
+                            // Icon gốc chỉ sang phải, nên góc xoay chính là góc trên màn hình.
+                            <ArrowRightIcon
+                                size={20}
+                                weight="regular"
+                                style={hotspot.arrow && { transform: `rotate(${hotspot.arrow.angle}deg)` }}
+                            />
+                        )}
                     </span>
                 </span>
-                <span className={styles.labelChip}>{hotspot.name}</span>
+                <span className={hotspot.arrow?.rear ? styles.labelChipRear : styles.labelChip}>{hotspot.name}</span>
             </button>
         </div>
     );

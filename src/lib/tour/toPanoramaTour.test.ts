@@ -28,6 +28,7 @@ const tour = (hotspots: TourHotspot[]): Tour => ({
       nameEn: "Lobby",
       entry: true,
       sortOrder: 0,
+      heading: null,
       hotspots,
     },
   ],

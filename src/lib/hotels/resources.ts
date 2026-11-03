@@ -1,5 +1,6 @@
 "use client";
 
+import { escapeFilterValue } from "@/lib/api/filter";
 import { publicGet } from "@/lib/api/public";
 import type { Amenity, Hotel, Paginated, Review, Room, RoomType, View } from "./types";
 
@@ -13,7 +14,7 @@ export interface ListHotelsParams {
 
 export function listHotels({ page = 1, size = 20, query, provinceId, wardId }: ListHotelsParams = {}) {
   const clauses: string[] = [];
-  if (query?.trim()) clauses.push(`name~'*${query.trim()}*'`);
+  if (query?.trim()) clauses.push(`name~'*${escapeFilterValue(query)}*'`);
   if (wardId) clauses.push(`ward.id : '${wardId}'`);
   else if (provinceId) clauses.push(`ward.province.id : '${provinceId}'`);
 

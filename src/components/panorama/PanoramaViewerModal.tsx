@@ -5,10 +5,11 @@ import { createPortal } from "react-dom";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { useReducedMotion } from "./useReducedMotion";
 import { usePanoramaNavigation } from "./usePanoramaNavigation";
-import PanoramaCanvas from "./PanoramaCanvas";
+import { carryYaw } from "@/lib/tour/geometry";
+import PanoramaCanvas, { type PanoramaViewHandle } from "./PanoramaCanvas";
 import PanoramaViewerHeader from "./PanoramaViewerHeader";
 import HotspotInfoModal from "./HotspotInfoModal";
-import type { HotspotItem, PanoramaTour } from "./types";
+import type { HotspotItem, PanoramaTour, PanoramaView } from "./types";
 import styles from "./PanoramaViewerModal.module.css";
 
 const TRANSITION_FADE_IN_MS = 220;
@@ -47,8 +48,21 @@ export default function PanoramaViewerModal({
         handleHotspotPress,
         getSceneById,
         canGoBack,
+        previousSceneId,
         goBack,
     } = usePanoramaNavigation({ tour, initialSceneId });
+
+    const viewHandleRef = useRef<PanoramaViewHandle>(null);
+    const [carriedView, setCarriedView] = useState<PanoramaView>();
+
+    // Đổi cảnh giữ nguyên hướng và độ zoom đang nhìn (như Street View), không mở lại ở
+    // góc mặc định của ảnh mới. PanoramaCanvas remount theo key nên phải đọc trước khi đổi.
+    const carryViewTo = (sceneId?: string) => {
+        const view = viewHandleRef.current?.getView();
+        const target = sceneId ? getSceneById(sceneId) : undefined;
+        if (!view || !target) return;
+        setCarriedView({ ...view, yaw: carryYaw(view.yaw, currentScene.heading, target.heading) });
+    };
 
     const [fadeOpacity, setFadeOpacity] = useState(0);
     const [fadeDurationMs, setFadeDurationMs] = useState(TRANSITION_FADE_OUT_MS);
@@ -112,7 +126,10 @@ export default function PanoramaViewerModal({
             name: hs.name,
             type: hs.type,
             position: hs.position,
-            onPress: () => handleHotspotPress(hs),
+            onPress: () => {
+                if (target) carryViewTo(target.id);
+                handleHotspotPress(hs);
+            },
             previewImageUrl: target?.imageUrl,
             previewLabel: target?.name,
         };
@@ -126,13 +143,19 @@ export default function PanoramaViewerModal({
                 hotelName={hotelName}
                 sceneName={currentScene.name}
                 onClose={onClose}
-                onReturn={goBack}
+                onReturn={() => {
+                    carryViewTo(previousSceneId);
+                    goBack();
+                }}
                 canReturn={canGoBack}
             />
 
             <PanoramaCanvas
                 key={currentScene.id}
+                ref={viewHandleRef}
                 imageUrl={currentScene.imageUrl}
+                initialView={carriedView}
+                navArrows
                 hotspots={hotspots}
                 onReady={handleSceneReady}
             />
