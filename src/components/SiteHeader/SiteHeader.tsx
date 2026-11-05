@@ -83,6 +83,9 @@ export default function SiteHeader() {
 
     return (
         <header className={styles.header}>
+            <a href="#main" className={styles.skipLink}>
+                {t("a11y.skipToContent")}
+            </a>
             <div className={styles.inner}>
                 <Link href="/" className={styles.logo} aria-label={language === "en" ? "OTA Station" : "Trạm OTA"}>
                     <BrandLogo />

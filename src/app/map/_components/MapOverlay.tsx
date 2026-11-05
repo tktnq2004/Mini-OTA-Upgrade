@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import {
+    CaretDownIcon,
     NavigationArrowIcon,
     CircleNotchIcon,
     MagnifyingGlassIcon,
@@ -24,6 +26,8 @@ interface MapOverlayProps {
     loading: boolean;
     resultCount: number;
     resultLabel: string;
+    // Tóm tắt tìm kiếm hiện tại, hiện thay cho cả form khi thu gọn trên mobile.
+    searchSummary: string;
     canClear: boolean;
     onClear: () => void;
     t: (key: string, params?: Record<string, string | number>) => string;
@@ -44,18 +48,39 @@ export default function MapOverlay({
     loading,
     resultCount,
     resultLabel,
+    searchSummary,
     canClear,
     onClear,
     t,
 }: MapOverlayProps) {
+    const [searchOpen, setSearchOpen] = useState(false);
+
     return (
         <div className={styles.overlay}>
-            <SearchWidget
-                variant="bar"
-                initialFilters={filters}
-                onSubmit={onFilterSubmit}
-                submitLabel={submitLabel}
-            />
+            <button
+                type="button"
+                className={styles.searchToggle}
+                aria-expanded={searchOpen}
+                aria-controls="map-search-panel"
+                aria-label={t("map.editSearch")}
+                onClick={() => setSearchOpen((open) => !open)}
+            >
+                <MagnifyingGlassIcon size={16} weight="bold" />
+                <span className={styles.searchSummary}>{searchSummary}</span>
+                <CaretDownIcon size={14} weight="bold" className={searchOpen ? styles.caretOpen : undefined} />
+            </button>
+
+            <div id="map-search-panel" className={searchOpen ? styles.searchPanelOpen : styles.searchPanel}>
+                <SearchWidget
+                    variant="bar"
+                    initialFilters={filters}
+                    onSubmit={(next) => {
+                        setSearchOpen(false);
+                        onFilterSubmit(next);
+                    }}
+                    submitLabel={submitLabel}
+                />
+            </div>
 
             <div className={styles.toolRow}>
                 <div className={styles.searchBox}>
@@ -99,9 +124,11 @@ export default function MapOverlay({
 
             <div className={styles.resultChip} aria-busy={loading || undefined}>
                 <span className={styles.resultText}>
-                    {loading ? <Skeleton width={22} height={12} className={styles.resultCountSkeleton} /> : <strong>{resultCount}</strong>}{" "}
-                    {t("map.hotelsSuffix")}
-                    {resultLabel}
+                    {loading ? <Skeleton width={22} height={12} className={styles.resultCountSkeleton} /> : <strong>{resultCount}</strong>}
+                    <span>
+                        {t("map.hotelsSuffix")}
+                        {resultLabel}
+                    </span>
                 </span>
                 {canClear && (
                     <button type="button" className={styles.clearChip} onClick={onClear}>

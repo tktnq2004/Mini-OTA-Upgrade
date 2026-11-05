@@ -3,7 +3,7 @@
 }
 
 .layout {
-    max-width: 1280px;
+    max-width: 1200px;
     margin: 0 auto;
     padding: 16px 20px 60px;
     display: grid;
@@ -13,6 +13,8 @@
 }
 
 .mainColumn {
+    grid-column: 1;
+    grid-row: 2;
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -139,7 +141,7 @@
 
 .typeBadge {
     align-self: flex-start;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--color-accent);
     background: var(--color-accent-soft);
@@ -252,9 +254,14 @@
     color: var(--color-text-faint);
 }
 
+.otherRooms {
+    grid-column: 1;
+    grid-row: 3;
+}
+
 .otherRoomsGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 14px;
 }
 
@@ -262,6 +269,8 @@
    dung (vd. lịch 6 hàng + chân lịch) vẫn cao hơn thì cuộn bên trong thay vì
    bị đẩy lệch khỏi màn hình. */
 .bookingColumn {
+    grid-column: 2;
+    grid-row: 2 / span 2;
     position: sticky;
     top: 64px;
     max-height: calc(100vh - 76px);
@@ -381,10 +390,20 @@
 
 @media (max-width: 960px) {
     .layout {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
+        /* Chừa chỗ cho thanh đặt phòng dính ở đáy. */
+        padding-bottom: 88px;
+    }
+
+    .mainColumn,
+    .bookingColumn,
+    .otherRooms {
+        grid-column: auto;
+        grid-row: auto;
     }
 
     .bookingColumn {
+        scroll-margin-top: 72px;
         position: static;
         max-height: none;
         overflow: visible;
@@ -435,4 +454,78 @@
 
 .discountLine {
     color: var(--color-error);
+}
+
+/* Lời nhắc chọn ngày không phải giá tiền nên không mang màu và cỡ của giá. */
+.totalPrompt {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-muted);
+}
+
+/* Giá + nút đặt luôn trong tầm tay trên mobile/tablet, thẻ đặt phòng nằm khá sâu trong trang. */
+.mobileBar {
+    display: none;
+}
+
+@media (max-width: 960px) {
+    .bookingCard {
+        --cal-cell: 40px;
+    }
+
+    .mobileBar {
+        position: fixed;
+        inset: auto 0 0;
+        z-index: 30;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+        background: var(--color-panel);
+        border-top: 1px solid var(--color-border);
+    }
+
+    .mobileBarPrice {
+        min-width: 0;
+        display: flex;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: 2px 6px;
+        font-size: 12px;
+        color: var(--color-text-muted);
+    }
+
+    .mobileBarPrice strong {
+        font-size: 17px;
+        font-weight: 700;
+        color: var(--color-accent-strong);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .mobileBar .bookNowButton {
+        flex: none;
+        height: 42px;
+        padding: 0 20px;
+    }
+}
+
+@media (max-width: 640px) {
+    .layout {
+        padding-inline: 16px;
+    }
+
+    .backLink {
+        min-height: 40px;
+    }
+
+    .bookingActions > button {
+        height: 42px;
+    }
+}
+
+@media (max-width: 640px) {
+    .panoramaButton {
+        height: 36px;
+    }
 }

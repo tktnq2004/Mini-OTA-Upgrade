@@ -128,6 +128,7 @@ export default function Home() {
         <div className={styles.page}>
             <SiteHeader />
 
+            <main id="main">
             <section className={styles.hero}>
                 <div className={styles.heroInner}>
                     <span className={styles.heroEyebrow}>
@@ -172,7 +173,7 @@ export default function Home() {
 
             {/* Nền các section xen kẽ tự động theo thứ tự thật (xem .sections trong CSS) — mục nào
                 ẩn vì thiếu dữ liệu cũng không làm 2 section cạnh nhau trùng màu nền. */}
-            <main className={styles.sections}>
+            <div className={styles.sections}>
                 {recentlyViewed.length > 0 && (
                     <section className={styles.section}>
                         <SectionHeading
@@ -311,6 +312,7 @@ export default function Home() {
                         <NewsletterApp />
                     </section>
                 )}
+            </div>
             </main>
 
             <SiteFooter destinations={destinations} />

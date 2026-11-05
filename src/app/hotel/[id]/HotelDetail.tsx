@@ -140,7 +140,7 @@ export default function HotelDetail({ hotel, coverImage, roomThumbnails, tour }:
         <div className={styles.page}>
             <SiteHeader />
 
-            <div className={styles.layout}>
+            <main id="main" className={styles.layout}>
                 <aside className={styles.infoPanel}>
                     <Link href={backHref} className={styles.backLink}>
                         <ArrowLeftIcon size={14} weight="bold" /> {t("hotel.backToMap")}
@@ -308,7 +308,7 @@ export default function HotelDetail({ hotel, coverImage, roomThumbnails, tour }:
 
                     <Pagination page={currentPage} totalPages={totalPages} onChange={setPage} />
                 </section>
-            </div>
+            </main>
 
             {showPanorama && panoramaTour && (
                 <PanoramaViewerModal

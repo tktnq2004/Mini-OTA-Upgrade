@@ -20,7 +20,7 @@ export default function AuthShell({ title, subtitle, children, footer }: AuthShe
 
     return (
         <div className={styles.page}>
-            <div className={styles.formSide}>
+            <main id="main" className={styles.formSide}>
                 <div className={styles.formInner}>
                     <Link href="/" className={styles.logo} aria-label="Trạm OTA">
                         <BrandLogo />
@@ -37,7 +37,7 @@ export default function AuthShell({ title, subtitle, children, footer }: AuthShe
                         {t("auth.skipLink")}
                     </Link>
                 </div>
-            </div>
+            </main>
 
             <div className={styles.visualSide}>
                 <div className={styles.visualContent}>

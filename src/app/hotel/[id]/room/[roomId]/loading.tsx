@@ -17,7 +17,7 @@ export default function RoomLoading() {
         <div className={styles.page}>
             <SiteHeader />
 
-            <div className={styles.layout} aria-busy="true" aria-label={t("room.loading")}>
+            <main id="main" className={styles.layout} aria-busy="true" aria-label={t("room.loading")}>
                 <span className={styles.backLink}>
                     <Skeleton width={120} height={12} />
                 </span>
@@ -68,7 +68,7 @@ export default function RoomLoading() {
                         </div>
                     </div>
                 </aside>
-            </div>
+            </main>
         </div>
     );
 }

@@ -16,7 +16,7 @@ export default function HotelLoading() {
         <div className={styles.page}>
             <SiteHeader />
 
-            <div className={styles.layout} aria-busy="true" aria-label={t("hotels.loading")}>
+            <main id="main" className={styles.layout} aria-busy="true" aria-label={t("hotels.loading")}>
                 <aside className={styles.infoPanel}>
                     <Skeleton width={110} height={12} />
                     <div className={styles.thumbWrap}>
@@ -49,7 +49,7 @@ export default function HotelLoading() {
                         ))}
                     </div>
                 </section>
-            </div>
+            </main>
         </div>
     );
 }

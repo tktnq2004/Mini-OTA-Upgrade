@@ -91,13 +91,20 @@ export default function MapView() {
         return selectedProvince ? t("map.at", { place: selectedProvince.name }) : t("map.nationwide");
     })();
 
+    const shortDate = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+    const searchSummary = [
+        selectedProvince?.name ?? t("search.provinceAllOption"),
+        `${shortDate(filters.checkin)} – ${shortDate(filters.checkout)}`,
+        t("search.guestsValue", { count: filters.guests }),
+    ].join(" · ");
+
     const canClear = hasBounds || Boolean(selectedProvince) || Boolean(nearby);
 
     return (
         <div className={styles.page}>
             <SiteHeader />
 
-            <div className={styles.mapArea}>
+            <main id="main" className={styles.mapArea}>
                 <div ref={mapContainerRef} className={styles.mapContainer} />
 
                 <div ref={overlayRef}>
@@ -113,6 +120,7 @@ export default function MapView() {
                         loading={loading}
                         resultCount={filteredHotels.length}
                         resultLabel={resultLabel}
+                        searchSummary={searchSummary}
                         canClear={canClear}
                         onClear={clearProvince}
                         t={t}
@@ -124,7 +132,7 @@ export default function MapView() {
                         <LoadError compact onRetry={retry} />
                     </div>
                 )}
-            </div>
+            </main>
         </div>
     );
 }

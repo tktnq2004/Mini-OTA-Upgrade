@@ -190,7 +190,7 @@
 }
 
 .methodSectionTitle {
-    font-size: 11.5px;
+    font-size: 12px;
     font-weight: 700;
     color: var(--color-text-muted);
     text-transform: uppercase;
@@ -229,7 +229,7 @@
 }
 
 .invoiceSectionLabel {
-    font-size: 10.5px;
+    font-size: 12px;
     font-weight: 700;
     color: var(--color-text-faint);
     text-transform: uppercase;
@@ -261,7 +261,7 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    font-size: 11.5px;
+    font-size: 12px;
     color: var(--color-text-muted);
     margin-top: 2px;
 }
@@ -290,7 +290,7 @@
 }
 
 .dateChipLabel {
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
     color: var(--color-text-faint);
     text-transform: uppercase;
@@ -310,7 +310,7 @@
 
 .nightsBadge {
     text-align: center;
-    font-size: 11px;
+    font-size: 12px;
     color: var(--color-text-muted);
 }
 
@@ -374,7 +374,7 @@
 }
 
 .invoiceCode {
-    font-size: 11.5px;
+    font-size: 12px;
     color: var(--color-text-faint);
 }
 
@@ -384,7 +384,7 @@
     display: flex;
     justify-content: space-between;
     gap: 12px;
-    font-size: 11.5px;
+    font-size: 12px;
     color: var(--color-error);
 }
 

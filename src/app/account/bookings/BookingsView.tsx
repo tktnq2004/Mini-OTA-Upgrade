@@ -142,7 +142,7 @@ export default function BookingsView() {
     return (
       <div className={styles.page}>
         <SiteHeader />
-        <div className={styles.layout}>
+        <main id="main" className={styles.layout}>
           <div className={styles.header}>
             <span className={styles.avatar}>
               <SuitcaseRollingIcon size={20} weight="bold" />
@@ -161,7 +161,7 @@ export default function BookingsView() {
           <p className={styles.lookupFooter}>
             {t("bookings.haveAccount")} <Link href="/login">{t("nav.login")}</Link>
           </p>
-        </div>
+        </main>
       </div>
     );
   }
@@ -169,7 +169,7 @@ export default function BookingsView() {
   return (
     <div className={styles.page}>
       <SiteHeader />
-      <div
+      <main id="main"
         className={styles.layout}
         aria-busy={!ready || loading || undefined}
         aria-label={!ready || loading ? t("bookings.loading") : undefined}
@@ -355,7 +355,7 @@ export default function BookingsView() {
             );
           })
         )}
-      </div>
+      </main>
     </div>
   );
 }

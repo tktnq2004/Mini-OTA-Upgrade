@@ -36,7 +36,7 @@ export default function PaymentMethodsView() {
     return (
         <div className={styles.page}>
             <SiteHeader />
-            <div className={styles.layout}>
+            <main id="main" className={styles.layout}>
                 <div className={styles.header}>
                     <span className={styles.avatar}>
                         <CreditCardIcon size={20} weight="bold" />
@@ -80,7 +80,7 @@ export default function PaymentMethodsView() {
                 </div>
 
                 <p className={styles.hint}>{t("paymentMethods.securityNote")}</p>
-            </div>
+            </main>
         </div>
     );
 }

@@ -20,6 +20,10 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // Sinh .next/standalone (server.js + node_modules tối thiểu) để image Docker gọn
   output: "standalone",
+  // Thumbnail panorama qua next/image: bucket R2 đổi domain thì phải sửa ở đây rồi build lại.
+  images: {
+    remotePatterns: [{ protocol: "https", hostname: "pub-7e93324080a149f4a5099d347ae0fcf3.r2.dev" }],
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeftIcon, CalendarBlankIcon, ShoppingBagIcon } from "@phosphor-icons/react";
@@ -22,6 +22,10 @@ import CheckoutSkeleton from "./_components/CheckoutSkeleton";
 import { useCheckoutData } from "./_hooks/useCheckoutData";
 import CustomerInfoSection from "./_components/CustomerInfoSection";
 import OrderSummary from "./_components/OrderSummary";
+
+// Form thông tin khách chỉ bọc thẻ bên trái (GuestOtpForm có <form> riêng nằm ngay dưới,
+// không được lồng form); nút đặt ở cột phải gắn vào form này qua thuộc tính form=.
+const CUSTOMER_FORM_ID = "checkout-customer-form";
 
 export default function CheckoutView() {
     const { t } = useLanguage();
@@ -50,11 +54,17 @@ export default function CheckoutView() {
     const [note, setNote] = useState("");
     const [error, setError] = useState("");
     const [submitting, setSubmitting] = useState(false);
-    // Khách chưa có phiên: bấm đặt -> hiện bước xác minh email (OTP) thay cho
-    // form, đúng mã mới tạo booking (giữ phòng) — thời gian chờ mã không ăn
-    // vào hạn giữ chỗ. Dữ liệu form vẫn ở state trang này, "Sửa thông tin" là
-    // quay lại y nguyên.
+    // Khách chưa có phiên: bấm đặt -> mở khối xác minh email (OTP) ngay dưới thông
+    // tin khách, đúng mã mới tạo booking (giữ phòng) — thời gian chờ mã không ăn
+    // vào hạn giữ chỗ. Trong lúc này họ tên/email/sđt bị khoá (mã gửi theo đúng
+    // email đó); "Sửa thông tin" đóng khối và mở khoá.
     const [verifying, setVerifying] = useState(false);
+    const otpSectionRef = useRef<HTMLElement>(null);
+
+    // Điện thoại: nút đặt nằm dưới lịch, khối OTP mở ra ở phía trên màn hình đang xem.
+    useEffect(() => {
+        if (verifying) otpSectionRef.current?.scrollIntoView({ block: "center" });
+    }, [verifying]);
 
     // Tối đa số khách = tổng sức chứa các phòng đã chọn (không có phòng thì 30).
     const maxGuests = rooms.reduce((sum, r) => sum + roomCapacity(r), 0) || 30;
@@ -69,7 +79,14 @@ export default function CheckoutView() {
     // tải booking bằng phiên (chỉ chủ booking xem được) — tên/sđt/hạn giữ chỗ
     // đều lấy từ backend.
     const submitBooking = async () => {
-        if (!checkIn || !checkOut || !hotelId || rooms.length === 0) return;
+        // Lịch vẫn bấm được khi đang nhập mã, có thể vừa bị xoá ngày. Mã đã dùng xong và
+        // phiên đã có, nên đóng khối OTP: chọn lại ngày rồi bấm đặt là tạo booking luôn.
+        if (!checkIn || !checkOut) {
+            setVerifying(false);
+            setError(t("checkout.errorDates"));
+            return;
+        }
+        if (!hotelId || rooms.length === 0) return;
         setSubmitting(true);
         try {
             const result = await createBooking({
@@ -113,11 +130,11 @@ export default function CheckoutView() {
         return (
             <div className={styles.page}>
                 <SiteHeader />
-                <div className={styles.layout} aria-busy="true" aria-label={t("checkout.loading")}>
+                <main id="main" className={styles.layout} aria-busy="true" aria-label={t("checkout.loading")}>
                     {backLink}
                     <h1 className={styles.title}>{t("checkout.title")}</h1>
                     <CheckoutSkeleton />
-                </div>
+                </main>
             </div>
         );
     }
@@ -126,7 +143,7 @@ export default function CheckoutView() {
         return (
             <div className={styles.page}>
                 <SiteHeader />
-                <div className={styles.layout}>
+                <main id="main" className={styles.layout}>
                     <div className={styles.emptyState}>
                         <ShoppingBagIcon size={32} weight="light" />
                         <p>{t("checkout.nothingToBook")}</p>
@@ -134,30 +151,7 @@ export default function CheckoutView() {
                             {t("checkout.backToWishlist")}
                         </Link>
                     </div>
-                </div>
-            </div>
-        );
-    }
-
-    if (verifying) {
-        return (
-            <div className={styles.page}>
-                <SiteHeader />
-                <div className={styles.layout}>
-                    <h1 className={styles.title}>{t("checkout.title")}</h1>
-                    <section className={styles.formSection}>
-                        <GuestOtpForm
-                            title={t("guestOtp.checkoutTitle")}
-                            hint={t("guestOtp.checkoutHint")}
-                            email={email}
-                            details={{ fullName: fullName.trim(), phone: phone.trim() }}
-                            submitLabel={t("guestOtp.checkoutSubmit")}
-                            onVerified={submitBooking}
-                            onCancel={() => setVerifying(false)}
-                            cancelLabel={t("guestOtp.backToForm")}
-                        />
-                    </section>
-                </div>
+                </main>
             </div>
         );
     }
@@ -166,19 +160,22 @@ export default function CheckoutView() {
         <div className={styles.page}>
             <SiteHeader />
 
-            <div className={styles.layout}>
+            <main id="main" className={styles.layout}>
                 {backLink}
 
                 <h1 className={styles.title}>{t("checkout.title")}</h1>
 
-                <form className={styles.grid} onSubmit={handleSubmit}>
+                <div className={styles.grid}>
                     <div className={styles.formColumn}>
                         <CustomerInfoSection
+                            formId={CUSTOMER_FORM_ID}
+                            onSubmit={handleSubmit}
                             fullName={fullName}
                             onFullNameChange={guest.setFullName}
                             email={user ? user.email : guest.email}
                             onEmailChange={guest.setEmail}
                             emailLocked={Boolean(user)}
+                            contactLocked={verifying}
                             phone={phone}
                             onPhoneChange={guest.setPhone}
                             note={note}
@@ -189,6 +186,22 @@ export default function CheckoutView() {
                         />
 
                         {error && <p className={controls.error}>{error}</p>}
+
+                        {verifying && (
+                            <section ref={otpSectionRef} className={`${styles.formSection} ${styles.otpSection}`}>
+                                <GuestOtpForm
+                                    inline
+                                    title={t("guestOtp.checkoutTitle")}
+                                    hint={t("guestOtp.checkoutHint")}
+                                    email={email}
+                                    details={{ fullName: fullName.trim(), phone: phone.trim() }}
+                                    submitLabel={t("guestOtp.checkoutSubmit")}
+                                    onVerified={submitBooking}
+                                    onCancel={() => setVerifying(false)}
+                                    cancelLabel={t("guestOtp.backToForm")}
+                                />
+                            </section>
+                        )}
                     </div>
 
                     <aside className={styles.summaryColumn}>
@@ -217,15 +230,20 @@ export default function CheckoutView() {
                             {/* Chưa biết có phiên hay chưa thì chưa cho đặt (tránh hỏi OTP thừa). */}
                             <button
                                 type="submit"
+                                form={CUSTOMER_FORM_ID}
                                 className={styles.submitButton}
-                                disabled={!accountReady || (submitting && !FEATURES.allowDoubleSubmit)}
+                                disabled={!accountReady || verifying || (submitting && !FEATURES.allowDoubleSubmit)}
                             >
-                                {submitting ? t("checkout.submitting") : t("checkout.continueToPayment")}
+                                {submitting
+                                    ? t("checkout.submitting")
+                                    : verifying
+                                      ? t("checkout.verifyToContinue")
+                                      : t("checkout.continueToPayment")}
                             </button>
                         </div>
                     </aside>
-                </form>
-            </div>
+                </div>
+            </main>
         </div>
     );
 }

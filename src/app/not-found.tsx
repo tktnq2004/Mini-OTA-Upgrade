@@ -13,7 +13,7 @@ export default function NotFound() {
     return (
         <div className={styles.page}>
             <SiteHeader />
-            <div className={styles.content}>
+            <main id="main" className={styles.content}>
                 <span className={styles.icon}>
                     <CompassIcon size={20} weight="light" />
                 </span>
@@ -22,7 +22,7 @@ export default function NotFound() {
                 <Link href="/" className={controls.button}>
                     {t("notFound.backHome")}
                 </Link>
-            </div>
+            </main>
         </div>
     );
 }

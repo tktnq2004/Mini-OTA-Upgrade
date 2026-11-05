@@ -71,7 +71,7 @@ typography:
     lineHeight: 1.4
   eyebrow:
     fontFamily: "Inter, -apple-system, sans-serif"
-    fontSize: "11.5px"
+    fontSize: "12px"
     fontWeight: 700
     letterSpacing: "0.1em"
 rounded:
@@ -181,7 +181,7 @@ Nền trung tính lạnh gần như trắng/đen, chữ đậm tương phản ca
 ### Status
 - **Đỏ tín hiệu** (`signal-red`) + `signal-red-wash`: lỗi, nút xoá, tone "danger", và **tag giảm giá**. Quy ước "giảm giá = đỏ" là quen thuộc với khách Việt.
 - **Xanh thông tuyến** (`clear-green`) + `clear-green-wash`: thành công, tone "success".
-- **Hổ phách cảnh báo** (`caution-amber`): tone "warning" ở `/partner` và editor tour. Theme tối dùng `#fdba74` trên nền `rgba(251, 146, 60, 0.16)`. Hiện đang viết cứng trong 3 file, chưa thành token.
+- **Hổ phách cảnh báo** (`caution-amber`): tone "warning" ở `/partner` và editor tour. Token `--color-warning` + `--color-warning-soft`; theme tối là `#fdba74` trên nền `rgba(251, 146, 60, 0.16)`.
 - **Vàng sao** (`rating-star`): chỉ dùng cho sao đánh giá.
 
 ### Named Rules
@@ -204,16 +204,16 @@ Nền trung tính lạnh gần như trắng/đen, chữ đậm tương phản ca
 - **Body** (400, 13.5px, 1.5): chữ giao diện mặc định: nút, ô nhập, nav quản lý, tên khách sạn trên thẻ (600). Bảng dùng 13px.
 - **Body lead** (400, 15px, 1.55): đoạn dẫn dưới tiêu đề hero, tối đa 54ch.
 - **Label** (500, 12px): nhãn form, chip, chữ phụ. Chữ phụ trên thẻ xuống 11.5–12.5px.
-- **Eyebrow** (700, 11.5px, 0.1em, viết hoa, màu xanh ghim): dòng nhỏ trên tiêu đề section. Đầu cột bảng cũng viết hoa nhưng là 11.5px/600, 0.02em, màu mực mờ.
+- **Eyebrow** (700, 12px, 0.1em, viết hoa, màu xanh ghim): dòng nhỏ trên tiêu đề section. Đầu cột bảng cũng viết hoa nhưng là 11.5px/600, 0.02em, màu mực mờ.
 
 ### Named Rules
 **The Weight-Not-Font Rule.** Phân cấp bằng 600/700 và cỡ chữ. Không thêm họ font thứ hai cho giao diện; Nunito chỉ dành cho logo.
 
-**The 12px Floor Rule.** Chữ người dùng cần đọc không nhỏ hơn 12px trên mobile. Ô nhập lên 16px ở ≤640px để iOS không tự phóng to.
+**The 12px Floor Rule.** Chữ người dùng cần đọc ở trang khách không nhỏ hơn 12px, trên mọi khổ màn hình. Ô nhập lên 16px, cao 42px ở ≤640px để iOS không tự phóng to. Ngoại lệ duy nhất là chữ trong hình minh hoạ giao diện giả lập (BookingJourney, NewsletterApp).
 
 ## Layout
 
-Khung nội dung rộng tối đa 1160px, căn giữa, lề hai bên 20px (16px ở ≤640px). Header công khai cao 56px, dính trên cùng. Cổng quản lý có sidebar 220px bên trái và topbar 56px, nội dung đặt trên nền xám sảnh chờ.
+Khung nội dung rộng tối đa 1160px, căn giữa, lề hai bên 20px (16px ở ≤640px). Header, footer và mọi trang khách dùng chung khung này (`max-width: 1200px` gồm cả lề) để mép trái của logo thẳng hàng với nội dung. Header công khai cao 56px, dính trên cùng. Cổng quản lý có sidebar 220px bên trái và topbar 56px, nội dung đặt trên nền xám sảnh chờ.
 
 Khoảng cách theo nhịp nhỏ: 6/8/10/12px trong component, 14–20px giữa các khối, 22px dưới tiêu đề section. Hero là chỗ duy nhất có khoảng thở lớn (72px trên, 56px dưới). Lưới thẻ dùng `repeat(auto-fill, minmax(220px, 1fr))`. Bố cục hai cột dùng flex-wrap với cột chính `flex: 2 1 520px` và cột phụ `flex: 1 1 300px`, cả hai `min-width: 0`.
 
@@ -257,7 +257,8 @@ Gọn, chắc tay, không trang trí.
 - **Primary:** nền xanh ghim, chữ trắng, padding ngang 16px.
 - **Hover / Active:** hover đậm lên (xanh ghim đậm); khi bấm lún 1px (`translateY(1px)`, 0.05s). Disabled giảm opacity 0.5.
 - **Ghost:** nền trong suốt, viền 1px vạch ray, chữ mực chính; hover đổi viền sang mực nhạt, nền panel nổi.
-- **Icon button:** 32×32px, viền 1px, icon màu mực mờ.
+- **Icon button:** 32×32px, viền 1px, icon màu mực mờ. ≤720px lên 40×40px.
+- **Vùng chạm:** ở ≤640px mọi nút và link đứng riêng cao tối thiểu 40px. Ô lịch cao 40px, nút +/− của ô số khách 34px.
 - **Link button** (trong bảng): chữ xanh ghim không viền; biến thể nguy hiểm dùng đỏ tín hiệu.
 
 ### Chips
@@ -273,7 +274,7 @@ Gọn, chắc tay, không trang trí.
 - **Internal Padding:** 10–12px ở thẻ khách sạn, 18px ở thẻ form quản lý.
 
 ### Inputs / Fields
-- **Style:** cao 38px, nền lõm, viền 1px vạch ray, góc nhỏ (6px), chữ 13.5px, padding ngang 10px. Select có mũi tên SVG riêng; textarea tối thiểu 88px.
+- **Style:** cao 38px (42px ở ≤640px), nền lõm, viền 1px vạch ray, góc nhỏ (6px), chữ 13.5px (16px ở ≤640px), padding ngang 10px. Select có mũi tên SVG riêng; textarea tối thiểu 88px.
 - **Focus:** viền xanh ghim + vòng nước xanh 3px.
 - **Error / Disabled:** thông báo lỗi 12.5px đỏ tín hiệu ngay dưới ô; disabled opacity 0.5.
 - **Label:** 12px/500 mực mờ, cách ô 5px.
@@ -289,7 +290,7 @@ Gọn, chắc tay, không trang trí.
 ### Search Widget (signature)
 Ô tìm kiếm tỉnh/ngày/khách là điểm vào chính của sản phẩm, có hai biến thể:
 - **Hero:** panel góc 10px, padding 14px, bóng Panel, đặt giữa hero, rộng tối đa 980px.
-- **Bar:** nổi trên bản đồ, nền trắng mờ 92% + `backdrop-filter: blur(10px)`, bóng Pop, mọi số đo thu nhỏ 10%.
+- **Bar:** nổi trên bản đồ, nền trắng mờ 92% + `backdrop-filter: blur(10px)`, bóng Pop, mọi số đo thu nhỏ 10%. ≤720px thu gọn thành một dòng tóm tắt (nơi đến · ngày · số khách), bấm vào mới mở form, để bản đồ không bị che.
 
 ### Discount Tag
 Viên thuốc nền đỏ wash, chữ đỏ 11px/600; phần trăm nằm trong viên thuốc đỏ đặc chữ trắng ("-20% · Tên ưu đãi"). Khi đè lên ảnh thì dùng nền đỏ đặc để đọc được trên mọi ảnh.
@@ -305,7 +306,7 @@ Viên thuốc nền đỏ wash, chữ đỏ 11px/600; phần trăm nằm trong v
 - **Do** kiểm mọi giao diện ở 360px, 768px và desktop theo các điểm ngắt ở mục Layout.
 
 ### Don't:
-- **Don't** viết cứng mã màu trong CSS module. Màu cảnh báo hổ phách hiện viết cứng ở 3 file là nợ cần chuyển thành token, không phải mẫu để chép.
+- **Don't** viết cứng mã màu trong CSS module.
 - **Don't** thêm họ font thứ hai cho giao diện; Nunito chỉ dùng cho logo.
 - **Don't** đổ bóng cho thẻ hoặc panel khi đứng yên.
 - **Don't** dùng góc bo ngoài thang 6/10/14px/viên thuốc; các giá trị lẻ (4, 5, 7, 8, 9, 12px) đang có là ngoại lệ, không nhân rộng.

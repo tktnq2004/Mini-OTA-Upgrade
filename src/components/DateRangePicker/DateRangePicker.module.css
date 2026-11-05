@@ -67,7 +67,7 @@
 
 .weekday {
     text-align: center;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--color-text-faint);
     padding-bottom: 3px;
@@ -159,5 +159,18 @@
         flex-direction: column;
         gap: 2px;
         text-align: center;
+    }
+}
+
+/* Ô ngày đủ lớn để bấm bằng ngón tay; nơi nào đặt --cal-cell riêng thì giữ của nơi đó. */
+@media (max-width: 640px) {
+    .navButton {
+        width: 40px;
+        height: 40px;
+    }
+
+    .cell {
+        height: var(--cal-cell, 40px);
+        font-size: 13.5px;
     }
 }

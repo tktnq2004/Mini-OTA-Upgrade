@@ -89,16 +89,19 @@
 @media (max-width: 520px) {
     .grid,
     .skeletonGrid {
-        grid-template-columns: 1fr;
-    }
-
-    .skeletonGrid > :nth-child(n + 2) {
-        display: none;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
     .grid > * {
         animation: none;
+    }
+}
+
+@media (max-width: 640px) {
+    .tab {
+        height: 40px;
     }
 }

@@ -126,7 +126,7 @@
 .savedCardDefault {
     grid-column: 3;
     justify-self: end;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--color-accent);
 }

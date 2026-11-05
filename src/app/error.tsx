@@ -18,7 +18,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
     return (
         <div className={styles.page}>
             <SiteHeader />
-            <div className={styles.content}>
+            <main id="main" className={styles.content}>
                 <span className={styles.icon}>
                     <WarningCircleIcon size={20} weight="light" />
                 </span>
@@ -34,7 +34,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
                     </Link>
                 </div>
                 {error.digest && <span className={styles.code}>{t("errorPage.code", { code: error.digest })}</span>}
-            </div>
+            </main>
         </div>
     );
 }

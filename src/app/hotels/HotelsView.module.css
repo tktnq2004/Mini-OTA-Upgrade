@@ -3,7 +3,7 @@
 }
 
 .layout {
-    max-width: 1180px;
+    max-width: 1200px;
     margin: 0 auto;
     padding: 20px 20px 60px;
     display: flex;
@@ -206,5 +206,30 @@
     /* Xếp dọc thì flex-basis 220px thành chiều cao — giữ đúng 38px. */
     .searchBox {
         flex: none;
+    }
+}
+
+@media (max-width: 640px) {
+    .layout {
+        padding-inline: 16px;
+    }
+
+    .searchBox {
+        height: 42px;
+    }
+
+    .searchInput {
+        font-size: 16px;
+    }
+
+    .nearbyButton {
+        height: 42px;
+    }
+}
+
+@media (max-width: 640px) {
+    .clearButton {
+        padding-block: 12px;
+        margin-block: -12px;
     }
 }

@@ -147,7 +147,7 @@ export default function AccountView() {
         return (
             <div className={styles.page}>
                 <SiteHeader />
-                <div className={styles.layout} aria-busy="true" aria-label={t("account.loading")}>
+                <main id="main" className={styles.layout} aria-busy="true" aria-label={t("account.loading")}>
                     {pageHeader}
                     <div className={styles.card} aria-hidden>
                         <div className={styles.grid}>
@@ -168,7 +168,7 @@ export default function AccountView() {
                         <Skeleton width="80%" height={12} />
                         <Skeleton width={160} height={38} />
                     </div>
-                </div>
+                </main>
             </div>
         );
     }
@@ -177,9 +177,9 @@ export default function AccountView() {
         return (
             <div className={styles.page}>
                 <SiteHeader />
-                <div className={styles.layout}>
+                <main id="main" className={styles.layout}>
                     <p className={controls.error}>{loadError || t("account.loadError")}</p>
-                </div>
+                </main>
             </div>
         );
     }
@@ -188,7 +188,7 @@ export default function AccountView() {
         <div className={styles.page}>
             <SiteHeader />
 
-            <div className={styles.layout}>
+            <main id="main" className={styles.layout}>
                 {pageHeader}
 
                 <form className={styles.card} onSubmit={handleSubmit}>
@@ -305,7 +305,7 @@ export default function AccountView() {
                                 : t("account.changePasswordButton")}
                     </button>
                 </div>
-            </div>
+            </main>
         </div>
     );
 }

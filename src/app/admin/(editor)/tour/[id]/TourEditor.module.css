@@ -5,7 +5,7 @@
 .root {
     --glass: color-mix(in srgb, var(--color-panel) 88%, transparent);
     --glass-border: color-mix(in srgb, var(--color-border) 85%, transparent);
-    --warn: #b45309;
+    --warn: var(--color-warning);
     --dirty: #f59e0b;
 
     position: fixed;
@@ -19,7 +19,7 @@
 }
 
 :global(:root[data-theme="dark"]) .root {
-    --warn: #fbbf24;
+    --warn: var(--color-warning);
 }
 
 .center {

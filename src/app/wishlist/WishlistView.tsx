@@ -113,7 +113,7 @@ export default function WishlistView() {
         <div className={styles.page}>
             <SiteHeader />
 
-            <div className={styles.layout}>
+            <main id="main" className={styles.layout}>
                 <div className={styles.header}>
                     <h1>{t("wishlist.title")}</h1>
                 </div>
@@ -304,7 +304,7 @@ export default function WishlistView() {
                         </div>
                     </>
                 )}
-            </div>
+            </main>
         </div>
     );
 }

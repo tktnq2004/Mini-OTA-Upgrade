@@ -63,7 +63,7 @@ export default function PaymentView() {
     return (
         <div className={styles.page}>
             <SiteHeader />
-            <div className={styles.layout}>
+            <main id="main" className={styles.layout}>
                 <div
                     className={styles.card}
                     aria-busy={state === "loading" || undefined}
@@ -172,7 +172,7 @@ export default function PaymentView() {
                         </>
                     )}
                 </div>
-            </div>
+            </main>
         </div>
     );
 }

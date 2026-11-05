@@ -114,3 +114,23 @@
         height: 34px;
     }
 }
+
+@media (max-width: 640px) {
+    .selectControl,
+    .dateControl,
+    .bar .selectControl,
+    .bar .dateControl {
+        height: 42px;
+        font-size: 16px;
+    }
+
+    .submit,
+    .bar .submit {
+        height: 42px;
+        font-size: 13.5px;
+    }
+
+    .bar .label {
+        font-size: 12px;
+    }
+}

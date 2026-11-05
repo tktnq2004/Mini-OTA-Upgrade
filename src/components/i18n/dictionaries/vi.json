@@ -400,6 +400,9 @@
     "room.detail.policySmoking": "Không hút thuốc trong phòng",
     "room.detail.otherRoomsTitle": "Phòng khác tại khách sạn này",
     "room.detail.viewPanorama": "Xem Panorama 360°",
+    "room.detail.pickDates": "Chọn ngày",
+    "map.editSearch": "Đổi tìm kiếm",
+    "a11y.skipToContent": "Bỏ qua, tới nội dung chính",
 
     "panorama.close": "Đóng",
     "panorama.return": "Quay lại",
@@ -463,6 +466,7 @@
     "checkout.noteLabel": "Ghi chú cho khách sạn",
     "checkout.notePlaceholder": "Yêu cầu đặc biệt (tuỳ chọn): giờ nhận phòng sớm, tầng cao...",
     "checkout.continueToPayment": "Tiếp tục đến thanh toán",
+    "checkout.verifyToContinue": "Nhập mã xác minh để tiếp tục",
     "checkout.payAtHotel": "Thanh toán tại khách sạn",
     "checkout.payByCard": "Thẻ tín dụng / ghi nợ",
     "checkout.payByMomo": "Ví MoMo",
@@ -525,7 +529,7 @@
     "guestOtp.checkoutTitle": "Xác minh email",
     "guestOtp.checkoutHint": "Để bảo vệ đặt phòng của bạn, nhập mã xác nhận chúng tôi vừa gửi qua email. Phòng chỉ được giữ sau bước này.",
     "guestOtp.checkoutSubmit": "Xác nhận & giữ phòng",
-    "guestOtp.backToForm": "← Sửa thông tin đặt phòng",
+    "guestOtp.backToForm": "Sửa thông tin đặt phòng",
 
     "checkoutPayment.pageTitle": "Hoàn tất thanh toán",
     "checkoutPayment.loading": "Đang tải thông tin đặt phòng...",

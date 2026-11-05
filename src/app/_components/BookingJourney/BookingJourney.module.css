@@ -415,7 +415,7 @@
     transform-origin: 50% 100%;
     transition:
         opacity 0.3s ease var(--d, 0s),
-        transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) var(--d, 0s),
+        transform 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) var(--d, 0s),
         background 0.3s ease,
         color 0.3s ease,
         border-color 0.3s ease;
@@ -447,7 +447,7 @@
     color: var(--color-accent-ink);
     transition:
         opacity 0.3s ease var(--d, 0s),
-        transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) var(--d, 0s),
+        transform 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) var(--d, 0s),
         background 0.3s ease 0.75s,
         color 0.3s ease 0.75s,
         border-color 0.3s ease 0.75s;

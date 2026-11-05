@@ -47,8 +47,7 @@
 .resultText {
     display: inline-flex;
     align-items: center;
-    /* inline-flex bỏ text chỉ có khoảng trắng — giữ dấu cách giữa số và chữ "khách sạn". */
-    white-space: pre-wrap;
+    gap: 4px;
 }
 
 /* Chip luôn nền trắng (đè lên bản đồ) nên số xương cũng cố định màu sáng, không theo theme. */
@@ -241,4 +240,75 @@
     z-index: 15;
     width: min(520px, calc(100% - 32px));
     transform: translateX(-50%);
+}
+
+/* Chỉ trên mobile mới thu gọn; desktop luôn hiện đủ form. */
+.searchToggle {
+    display: none;
+}
+
+.caretOpen {
+    transform: rotate(180deg);
+}
+
+@media (max-width: 720px) {
+    .searchToggle {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        min-height: 44px;
+        padding: 0 14px;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: var(--radius-md);
+        background: #ffffff;
+        color: #16181d;
+        font: inherit;
+        font-size: 13.5px;
+        font-weight: 600;
+        text-align: left;
+        cursor: pointer;
+        box-shadow: var(--shadow-pop);
+    }
+
+    .searchSummary {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .searchPanel {
+        display: none;
+    }
+}
+
+@media (max-width: 640px) {
+    .searchBox {
+        height: 42px;
+    }
+
+    .searchInput {
+        font-size: 16px;
+    }
+
+    .nearbyButton {
+        height: 42px;
+    }
+
+    .clearChip {
+        padding-block: 8px;
+    }
+}
+
+@media (max-width: 640px) {
+    .toolRow {
+        flex-wrap: nowrap;
+    }
+
+    .searchBox {
+        flex: 1 1 0;
+        min-width: 0;
+    }
 }

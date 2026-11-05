@@ -266,7 +266,7 @@
 .dirty {
     font-size: 13px;
     font-weight: 600;
-    color: #b45309;
+    color: var(--color-warning);
 }
 
 .clean {
@@ -278,10 +278,6 @@
     font-size: 13px;
     font-weight: 600;
     color: var(--color-error);
-}
-
-:global([data-theme="dark"]) .dirty {
-    color: #fdba74;
 }
 
 @media (max-width: 860px) {

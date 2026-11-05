@@ -13,6 +13,7 @@ export default function HotelCardSkeleton() {
                 <Skeleton width="72%" height={16} />
                 <Skeleton width="90%" height={12} />
                 <Skeleton width="55%" height={12} />
+                <Skeleton width="45%" height={18} />
                 <div className={styles.skeletonButton}>
                     <Skeleton height={34} />
                 </div>

@@ -44,3 +44,20 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+@media (max-width: 640px) {
+    .stepper {
+        height: 42px;
+        padding: 0 4px;
+    }
+
+    .btn {
+        width: 34px;
+        height: 34px;
+        font-size: 16px;
+    }
+
+    .value {
+        font-size: 14px;
+    }
+}

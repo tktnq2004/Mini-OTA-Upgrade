@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { ArrowSquareOutIcon, CaretDownIcon, CaretRightIcon, WarningIcon } from "@phosphor-icons/react";
-import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
 import type { Room } from "@/lib/admin/types";
 import { panoramaReviewHref } from "@/lib/media/review";
 import type { TourScene } from "@/lib/tour/types";
@@ -17,6 +17,14 @@ interface SceneRailProps {
   coverage: TourCoverage;
   selectedId: string | null;
   onSelect: (sceneId: string) => void;
+}
+
+// Không dùng ảnh gốc 4096x2048 cho khung 76x44: mỗi ảnh chiếm ~33 MB khi giải mã, Chrome phải giải mã
+// lại liên tục lúc lăn nên cột bị giật. Ảnh lỗi thì để trống, lộ nền của sceneThumbWrap.
+function SceneThumb({ src }: { src: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  return <Image src={src} alt="" fill sizes="76px" className={styles.sceneThumb} onError={() => setFailed(true)} />;
 }
 
 // Cột trái = CÂY panorama theo cấp: "Hành lang / Khách sạn" rồi từng phòng. Editor chỉ CHỌN
@@ -79,14 +87,7 @@ export default function SceneRail({ hotelId, scenes, rooms, coverage, selectedId
           }}
         >
           <span className={styles.sceneThumbWrap}>
-            <ImageWithFallback
-              src={scene.imageUrl}
-              alt=""
-              crossOrigin="anonymous"
-              className={styles.sceneThumb}
-              fallbackClassName={styles.sceneThumb}
-              fallback={<span />}
-            />
+            <SceneThumb key={scene.imageUrl} src={scene.imageUrl} />
             <a
               href={panoramaReviewHref(scene.imageUrl, scene.nameVi)}
               target="_blank"

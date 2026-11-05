@@ -88,7 +88,7 @@
 }
 
 .hint {
-    font-size: 11.5px;
+    font-size: 12px;
     color: var(--color-text-faint);
 }
 
@@ -194,7 +194,7 @@
 .statusBadge {
     padding: 3px 10px;
     border-radius: 999px;
-    font-size: 11.5px;
+    font-size: 12px;
     font-weight: 600;
     background: var(--color-inset);
     color: var(--color-text-muted);
@@ -264,7 +264,7 @@
 .bookedOn {
     display: block;
     margin-top: 2px;
-    font-size: 11.5px;
+    font-size: 12px;
     color: var(--color-text-faint);
 }
 
@@ -402,7 +402,7 @@
 
 .bookingSaved {
     margin-left: 8px;
-    font-size: 11.5px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--color-error);
 }

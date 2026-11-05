@@ -4,7 +4,7 @@ import { MapPinIcon, BuildingsIcon, NavigationArrowIcon } from "@phosphor-icons/
 import ImageWithFallback from "@/components/ImageWithFallback/ImageWithFallback";
 import type { Hotel } from "@/lib/hotels/types";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
-import { formatDistanceKm } from "@/lib/format";
+import { formatDistanceKm, formatVnd } from "@/lib/format";
 import styles from "./HotelCard.module.css";
 
 interface HotelCardProps {
@@ -40,6 +40,14 @@ export default function HotelCard({ hotel, distanceKm, onBook }: HotelCardProps)
                     <MapPinIcon size={13} />
                     <span>{hotel.address}</span>
                 </p>
+
+                {/* averagePrice là AVG() các phòng nên có thể lẻ đồng — làm tròn như HotelMiniCard. */}
+                {hotel.averagePrice !== null && (
+                    <p className={styles.price}>
+                        <strong>{formatVnd(Math.round(hotel.averagePrice))}</strong>
+                        <span>{t("room.perNight")}</span>
+                    </p>
+                )}
 
                 <button type="button" className={styles.bookButton} onClick={onBook}>
                     {t("map.viewRoomsAndBook")}

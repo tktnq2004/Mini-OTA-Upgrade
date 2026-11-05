@@ -107,7 +107,7 @@ export default function HotelsView() {
         <div className={styles.page}>
             <SiteHeader />
 
-            <div className={styles.layout}>
+            <main id="main" className={styles.layout}>
                 <div className={styles.heading}>
                     <h1>{t("hotels.title")}</h1>
                     <p>{t("hotels.subtitle")}</p>
@@ -215,7 +215,7 @@ export default function HotelsView() {
                 )}
 
                 <Pagination page={currentPage} totalPages={totalPages} onChange={onPageChange} />
-            </div>
+            </main>
         </div>
     );
 }

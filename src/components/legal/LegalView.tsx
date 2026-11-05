@@ -17,7 +17,7 @@ export default function LegalView({ doc }: { doc: LegalDocKey }) {
     return (
         <div className={styles.page}>
             <SiteHeader />
-            <main className={styles.main}>
+            <main id="main" className={styles.main}>
                 <header className={styles.head}>
                     <span className={styles.updated}>
                         {t("legal.updated", { date: formatDateVn(LEGAL_UPDATED_AT, language) })}

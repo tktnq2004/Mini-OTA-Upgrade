@@ -7,6 +7,46 @@
     margin: 0 auto;
 }
 
+.wrapInline {
+    max-width: none;
+    margin: 0;
+}
+
+/* Thẻ đủ rộng: ô nhập mã + nút xác nhận chung 1 hàng, gửi lại + sửa thông tin chung 1 hàng,
+   để khối vừa khoảng trống dưới thông tin khách ở checkout. Điện thoại giữ xếp dọc. */
+@media (min-width: 641px) {
+    .codeFormInline {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: end;
+    }
+
+    .codeFormInline > * {
+        grid-column: 1 / -1;
+    }
+
+    .codeFormInline > :has(> input),
+    .codeFormInline > button[type="submit"] {
+        grid-column: auto;
+    }
+
+    /* Lỗi hiện dưới hàng nhập mã, không chen giữa ô nhập và nút. */
+    .codeFormInline > p[class*="error"] {
+        order: 1;
+    }
+
+    .codeFormInline > .actions {
+        grid-column: 1;
+        order: 2;
+    }
+
+    .codeFormInline > .cancel {
+        grid-column: 2;
+        order: 2;
+        margin-top: 0;
+    }
+}
+
 .title {
     font-size: 16px;
     font-weight: 700;
@@ -22,7 +62,14 @@
 .hint strong {
     color: var(--color-text);
     font-weight: 600;
-    word-break: break-all;
+    overflow-wrap: anywhere;
+}
+
+/* Màn cảm ứng (điện thoại, tablet): nút dạng link vẫn đủ cao để bấm. */
+@media (max-width: 1080px) {
+    .cancel {
+        min-height: 40px;
+    }
 }
 
 .actions {

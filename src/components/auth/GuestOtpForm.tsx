@@ -26,6 +26,8 @@ interface GuestOtpFormProps {
     onVerified: () => void | Promise<void>;
     onCancel?: () => void;
     cancelLabel?: string;
+    // Nằm trong 1 thẻ của trang (checkout), không phải đứng giữa trang: căn trái.
+    inline?: boolean;
 }
 
 // Xác minh email bằng OTP cho khách vãng lai — dùng ở checkout (trước khi
@@ -40,6 +42,7 @@ export default function GuestOtpForm({
     onVerified,
     onCancel,
     cancelLabel,
+    inline,
 }: GuestOtpFormProps) {
     const { t } = useLanguage();
     const { sendGuestOtp, verifyGuest } = useAccount();
@@ -113,13 +116,13 @@ export default function GuestOtpForm({
     };
 
     const cancelButton = onCancel && (
-        <button type="button" className={form.forgotPasswordLink} style={{ alignSelf: "center" }} onClick={onCancel}>
+        <button type="button" className={`${form.forgotPasswordLink} ${styles.cancel}`} style={{ alignSelf: "center" }} onClick={onCancel}>
             {cancelLabel ?? t("guestOtp.cancel")}
         </button>
     );
 
     return (
-        <div className={styles.wrap}>
+        <div className={inline ? `${styles.wrap} ${styles.wrapInline}` : styles.wrap}>
             {title && <h2 className={styles.title}>{title}</h2>}
             {hint && <p className={styles.hint}>{hint}</p>}
 
@@ -148,7 +151,7 @@ export default function GuestOtpForm({
                     {cancelButton}
                 </form>
             ) : (
-                <form className={form.form} onSubmit={handleCodeSubmit}>
+                <form className={inline ? `${form.form} ${styles.codeFormInline}` : form.form} onSubmit={handleCodeSubmit}>
                     <p className={styles.hint}>
                         {t("auth.otpSentSubtitlePrefix")} <strong>{email}</strong>
                     </p>

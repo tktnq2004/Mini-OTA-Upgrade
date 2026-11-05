@@ -400,6 +400,9 @@
     "room.detail.policySmoking": "No smoking in the room",
     "room.detail.otherRoomsTitle": "Other rooms at this hotel",
     "room.detail.viewPanorama": "View 360° tour",
+    "room.detail.pickDates": "Select dates",
+    "map.editSearch": "Edit search",
+    "a11y.skipToContent": "Skip to main content",
 
     "panorama.close": "Close",
     "panorama.return": "Return",
@@ -463,6 +466,7 @@
     "checkout.noteLabel": "Note to the hotel",
     "checkout.notePlaceholder": "Special requests (optional): early check-in, high floor...",
     "checkout.continueToPayment": "Continue to payment",
+    "checkout.verifyToContinue": "Enter the code to continue",
     "checkout.payAtHotel": "Pay at the hotel",
     "checkout.payByCard": "Credit / debit card",
     "checkout.payByMomo": "MoMo e-wallet",
@@ -525,7 +529,7 @@
     "guestOtp.checkoutTitle": "Verify your email",
     "guestOtp.checkoutHint": "To protect your booking, enter the code we just emailed you. Your room is held only after this step.",
     "guestOtp.checkoutSubmit": "Verify & hold room",
-    "guestOtp.backToForm": "← Edit booking details",
+    "guestOtp.backToForm": "Edit booking details",
 
     "checkoutPayment.pageTitle": "Complete your payment",
     "checkoutPayment.loading": "Loading your booking...",

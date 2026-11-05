@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -104,6 +104,22 @@ export default function RoomDetailView({ hotel, room, thumbnail, tour, roomThumb
     const selected = isSaved(hotel.id, room.id);
     const hotelHref = `/hotel/${hotel.id}?${searchParams.toString()}`;
 
+    // Thanh đặt phòng ở đáy màn hình (mobile/tablet) chỉ hiện khi thẻ đặt phòng đã khuất.
+    const bookingRef = useRef<HTMLDivElement>(null);
+    const [bookingInView, setBookingInView] = useState(false);
+    useEffect(() => {
+        const el = bookingRef.current;
+        if (!el) return;
+        const observer = new IntersectionObserver(([entry]) => setBookingInView(entry.isIntersecting));
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, []);
+
+    const scrollToBooking = () => {
+        const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        bookingRef.current?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+    };
+
     const toggleWishlist = () => {
         if (selected) {
             remove(hotel.id, room.id);
@@ -131,7 +147,7 @@ export default function RoomDetailView({ hotel, room, thumbnail, tour, roomThumb
         <div className={styles.page}>
             <SiteHeader />
 
-            <div className={styles.layout}>
+            <main id="main" className={styles.layout}>
                 <Link href={hotelHref} className={styles.backLink}>
                     <ArrowLeftIcon size={14} weight="bold" /> {t("room.detail.backToHotel")}
                 </Link>
@@ -236,29 +252,10 @@ export default function RoomDetailView({ hotel, room, thumbnail, tour, roomThumb
                         </ul>
                     </section>
 
-                    {otherRooms.length > 0 && (
-                        <section className={styles.section}>
-                            <h2>{t("room.detail.otherRoomsTitle")}</h2>
-                            <div className={styles.otherRoomsGrid}>
-                                {otherRooms.map((r) => (
-                                    <RoomCard
-                                        key={r.id}
-                                        hotelId={hotel.id}
-                                        room={r}
-                                        coverImage={roomThumbnails[r.id]}
-                                        nights={nights || 1}
-                                        checkin={checkin ?? ""}
-                                        checkout={checkout ?? ""}
-                                        guests={guests}
-                                    />
-                                ))}
-                            </div>
-                        </section>
-                    )}
                 </div>
 
                 <aside className={styles.bookingColumn}>
-                    <div className={styles.bookingCard}>
+                    <div ref={bookingRef} className={styles.bookingCard}>
                         {headline && <DiscountTag discount={headline.discount} />}
                         <div className={styles.priceHead}>
                             {headline && <s className={styles.priceOriginal}>{formatVnd(room.price)}</s>}
@@ -298,7 +295,11 @@ export default function RoomDetailView({ hotel, room, thumbnail, tour, roomThumb
                         )}
                         <div className={styles.priceBreakdown}>
                             <span>{t("wishlist.summaryTotal")}</span>
-                            <strong>{nights > 0 ? formatVnd(total) : t("checkout.pickDatesForTotal")}</strong>
+                            {nights > 0 ? (
+                                <strong>{formatVnd(total)}</strong>
+                            ) : (
+                                <span className={styles.totalPrompt}>{t("checkout.pickDatesForTotal")}</span>
+                            )}
                         </div>
 
                         <div className={styles.bookingActions}>
@@ -316,7 +317,43 @@ export default function RoomDetailView({ hotel, room, thumbnail, tour, roomThumb
                         </div>
                     </div>
                 </aside>
-            </div>
+
+                {otherRooms.length > 0 && (
+                    <section className={`${styles.section} ${styles.otherRooms}`}>
+                        <h2>{t("room.detail.otherRoomsTitle")}</h2>
+                        <div className={styles.otherRoomsGrid}>
+                            {otherRooms.map((r) => (
+                                <RoomCard
+                                    key={r.id}
+                                    hotelId={hotel.id}
+                                    room={r}
+                                    coverImage={roomThumbnails[r.id]}
+                                    nights={nights || 1}
+                                    checkin={checkin ?? ""}
+                                    checkout={checkout ?? ""}
+                                    guests={guests}
+                                />
+                            ))}
+                        </div>
+                    </section>
+                )}
+            </main>
+
+            {!bookingInView && (
+                <div className={styles.mobileBar}>
+                    <div className={styles.mobileBarPrice}>
+                        <strong>{formatVnd(nights > 0 ? total : nightlyPrice)}</strong>
+                        <span>{nights > 0 ? t("hotel.nightsSuffix", { count: nights }) : t("room.perNight")}</span>
+                    </div>
+                    <button
+                        type="button"
+                        className={styles.bookNowButton}
+                        onClick={canBook ? bookNow : scrollToBooking}
+                    >
+                        {canBook ? t("room.bookNow") : t("room.detail.pickDates")}
+                    </button>
+                </div>
+            )}
 
             {showPanorama && panoramaTour && (
                 <PanoramaViewerModal

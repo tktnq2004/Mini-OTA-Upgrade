@@ -108,3 +108,14 @@
     color: var(--color-error);
     margin: -4px 0 0;
 }
+
+/* iOS tự phóng to khi bấm vào ô nhập có chữ dưới 16px. */
+@media (max-width: 640px) {
+    .input {
+        font-size: 16px;
+    }
+
+    .input:not(textarea) {
+        height: 42px;
+    }
+}
